@@ -6,7 +6,7 @@
   "types": "types/index.d.ts",
   "scripts": {
     "test": "node tests/index.js",
-    "test:unit": "node -e \"(async()=>{ await require('./tests/unit/detectors.test'); await require('./tests/unit/rateLimiter.test'); await require('./tests/unit/memoryStore.test'); await require('./tests/unit/redisStore.test'); await require('./tests/unit/engine.test'); await require('./tests/unit/applicationGuards.test'); })().catch((err)=>{ console.error(err); process.exit(1); })\"",
+    "test:unit": "node -e \"(async()=>{ await require('./tests/unit/detectors.test'); await require('./tests/unit/rateLimiter.test'); await require('./tests/unit/memoryStore.test'); await require('./tests/unit/redisStore.test'); await require('./tests/unit/policyMatcher.test'); await require('./tests/unit/keyBuilder.test'); await require('./tests/unit/bruteForceGuard.test'); await require('./tests/unit/engine.test'); await require('./tests/unit/applicationGuards.test'); })().catch((err)=>{ console.error(err); process.exit(1); })\"",
     "test:integ": "node tests/integration/middleware.test.js",
     "example": "node examples/express-basic.js",
     "test:http": "node scripts/run-tests.js",
@@ -21,7 +21,9 @@
     },
     "./core": "./src/core/index.js",
     "./detectors": "./src/detectors/index.js",
-    "./stores": "./src/stores/index.js"
+    "./stores": "./src/stores/index.js",
+    "./policies": "./src/policies/index.js",
+    "./brute-force": "./src/brute-force/index.js"
   },
   "files": [
     "src/",
