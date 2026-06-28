@@ -2,6 +2,14 @@
 
 const { Parry_DDoS } = require('../../src/middleware/index.js');
 const { SQL_MALICIOUS, XSS_MALICIOUS, NOSQL_MALICIOUS_OBJECTS } = require('../fixtures/payloads');
+const {
+  HPP_DUPLICATE_QUERY,
+  HPP_ALLOWED_QUERY,
+  PROTOTYPE_POLLUTION_BODY,
+  PATH_TRAVERSAL_VALUES,
+  PATH_TRAVERSAL_CLEAN_VALUES,
+  SHAPE_LIMITS,
+} = require('../fixtures/application-layer');
 
 let passed = 0,
   failed = 0;
@@ -204,6 +212,124 @@ async function runAll() {
     mockReq({ query: { id: '<script>alert(1)</script>' } })
   );
   assert('Detects XSS in query param', qRes._status === 400 && !qNext);
+
+  console.log('\n── Middleware — Application-Layer Guards ───────────────────');
+  let structuredEvent = null;
+  const mwHpp = Parry_DDoS({
+    hpp: { enabled: true },
+    rateLimit: false,
+    logThreats: false,
+    onThreat: (entry) => {
+      structuredEvent = entry;
+    },
+  });
+  const { res: hppRes, next: hppNext } = await run(
+    mwHpp,
+    mockReq({ query: HPP_DUPLICATE_QUERY })
+  );
+  assert('Blocks duplicated query param when HPP is enabled', hppRes._status === 400 && !hppNext);
+  assert(
+    'HPP response includes detector and reason',
+    hppRes._body?.threats?.some(
+      (t) => t.detector === 'HTTP_PARAMETER_POLLUTION' && t.reason?.includes('Duplicate')
+    )
+  );
+  assert(
+    'Threat event includes structured top-level fields',
+    structuredEvent?.detector === 'HTTP_PARAMETER_POLLUTION' &&
+      structuredEvent.severity === 'medium' &&
+      structuredEvent.reason &&
+      structuredEvent.target === 'query.id' &&
+      structuredEvent.ip
+  );
+
+  const mwHppAllowed = Parry_DDoS({
+    hpp: { enabled: true, allowDuplicateParamsFor: ['tags'] },
+    rateLimit: false,
+    logThreats: false,
+  });
+  const { next: hppAllowedNext } = await run(mwHppAllowed, mockReq({ query: HPP_ALLOWED_QUERY }));
+  assert('Allows configured duplicate query params', hppAllowedNext);
+
+  const mwHppDisabled = Parry_DDoS({
+    hpp: { enabled: false },
+    rateLimit: false,
+    logThreats: false,
+  });
+  const { next: hppDisabledNext } = await run(
+    mwHppDisabled,
+    mockReq({ query: HPP_DUPLICATE_QUERY })
+  );
+  assert('Allows duplicated query param when HPP is disabled', hppDisabledNext);
+
+  const mwProto = Parry_DDoS({ rateLimit: false, logThreats: false });
+  const { res: protoRes, next: protoNext } = await run(
+    mwProto,
+    mockReq({ body: PROTOTYPE_POLLUTION_BODY })
+  );
+  assert('Blocks Prototype Pollution payloads by default', protoRes._status === 400 && !protoNext);
+
+  const mwProtoDisabled = Parry_DDoS({
+    prototypePollution: { enabled: false },
+    rateLimit: false,
+    logThreats: false,
+  });
+  const { next: protoDisabledNext } = await run(
+    mwProtoDisabled,
+    mockReq({ body: PROTOTYPE_POLLUTION_BODY })
+  );
+  assert('Allows Prototype Pollution payload when detector is disabled', protoDisabledNext);
+
+  const mwTraversal = Parry_DDoS({ rateLimit: false, logThreats: false });
+  for (let i = 0; i < PATH_TRAVERSAL_VALUES.length; i++) {
+    const { res, next } = await run(
+      mwTraversal,
+      mockReq({ query: { file: PATH_TRAVERSAL_VALUES[i] } })
+    );
+    assert(`Blocks Path Traversal payload #${i + 1}`, res._status === 400 && !next);
+  }
+  const { next: traversalCleanNext } = await run(
+    mwTraversal,
+    mockReq({ query: { note: PATH_TRAVERSAL_CLEAN_VALUES[0] } })
+  );
+  assert('Allows clean path-like text', traversalCleanNext);
+
+  const mwTraversalDisabled = Parry_DDoS({
+    pathTraversal: { enabled: false },
+    rateLimit: false,
+    logThreats: false,
+  });
+  const { next: traversalDisabledNext } = await run(
+    mwTraversalDisabled,
+    mockReq({ query: { file: PATH_TRAVERSAL_VALUES[0] } })
+  );
+  assert('Allows Path Traversal payload when detector is disabled', traversalDisabledNext);
+
+  const mwShape = Parry_DDoS({
+    requestShape: { ...SHAPE_LIMITS },
+    rateLimit: false,
+    logThreats: false,
+  });
+  const { res: shapeRes, next: shapeNext } = await run(
+    mwShape,
+    mockReq({ body: { text: 'x'.repeat(SHAPE_LIMITS.maxStringLength + 1) } })
+  );
+  assert('Blocks request shape limit violations', shapeRes._status === 400 && !shapeNext);
+  assert(
+    'Request shape response includes reason',
+    shapeRes._body?.threats?.some((t) => t.detector === 'REQUEST_SHAPE' && t.reason)
+  );
+
+  const mwShapeDisabled = Parry_DDoS({
+    requestShape: { enabled: false, ...SHAPE_LIMITS },
+    rateLimit: false,
+    logThreats: false,
+  });
+  const { next: shapeDisabledNext } = await run(
+    mwShapeDisabled,
+    mockReq({ body: { text: 'x'.repeat(SHAPE_LIMITS.maxStringLength + 1) } })
+  );
+  assert('Allows request shape violation when guard is disabled', shapeDisabledNext);
 
   console.log('\n── Middleware — Ban for suspicious activity ──────────────────');
   const mwBan = Parry_DDoS({
