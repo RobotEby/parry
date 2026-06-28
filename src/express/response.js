@@ -1,7 +1,8 @@
 'use strict';
 
 function setRateLimitHeaders(res, config, rateLimitResult) {
-  res.setHeader('X-RateLimit-Limit', config.maxRequests);
+  const limit = config.rateLimitConfig?.maxRequests || config.maxRequests;
+  res.setHeader('X-RateLimit-Limit', limit);
   res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
   res.setHeader('X-RateLimit-Reset', rateLimitResult.resetAt);
 }
