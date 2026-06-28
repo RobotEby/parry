@@ -83,6 +83,63 @@ class RedisStore {
     return result;
   }
 
+  async incrementCounter(key, ttlMs, metadata = {}) {
+    const result = await this._incrementWithTtl(this._counterKey(key), normalizeKey(key), ttlMs);
+    result.metadata = metadata;
+    return result;
+  }
+
+  async getCounter(key) {
+    const normalizedKey = normalizeKey(key);
+    const redisKey = this._counterKey(normalizedKey);
+    const [count, ttlMs] = await Promise.all([
+      this.client.get(redisKey),
+      this._pTTL(redisKey),
+    ]);
+
+    return counterResult(normalizedKey, Number(count || 0), ttlMs);
+  }
+
+  async resetCounter(key) {
+    return this.client.del(this._counterKey(key));
+  }
+
+  async blockKey(key, ttlMs, metadata = {}) {
+    const normalizedKey = normalizeKey(key);
+    const blockExpiresAt = Date.now() + ttlMs;
+    const payload = JSON.stringify({ metadata, blockExpiresAt });
+
+    await this.client.set(this._blockKey(normalizedKey), payload, { PX: ttlMs });
+
+    return { key: normalizedKey, blocked: true, blockExpiresAt, metadata };
+  }
+
+  async isBlocked(key) {
+    const normalizedKey = normalizeKey(key);
+    const redisKey = this._blockKey(normalizedKey);
+    const value = await this.client.get(redisKey);
+
+    if (!value) return { key: normalizedKey, blocked: false, blockExpiresAt: null, metadata: null };
+
+    const ttlMs = await this._pTTL(redisKey);
+    if (ttlMs <= 0) {
+      await this.client.del(redisKey);
+      return { key: normalizedKey, blocked: false, blockExpiresAt: null, metadata: null };
+    }
+
+    const parsed = parseJson(value);
+    return {
+      key: normalizedKey,
+      blocked: true,
+      blockExpiresAt: parsed?.blockExpiresAt || Date.now() + ttlMs,
+      metadata: parsed?.metadata || null,
+    };
+  }
+
+  async unblockKey(key) {
+    return this.client.del(this._blockKey(key));
+  }
+
   async close() {
     if (!this.closeClient) return;
     if (typeof this.client.quit === 'function') return this.client.quit();
@@ -133,6 +190,14 @@ class RedisStore {
 
   _key(type, key) {
     return `${this.prefix}:${type}:${normalizeKey(key)}`;
+  }
+
+  _counterKey(key) {
+    return `${this.prefix}:${normalizeKey(key)}:count`;
+  }
+
+  _blockKey(key) {
+    return `${this.prefix}:${normalizeKey(key)}:block`;
   }
 
   _pExpire(key, ttlMs) {
