@@ -49,6 +49,18 @@ async function runAll() {
   store.cleanup(Date.now());
   assert('cleanup does not remove active item', store.getRateLimit(activeKey).count === 1);
 
+  const counter = store.incrementCounter('bf:auth:ip:203.0.113.12', 100, { reason: 'test' });
+  const counter2 = store.incrementCounter('bf:auth:ip:203.0.113.12', 100, { reason: 'test' });
+  assert('Generic counter increments', counter.count === 1 && counter2.count === 2);
+  assert('Generic counter reads active value', store.getCounter('bf:auth:ip:203.0.113.12').count === 2);
+  store.resetCounter('bf:auth:ip:203.0.113.12');
+  assert('Generic counter resets', store.getCounter('bf:auth:ip:203.0.113.12').count === 0);
+
+  store.blockKey('bf:auth:ip:203.0.113.12', 100, { reason: 'test' });
+  assert('Generic block marks key blocked', store.isBlocked('bf:auth:ip:203.0.113.12').blocked);
+  store.unblockKey('bf:auth:ip:203.0.113.12');
+  assert('Generic unblock removes block', !store.isBlocked('bf:auth:ip:203.0.113.12').blocked);
+
   store.close();
 
   return { passed, failed };
