@@ -33,6 +33,19 @@ const DEFAULTS = {
   bruteForce: {
     enabled: false,
   },
+  events: {
+    maxEvents: 500,
+  },
+  admin: {
+    enabled: false,
+    allowMutations: false,
+  },
+  requestId: {
+    enabled: true,
+    header: 'x-request-id',
+    responseHeader: false,
+  },
+  debug: false,
 
   suspiciousThreshold: 5,
   banDurationMs: 300_000,
