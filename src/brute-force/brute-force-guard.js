@@ -3,7 +3,7 @@
 const { buildBruteForceKeys } = require('./key-builder');
 const { createAllowedResult, createBlockedResult } = require('./result');
 
-function createBruteForceContext({ policy, requestData, req, res, store, config, logger }) {
+function createBruteForceContext({ policy, requestData, req, res, store, config, logger, eventBus }) {
   const enabled = Boolean(policy?.bruteForce?.enabled);
   const keys = enabled ? buildBruteForceKeys(policy, requestData) : [];
   const state = {
@@ -12,7 +12,7 @@ function createBruteForceContext({ policy, requestData, req, res, store, config,
     processed: false,
   };
 
-  return { policy, requestData, req, res, store, config, logger, enabled, keys, state };
+  return { policy, requestData, req, res, store, config, logger, eventBus, enabled, keys, state };
 }
 
 function attachParryRequestApi(req, context) {
@@ -180,8 +180,8 @@ function createBruteForceEvent(context, type, details = {}) {
     severity: details.severity || 'medium',
     reason: details.reason,
     timestamp: new Date().toISOString(),
-    requestId: getHeader(context.requestData.headers, 'x-request-id'),
-    userAgent: getHeader(context.requestData.headers, 'user-agent'),
+    requestId: context.requestData.requestId || getHeader(context.requestData.headers, 'x-request-id'),
+    userAgent: context.requestData.userAgent || getHeader(context.requestData.headers, 'user-agent'),
   };
 }
 
@@ -196,10 +196,17 @@ function createStoreFailureEvent(context, error, mode) {
     timestamp: new Date().toISOString(),
     reason: error && error.message ? error.message : String(error),
     mode: mode || context.config.storeFailureMode || 'fail-open',
+    requestId: context.requestData.requestId || getHeader(context.requestData.headers, 'x-request-id'),
+    userAgent: context.requestData.userAgent || getHeader(context.requestData.headers, 'user-agent'),
   };
 }
 
 function emitEvent(context, event) {
+  if (context.eventBus && typeof context.eventBus.emitThreat === 'function') {
+    context.eventBus.emitThreat(event, { req: context.req, res: context.res });
+    return;
+  }
+
   if (context.logger && typeof context.logger.log === 'function') context.logger.log(event);
 
   if (context.config.onThreat) {
