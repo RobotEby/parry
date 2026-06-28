@@ -28,6 +28,11 @@ const DEFAULTS = {
   windowMs: 60_000,
   store: null,
   storeFailureMode: 'fail-open',
+  policies: [],
+  preset: 'off',
+  bruteForce: {
+    enabled: false,
+  },
 
   suspiciousThreshold: 5,
   banDurationMs: 300_000,
