@@ -1,8 +1,13 @@
 'use strict';
 
 function createThreatEvent({ ip, timestamp, method, url, threats }) {
+  const firstThreat = threats?.[0] || {};
   return {
     type: 'THREAT',
+    detector: firstThreat.detector,
+    severity: firstThreat.severity,
+    reason: firstThreat.reason,
+    target: firstThreat.field,
     ip,
     timestamp,
     method,
