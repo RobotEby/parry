@@ -2,7 +2,15 @@
 
 const { Parry_DDoS } = require('./middleware');
 const { RateLimiter, ThreatLogger } = require('./core');
-const { SQLInjectionDetector, XSSDetector, NoSQLDetector } = require('./detectors');
+const {
+  SQLInjectionDetector,
+  XSSDetector,
+  NoSQLDetector,
+  HPPDetector,
+  PrototypePollutionDetector,
+  PathTraversalDetector,
+  RequestShapeGuard,
+} = require('./detectors');
 
 module.exports = {
   Parry_DDoS,
@@ -11,4 +19,8 @@ module.exports = {
   SQLInjectionDetector,
   XSSDetector,
   NoSQLDetector,
+  HPPDetector,
+  PrototypePollutionDetector,
+  PathTraversalDetector,
+  RequestShapeGuard,
 };
