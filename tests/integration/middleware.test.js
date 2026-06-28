@@ -1,5 +1,6 @@
 'use strict';
 
+const { EventEmitter } = require('events');
 const { Parry_DDoS } = require('../../src/middleware/index.js');
 const { SQL_MALICIOUS, XSS_MALICIOUS, NOSQL_MALICIOUS_OBJECTS } = require('../fixtures/payloads');
 const {
@@ -40,9 +41,12 @@ function mockReq(overrides = {}) {
 }
 
 function mockRes() {
+  const emitter = new EventEmitter();
   const res = { _status: 200, _body: null, _headers: {} };
+  res.statusCode = 200;
   res.status = (s) => {
     res._status = s;
+    res.statusCode = s;
     return res;
   };
   res.json = (b) => {
@@ -52,6 +56,8 @@ function mockRes() {
   res.setHeader = (k, v) => {
     res._headers[k] = v;
   };
+  res.on = emitter.on.bind(emitter);
+  res.emit = emitter.emit.bind(emitter);
   return res;
 }
 
@@ -71,6 +77,34 @@ function run(mw, req) {
       finish();
     });
     Promise.resolve(maybePromise).then(finish).catch(reject);
+  });
+}
+
+function runWithRoute(mw, req, routeHandler) {
+  return new Promise((resolve, reject) => {
+    const res = mockRes();
+    let called = false;
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      resolve({ res, req, next: called });
+    };
+    const maybePromise = mw(req, res, async (error) => {
+      if (error) return reject(error);
+      called = true;
+      try {
+        await routeHandler(req, res);
+        res.emit('finish');
+        await new Promise((done) => setTimeout(done, 0));
+        finish();
+      } catch (routeError) {
+        reject(routeError);
+      }
+    });
+    Promise.resolve(maybePromise).then(() => {
+      if (!called) finish();
+    }).catch(reject);
   });
 }
 
@@ -222,6 +256,130 @@ async function runAll() {
     mockReq({ ip: '10.10.20.3', body: {}, query: {}, params: {} })
   );
   assert('fail-closed blocks when store fails', failClosedRes._status === 503 && !failClosedNext);
+
+  console.log('\n── Middleware — Brute Force Policies ──────────────────────');
+  const loginPolicy = {
+    name: 'auth-login',
+    match: { method: 'POST', path: '/login' },
+    bruteForce: {
+      enabled: true,
+      maxAttempts: 2,
+      windowMs: 60_000,
+      blockDurationMs: 60_000,
+      keys: ['ip', 'body.email', 'ip+body.email'],
+      resetOnSuccess: true,
+    },
+  };
+  const mwLogin = Parry_DDoS({
+    rateLimit: false,
+    logThreats: false,
+    policies: [loginPolicy],
+  });
+  const loginReq = (ip, body = {}) =>
+    mockReq({
+      method: 'POST',
+      url: '/login',
+      originalUrl: '/login',
+      ip,
+      body: { email: 'USER@example.com', password: 'super-secret', ...body },
+      query: {},
+      params: {},
+    });
+  const invalidLogin = (_req, res) => res.status(401).json({ success: false });
+
+  await runWithRoute(mwLogin, loginReq('10.20.30.1'), invalidLogin);
+  await runWithRoute(mwLogin, loginReq('10.20.30.1'), invalidLogin);
+  const { res: bruteBlocked, next: bruteBlockedNext } = await runWithRoute(
+    mwLogin,
+    loginReq('10.20.30.1'),
+    invalidLogin
+  );
+  assert('POST /login invalid credentials blocks after limit', bruteBlocked._status === 429 && !bruteBlockedNext);
+  assert('Brute force block includes Retry-After', 'Retry-After' in bruteBlocked._headers);
+  const blockedBody = JSON.stringify(bruteBlocked._body);
+  assert(
+    'Brute force response does not leak email or password',
+    !blockedBody.includes('USER@example.com') && !blockedBody.includes('super-secret')
+  );
+
+  const mwLoginReset = Parry_DDoS({
+    rateLimit: false,
+    logThreats: false,
+    policies: [loginPolicy],
+  });
+  await runWithRoute(mwLoginReset, loginReq('10.20.30.2'), invalidLogin);
+  await runWithRoute(mwLoginReset, loginReq('10.20.30.2'), (_req, res) =>
+    res.status(200).json({ success: true })
+  );
+  await runWithRoute(mwLoginReset, loginReq('10.20.30.2'), invalidLogin);
+  const { next: resetStillAllowed } = await runWithRoute(
+    mwLoginReset,
+    loginReq('10.20.30.2'),
+    invalidLogin
+  );
+  assert('POST /login success resets brute force counter', resetStillAllowed);
+
+  const mwRouteRate = Parry_DDoS({
+    rateLimit: { enabled: true, max: 100, windowMs: 60_000 },
+    logThreats: false,
+    policies: [
+      {
+        name: 'login-route-rate',
+        match: { method: 'POST', path: '/login' },
+        rateLimit: { enabled: true, max: 1, windowMs: 60_000, key: 'ip' },
+      },
+    ],
+  });
+  await runWithRoute(mwRouteRate, loginReq('10.20.30.3'), (_req, res) =>
+    res.status(200).json({ ok: true })
+  );
+  const { res: routeLimited, next: routeLimitedNext } = await runWithRoute(
+    mwRouteRate,
+    loginReq('10.20.30.3'),
+    (_req, res) => res.status(200).json({ ok: true })
+  );
+  assert('Policy-specific route rate limit differs from global limit', routeLimited._status === 429 && !routeLimitedNext);
+
+  const { next: unprotectedNext } = await runWithRoute(
+    mwLogin,
+    mockReq({
+      method: 'POST',
+      url: '/profile',
+      originalUrl: '/profile',
+      ip: '10.20.30.4',
+      body: { email: 'USER@example.com', password: 'super-secret' },
+    }),
+    invalidLogin
+  );
+  const { next: unprotectedNextAgain } = await runWithRoute(
+    mwLogin,
+    mockReq({
+      method: 'POST',
+      url: '/profile',
+      originalUrl: '/profile',
+      ip: '10.20.30.4',
+      body: { email: 'USER@example.com', password: 'super-secret' },
+    }),
+    invalidLogin
+  );
+  assert('Unprotected route is not affected by brute force guard', unprotectedNext && unprotectedNextAgain);
+
+  const existingParryReq = loginReq('10.20.30.5', { email: 'preserve@example.com' });
+  existingParryReq.parry = { traceId: 'trace-123' };
+  const mwLoginPreserve = Parry_DDoS({
+    rateLimit: false,
+    logThreats: false,
+    policies: [loginPolicy],
+  });
+  let preservedParry = false;
+  await runWithRoute(mwLoginPreserve, existingParryReq, (req, res) => {
+    preservedParry =
+      req.parry.traceId === 'trace-123' &&
+      typeof req.parry.recordAuthFailure === 'function' &&
+      typeof req.parry.recordAuthSuccess === 'function';
+    return res.status(200).json({ ok: true });
+  });
+  assert('req.parry preserves existing fields and adds auth helpers', preservedParry);
 
   console.log('\n── Middleware — Callback onThreat ───────────────────────────');
   let callbackFired = false;
