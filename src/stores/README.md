@@ -19,9 +19,22 @@ store.unban(key);
 store.recordSuspicious(key, ttlMs, metadata);
 // -> { key, count, resetAt, ttlMs }
 
+store.incrementCounter(key, ttlMs, metadata);
+// -> { key, count, resetAt, ttlMs }
+
+store.getCounter(key);
+// -> { key, count, resetAt, ttlMs }
+
+store.resetCounter(key);
+store.blockKey(key, ttlMs, metadata);
+store.isBlocked(key);
+// -> { key, blocked, blockExpiresAt, metadata }
+
+store.unblockKey(key);
+
 store.close?.();
 ```
 
-`key` is produced by the rate limiter. Stores are responsible for TTL handling,
-cleanup, and any backend-specific namespacing. Custom stores should avoid
-persisting sensitive request data.
+`key` is produced by the rate limiter, route policy, or brute force key builder.
+Stores are responsible for TTL handling, cleanup, and any backend-specific
+namespacing. Custom stores should avoid persisting sensitive request data.
