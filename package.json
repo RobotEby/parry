@@ -44,6 +44,7 @@
   },
   "devDependencies": {
     "eslint-config-prettier": "^10.1.8",
+    "express": "^5.2.1",
     "prettier": "^3.8.1"
   }
 }
