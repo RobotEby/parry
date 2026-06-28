@@ -29,4 +29,14 @@ function createRateLimitEvent({ ip, timestamp }) {
   return { type: 'RATE_LIMIT', ip, timestamp };
 }
 
-module.exports = { createThreatEvent, createBanEvent, createRateLimitEvent };
+function createStoreFailureEvent({ ip, timestamp, error, mode }) {
+  return {
+    type: 'STORE_FAILURE',
+    ip,
+    timestamp,
+    reason: error && error.message ? error.message : String(error),
+    mode,
+  };
+}
+
+module.exports = { createThreatEvent, createBanEvent, createRateLimitEvent, createStoreFailureEvent };
