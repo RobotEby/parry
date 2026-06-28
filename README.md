@@ -6,7 +6,7 @@
 Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, optional HTTP Parameter Pollution, and route-scoped authentication abuse before route handling.
 
 ```
-63 real HTTP tests available  ·  181/181 local tests passed  ·  zero production dependencies
+63 real HTTP tests available  ·  247/247 local tests passed  ·  zero production dependencies
 ```
 
 ---
@@ -25,6 +25,9 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [Application-Layer Guards](#application-layer-guards)
   - [Distributed Rate Limiting with Redis](#distributed-rate-limiting-with-redis)
   - [Brute Force Protection](#brute-force-protection)
+  - [Threat Events](#threat-events)
+  - [Observability](#observability)
+  - [Admin API](#admin-api)
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
@@ -62,6 +65,9 @@ Most Node.js applications rely on validation at the route or ORM layer, which me
 | **Rate Limiting**        | Store-backed rate limiting per observed IP with `X-RateLimit-*` headers                                                                                                             |
 | **Route Policies**       | Per-route matchers for exact paths, wildcards, arrays, methods, and RegExp                                                                                                           |
 | **Brute Force Guard**    | Optional login/auth abuse protection with `res.on('finish')`, manual failure/success hooks, and Store-backed counters                                                               |
+| **Threat Events**        | Central structured events with id, severity, action, request id, detector/module, and sanitized metadata                                                                             |
+| **Metrics**              | Lightweight in-process counters for requests, blocked requests, rate limits, brute force blocks, and events by type/severity/detector/action                                         |
+| **Admin API**            | Optional read-only Express router for health, metrics, recent events, active MemoryStore bans, and configured policies                                                              |
 | **Intelligent Ban**      | Suspicious activity counter separate from request volume, backed by MemoryStore by default or RedisStore in distributed deployments                                                  |
 | **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
 | **`onThreat` Callback**  | Hook for integration with SIEM, Slack, PagerDuty, DataDog, etc.                                                                                                                      |
@@ -181,14 +187,34 @@ app.use(
 
     // ── Logging ─────────────────────────────────────────────────
     logThreats: true, // Display colored logs in the console
+    debug: false,
+
+    // ── Events and Observability ────────────────────────────────
+    events: {
+      maxEvents: 500, // In-memory recent event buffer
+    },
+    requestId: {
+      enabled: true,
+      header: 'x-request-id',
+      responseHeader: false, // or 'X-Parry-Request-Id'
+    },
+    admin: {
+      enabled: false, // Admin router is never mounted automatically
+      allowMutations: false,
+    },
 
     // ── Integration Hook ────────────────────────────────────────
-    onThreat(entry, req, res) {
-      // entry.type      → 'THREAT' | 'BAN' | 'RATE_LIMIT'
-      // entry.ip        → client IP
-      // entry.threats[] → [{ detector, field, pattern }]
-      // entry.method    → 'POST', 'GET', etc.
-      // entry.url       → affected route
+    onThreat(event, req, res) {
+      // event.type      → 'SQL_INJECTION_BLOCKED', 'RATE_LIMIT_EXCEEDED', ...
+      // event.ip        → client IP
+      // event.threats[] → preserved for detector compatibility
+      // event.requestId → x-request-id or generated req_...
+    },
+    onEvent(event) {
+      // Receives every normalized Parry event.
+    },
+    onStoreError(error, event) {
+      // Optional hook for Redis/custom store outages.
     },
   })
 );
@@ -219,6 +245,13 @@ app.use(
 | `preset`              | `'off'`          |
 | `bruteForce.enabled`  | `false`          |
 | `policies`            | `[]`             |
+| `events.maxEvents`    | `500`            |
+| `admin.enabled`       | `false`          |
+| `admin.allowMutations` | `false`         |
+| `requestId.enabled`   | `true`           |
+| `requestId.header`    | `'x-request-id'` |
+| `requestId.responseHeader` | `false`     |
+| `debug`               | `false`          |
 | `suspiciousThreshold` | `5`              |
 | `banDurationMs`       | `300000` (5 min) |
 | `logThreats`          | `true`           |
@@ -264,7 +297,7 @@ Request
     │       └── NoSQLDetector.scan(rawValue)  ← receives object or string
     │
     ├─► [7] Threat detected?
-    │       ├── YES → recordSuspicious(ip) · log · onThreat() · 400
+    │       ├── YES → recordSuspicious(ip) · EventBus · onThreat() · 400
     │       └── NO  → next()
     │
     └─► Application route
@@ -428,6 +461,116 @@ When blocked, the response is generic and includes `Retry-After`:
 
 Keys never include `body.password` by default. Avoid putting tokens, passwords, cookies, or authorization headers into custom keys. RedisStore can share brute force counters across instances, but applications should still use password hashing, MFA where appropriate, generic login errors, monitoring, and edge/WAF controls.
 
+### Threat Events
+
+Parry normalizes security activity into structured threat events. Events are sanitized before they reach the event store, callbacks, metrics, or Admin API.
+
+```json
+{
+  "id": "evt_lx000001_1",
+  "type": "SQL_INJECTION_BLOCKED",
+  "module": "detector",
+  "detector": "SQL_INJECTION",
+  "detectorSlug": "sql",
+  "severity": "high",
+  "action": "blocked",
+  "reason": "SQL injection pattern detected",
+  "ip": "127.0.0.1",
+  "method": "POST",
+  "path": "/login",
+  "statusCode": 400,
+  "requestId": "req_abc123",
+  "userAgent": "Mozilla/5.0",
+  "timestamp": "2026-01-01T00:00:00.000Z",
+  "metadata": {}
+}
+```
+
+Canonical event types include `SQL_INJECTION_BLOCKED`, `XSS_BLOCKED`, `NOSQL_INJECTION_BLOCKED`, `HPP_BLOCKED`, `PROTOTYPE_POLLUTION_BLOCKED`, `PATH_TRAVERSAL_BLOCKED`, `REQUEST_SHAPE_BLOCKED`, `RATE_LIMIT_EXCEEDED`, `ROUTE_RATE_LIMIT_EXCEEDED`, `TEMPORARY_BAN_HIT`, `BRUTE_FORCE_ATTEMPT`, `BRUTE_FORCE_BLOCKED`, `BRUTE_FORCE_RESET`, `STORE_ERROR`, and `HOOK_ERROR`.
+
+Sensitive values are not stored in events: passwords, tokens, cookies, authorization headers, credentials, secrets, and raw request bodies are redacted or omitted. `onThreat(event, req, res)` remains supported and now receives the normalized event while preserving `event.threats[]` for detector blocks.
+
+### Observability
+
+Use `createParry()` when you need access to metrics, the event bus, or the recent event store:
+
+```js
+const { createParry } = require('parry');
+
+const parry = createParry({
+  logThreats: false,
+  events: { maxEvents: 500 },
+  requestId: {
+    enabled: true,
+    header: 'x-request-id',
+    responseHeader: 'X-Parry-Request-Id',
+  },
+  onThreat(event) {
+    console.log(event.type, event.severity, event.requestId);
+  },
+  onEvent(event) {
+    // Forward to your logger, SIEM, CloudWatch, or queue.
+  },
+});
+
+app.use(parry.middleware());
+
+const snapshot = parry.metrics.snapshot();
+const recent = parry.eventBus.getRecentEvents({ limit: 50, severity: 'high' });
+```
+
+Metrics are intentionally lightweight and in-process: `totalRequests`, `allowedRequests`, `blockedRequests`, `rateLimitedRequests`, `bruteForceBlocks`, `activeBans`, `eventsByType`, `eventsBySeverity`, `eventsByDetector`, `eventsByAction`, `startedAt`, and `uptimeMs`. They are useful for local inspection and dashboard foundations, not a replacement for Prometheus, OpenTelemetry, CloudWatch, SIEM, WAF logs, or provider-level observability.
+
+Request ids are enabled by default. Parry reads `x-request-id` when present, otherwise it generates a `req_...` id and attaches it to `req.parry.requestId`. A response header is only emitted when `requestId.responseHeader` is configured.
+
+### Admin API
+
+The Admin API is an optional read-only Express router. It is **never mounted automatically** and it does not enable CORS. Mount it only behind authentication, network restrictions, VPN, IP allowlists, or equivalent controls.
+
+```js
+const express = require('express');
+const { createParry, createParryAdminRouter } = require('parry');
+
+const app = express();
+const parry = createParry({
+  admin: { enabled: true },
+});
+
+function requireAdminAuth(req, res, next) {
+  if (req.headers['x-admin-token'] !== process.env.PARRY_ADMIN_TOKEN) {
+    return res.status(401).json({ error: true, message: 'Unauthorized' });
+  }
+  return next();
+}
+
+app.use(parry.middleware());
+app.use('/_parry', requireAdminAuth, createParryAdminRouter(parry));
+```
+
+You can also pass an auth callback directly to the router:
+
+```js
+app.use(
+  '/_parry',
+  createParryAdminRouter(parry, {
+    auth: (req) => req.headers['x-admin-token'] === process.env.PARRY_ADMIN_TOKEN,
+  })
+);
+```
+
+Available endpoints:
+
+| Endpoint | Description |
+| -------- | ----------- |
+| `GET /health` | Basic status, package version, uptime, and store type |
+| `GET /metrics` | Metrics snapshot |
+| `GET /events` | Recent events with filters and `limit`/`offset` pagination |
+| `GET /events/:id` | Single event lookup |
+| `GET /bans` | Active MemoryStore bans when available; empty list for stores without snapshots |
+| `GET /policies` | Normalized route policies without sensitive request data |
+
+Never expose the Parry Admin API publicly without authentication and network restrictions. It is a foundation for internal operations and a future dashboard, not a public management interface.
+
 ### DDoS Scope and Edge Protection
 
 Parry_DDoS runs inside Express after traffic has already reached your Node.js process. It can reject malicious or excessive application-layer requests seen by that process, but it does not absorb volumetric floods, network-layer attacks, or connection exhaustion that must be stopped before the application receives traffic.
@@ -460,6 +603,9 @@ Parry_DDoS/
 │   ├── policies/             ← Route policy matcher, presets, normalization
 │   ├── brute-force/          ← BruteForceGuard, auth key builder, block responses
 │   ├── stores/               ← Store contract, MemoryStore, RedisStore
+│   ├── events/               ← ThreatEvent model, EventBus, recent event store
+│   ├── observability/        ← Metrics and Admin API snapshot helpers
+│   ├── admin/                ← Optional read-only Admin API router
 │   ├── logger/               ← Console reporter
 │   └── utils/                ← Decode, normalize, flatten helpers
 │
@@ -477,9 +623,11 @@ Parry_DDoS/
 │   │   ├── detectors.test.js        ← SQL/XSS/NoSQL tests
 │   │   ├── applicationGuards.test.js
 │   │   ├── engine.test.js
+│   │   ├── observability.test.js
 │   │   └── rateLimiter.test.js      ← RateLimiter tests
 │   ├── integration/
-│   │   └── middleware.test.js   ← Middleware end-to-end with req/res mock
+│   │   ├── middleware.test.js       ← Middleware end-to-end with req/res mock
+│   │   └── observability.test.js    ← Events, metrics, Admin API
 │   ├── fixtures/
 │   │   ├── payloads.js              ← Reusable attack payloads
 │   │   └── application-layer.js     ← Curated guard fixtures
@@ -502,27 +650,29 @@ Parry_DDoS/
 
 ## Tests
 
-Parry_DDoS has two independent test suites totalling **244 tests**.
+Parry_DDoS has two independent test suites: **247 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
 
-### Local suite (181 tests) — no network, no server
+### Local suite (247 tests) — no network, no server
 
 ```bash
 npm test
 ```
 
-Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, policy matching, brute force behavior, the core engine, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
+Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, policy matching, brute force behavior, the core engine, observability modules, Admin API helpers, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
 
 ```
-▶ Unit — Detectors          30 tests
-▶ Unit — RateLimiter        14 tests
-▶ Unit — Stores             28 tests
-▶ Unit — Policies            8 tests
-▶ Unit — Brute Force        20 tests
-▶ Unit — Core Engine         6 tests
-▶ Unit — App Guards         19 tests
-▶ Integration — Middleware  56 tests
-─────────────────────────────────────
-Total                      181 tests  |  0 failures
+▶ Unit — Detectors                         30 tests
+▶ Unit — RateLimiter                       14 tests
+▶ Unit — Stores                            28 tests
+▶ Unit — Policies                           8 tests
+▶ Unit — Brute Force                       20 tests
+▶ Unit — Core Engine                        6 tests
+▶ Unit — App Guards                        19 tests
+▶ Unit — Observability                     33 tests
+▶ Integration — Middleware                 56 tests
+▶ Integration — Observability/Admin API    33 tests
+────────────────────────────────────────────────────
+Total                                     247 tests  |  0 failures
 ```
 
 ### Real HTTP suite (63 tests) — fires real requests against Express
@@ -601,13 +751,13 @@ Use the `onThreat` callback to forward events to any external system:
 ```js
 // Slack
 Parry_DDoS({
-  onThreat(entry) {
-    // New threat events include top-level detector, severity, reason, and target
-    // while preserving entry.threats[] for compatibility.
+  onThreat(event) {
+    // Threat events include top-level type, detector, severity, reason, and requestId
+    // while preserving event.threats[] for detector blocks.
     fetch('https://hooks.slack.com/services/...', {
       method: 'POST',
       body: JSON.stringify({
-        text: `Parry event: ${entry.type}\nIP: ${entry.ip}\nRoute: ${entry.method} ${entry.url || entry.path}`,
+        text: `Parry event: ${event.type}\nIP: ${event.ip}\nRoute: ${event.method} ${event.url || event.path}`,
       }),
     });
   },
@@ -615,8 +765,8 @@ Parry_DDoS({
 
 // DataDog
 Parry_DDoS({
-  onThreat(entry) {
-    dogstatsd.increment('parry_ddos.threat', 1, [`detector:${entry.threats[0].detector}`]);
+  onThreat(event) {
+    dogstatsd.increment('parry.threat', 1, [`type:${event.type}`, `severity:${event.severity}`]);
   },
 });
 
@@ -624,8 +774,8 @@ Parry_DDoS({
 const fs = require('fs');
 Parry_DDoS({
   logThreats: false, // disable console output, use callback only
-  onThreat(entry) {
-    fs.appendFileSync('threats.ndjson', JSON.stringify(entry) + '\n');
+  onThreat(event) {
+    fs.appendFileSync('threats.ndjson', JSON.stringify(event) + '\n');
   },
 });
 ```
@@ -637,19 +787,19 @@ Parry_DDoS({
 Parry_DDoS includes full typings with no `@types/*` required:
 
 ```ts
-import { Parry_DDoS, Parry_DDoSOptions, ThreatLogEntry } from './src/middleware';
+import { Parry_DDoS, Parry_DDoSOptions, ThreatEvent } from 'parry';
 
 const options: Parry_DDoSOptions = {
   suspiciousThreshold: 3,
-  onThreat: (entry: ThreatLogEntry) => {
-    console.log(entry.threats);
+  onThreat: (event: ThreatEvent) => {
+    console.log(event.type, event.severity, event.threats);
   },
 };
 
 app.use(Parry_DDoS(options));
 ```
 
-Exported types: `Parry_DDoSOptions`, `ThreatLogEntry`, `ThreatMatch`, `RateLimitResult`, `IPSnapshot`, `DetectorType`, `LogEntryType`, `RateLimiter`, `SQLInjectionDetector`, `XSSDetector`, `NoSQLDetector`, `HPPDetector`, `PrototypePollutionDetector`, `PathTraversalDetector`, `RequestShapeGuard`.
+Exported types include `Parry_DDoSOptions`, `ThreatEvent`, `ThreatLogEntry`, `ThreatMatch`, `ThreatEventType`, `MetricsSnapshot`, `ParryInstance`, `AdminRouterOptions`, `RateLimitResult`, `IPSnapshot`, `DetectorType`, `LogEntryType`, `RateLimiter`, `EventBus`, `MemoryEventStore`, `Metrics`, `SQLInjectionDetector`, `XSSDetector`, `NoSQLDetector`, `HPPDetector`, `PrototypePollutionDetector`, `PathTraversalDetector`, and `RequestShapeGuard`.
 Store and policy exports are also typed: `RateLimitStore`, `StoreBlockResult`, `MemoryStore`, `RedisStore`, `PolicyConfig`, and `ParryRequestContext`.
 
 ---
@@ -724,5 +874,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 244 application-layer cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 247 application-layer cases</sub>
 </div>
