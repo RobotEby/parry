@@ -56,13 +56,21 @@ function mockRes() {
 }
 
 function run(mw, req) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const res = mockRes();
     let called = false;
-    mw(req, res, () => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      resolve({ res, next: called });
+    };
+    const maybePromise = mw(req, res, (error) => {
+      if (error) return reject(error);
       called = true;
+      finish();
     });
-    resolve({ res, next: called });
+    Promise.resolve(maybePromise).then(finish).catch(reject);
   });
 }
 
@@ -160,6 +168,60 @@ async function runAll() {
   assert('X-RateLimit-Limit is present', 'X-RateLimit-Limit' in hRes._headers);
   assert('X-RateLimit-Remaining is present', 'X-RateLimit-Remaining' in hRes._headers);
   assert('X-RateLimit-Reset is present', 'X-RateLimit-Reset' in hRes._headers);
+
+  const mwNestedHdr = Parry_DDoS({
+    rateLimit: { enabled: true, max: 25, windowMs: 60_000, headers: true },
+    logThreats: false,
+  });
+  const { res: nestedHdrRes } = await run(
+    mwNestedHdr,
+    mockReq({ ip: '10.10.10.2', headers: {}, body: {}, query: {}, params: {} })
+  );
+  assert('Nested rateLimit config sets limit header', nestedHdrRes._headers['X-RateLimit-Limit'] === 25);
+
+  console.log('\n── Middleware — Store Failure Modes ───────────────────────');
+  const throwingStore = {
+    async isBanned() {
+      throw new Error('redis unavailable');
+    },
+    async incrementRateLimit() {
+      throw new Error('redis unavailable');
+    },
+    async recordSuspicious() {
+      throw new Error('redis unavailable');
+    },
+  };
+  const mwFailOpen = Parry_DDoS({
+    store: throwingStore,
+    storeFailureMode: 'fail-open',
+    logThreats: false,
+  });
+  const { next: failOpenNext, res: failOpenRes } = await run(
+    mwFailOpen,
+    mockReq({ ip: '10.10.20.1', body: {}, query: {}, params: {} })
+  );
+  assert('fail-open allows clean request when store fails', failOpenNext && failOpenRes._status === 200);
+  assert('fail-open omits rate limit headers without store result', !('X-RateLimit-Limit' in failOpenRes._headers));
+
+  const { res: failOpenThreatRes, next: failOpenThreatNext } = await run(
+    mwFailOpen,
+    mockReq({ ip: '10.10.20.2', body: { q: "' OR 1=1 --" }, query: {}, params: {} })
+  );
+  assert(
+    'fail-open keeps detectors active when store fails',
+    failOpenThreatRes._status === 400 && !failOpenThreatNext
+  );
+
+  const mwFailClosed = Parry_DDoS({
+    store: throwingStore,
+    storeFailureMode: 'fail-closed',
+    logThreats: false,
+  });
+  const { res: failClosedRes, next: failClosedNext } = await run(
+    mwFailClosed,
+    mockReq({ ip: '10.10.20.3', body: {}, query: {}, params: {} })
+  );
+  assert('fail-closed blocks when store fails', failClosedRes._status === 503 && !failClosedNext);
 
   console.log('\n── Middleware — Callback onThreat ───────────────────────────');
   let callbackFired = false;
