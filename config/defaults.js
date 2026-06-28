@@ -26,6 +26,8 @@ const DEFAULTS = {
   rateLimit: true,
   maxRequests: 100,
   windowMs: 60_000,
+  store: null,
+  storeFailureMode: 'fail-open',
 
   suspiciousThreshold: 5,
   banDurationMs: 300_000,
