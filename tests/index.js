@@ -6,22 +6,40 @@ async function main() {
   console.log('═'.repeat(55));
 
   console.log('\n▶ Unit — Detectors');
-  const det = require('./unit/detectors.test');
+  const det = await require('./unit/detectors.test');
 
   console.log('\n▶ Unit — RateLimiter');
-  const rl = require('./unit/rateLimiter.test');
+  const rl = await require('./unit/rateLimiter.test');
+
+  console.log('\n▶ Unit — Stores');
+  const memoryStore = await require('./unit/memoryStore.test');
+  const redisStore = await require('./unit/redisStore.test');
 
   console.log('\n▶ Unit — Core Engine');
-  const engine = require('./unit/engine.test');
+  const engine = await require('./unit/engine.test');
 
   console.log('\n▶ Unit — Application-Layer Guards');
-  const appGuards = require('./unit/applicationGuards.test');
+  const appGuards = await require('./unit/applicationGuards.test');
 
   console.log('\n▶ Integration — Middleware end-to-end');
   const integ = await require('./integration/middleware.test');
 
-  const totalPassed = det.passed + rl.passed + engine.passed + appGuards.passed + integ.passed;
-  const totalFailed = det.failed + rl.failed + engine.failed + appGuards.failed + integ.failed;
+  const totalPassed =
+    det.passed +
+    rl.passed +
+    memoryStore.passed +
+    redisStore.passed +
+    engine.passed +
+    appGuards.passed +
+    integ.passed;
+  const totalFailed =
+    det.failed +
+    rl.failed +
+    memoryStore.failed +
+    redisStore.failed +
+    engine.failed +
+    appGuards.failed +
+    integ.failed;
 
   console.log('\n' + '═'.repeat(55));
   console.log(`  Result: ${totalPassed} passed  |  ${totalFailed} failed`);
