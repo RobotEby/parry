@@ -166,6 +166,20 @@ async function runAll() {
   await run(mwCb, mockReq({ body: { q: "' OR 1=1 --" } }));
   assert('onThreat callback is called when threat is detected', callbackFired);
 
+  const mwCbThrows = Parry_DDoS({
+    sql: true,
+    rateLimit: false,
+    logThreats: false,
+    onThreat: () => {
+      throw new Error('hook failed');
+    },
+  });
+  const { res: cbThrowRes, next: cbThrowNext } = await run(
+    mwCbThrows,
+    mockReq({ body: { q: "' OR 1=1 --" } })
+  );
+  assert('onThreat errors do not break blocked response', cbThrowRes._status === 400 && !cbThrowNext);
+
   console.log('\n── Middleware — Injection in nested body ──────────────────────');
   const mwNested = Parry_DDoS({
     sql: true,
