@@ -15,6 +15,13 @@ async function main() {
   const memoryStore = await require('./unit/memoryStore.test');
   const redisStore = await require('./unit/redisStore.test');
 
+  console.log('\n▶ Unit — Policies');
+  const policies = await require('./unit/policyMatcher.test');
+
+  console.log('\n▶ Unit — Brute Force');
+  const keyBuilder = await require('./unit/keyBuilder.test');
+  const bruteForce = await require('./unit/bruteForceGuard.test');
+
   console.log('\n▶ Unit — Core Engine');
   const engine = await require('./unit/engine.test');
 
@@ -29,6 +36,9 @@ async function main() {
     rl.passed +
     memoryStore.passed +
     redisStore.passed +
+    policies.passed +
+    keyBuilder.passed +
+    bruteForce.passed +
     engine.passed +
     appGuards.passed +
     integ.passed;
@@ -37,6 +47,9 @@ async function main() {
     rl.failed +
     memoryStore.failed +
     redisStore.failed +
+    policies.failed +
+    keyBuilder.failed +
+    bruteForce.failed +
     engine.failed +
     appGuards.failed +
     integ.failed;
