@@ -208,6 +208,17 @@ class MemoryStore {
     });
   }
 
+  listBans() {
+    const now = Date.now();
+    this.cleanup(now);
+
+    return [...this.bans.entries()].map(([key, entry]) => ({
+      key,
+      banExpiresAt: entry.expiresAt,
+      metadata: entry.metadata || null,
+    }));
+  }
+
   clear() {
     this.rateLimits.clear();
     this.bans.clear();
