@@ -5,6 +5,8 @@ class MemoryStore {
     this.rateLimits = new Map();
     this.bans = new Map();
     this.suspicious = new Map();
+    this.counters = new Map();
+    this.blocks = new Map();
   }
 
   incrementRateLimit(key, windowMs) {
@@ -90,6 +92,68 @@ class MemoryStore {
     return formatCounterResult(normalizedKey, entry.count, entry.resetAt, now);
   }
 
+  incrementCounter(key, ttlMs, metadata = {}) {
+    const now = Date.now();
+    const normalizedKey = normalizeKey(key);
+    const current = this.counters.get(normalizedKey);
+    const entry =
+      current && current.resetAt > now
+        ? current
+        : { count: 0, resetAt: now + ttlMs, metadata: null };
+
+    entry.count += 1;
+    entry.metadata = metadata;
+    this.counters.set(normalizedKey, entry);
+
+    return formatCounterResult(normalizedKey, entry.count, entry.resetAt, now);
+  }
+
+  getCounter(key) {
+    const now = Date.now();
+    const normalizedKey = normalizeKey(key);
+    const entry = this.counters.get(normalizedKey);
+    if (!entry || entry.resetAt <= now) {
+      this.counters.delete(normalizedKey);
+      return emptyCounterResult(normalizedKey);
+    }
+
+    return formatCounterResult(normalizedKey, entry.count, entry.resetAt, now);
+  }
+
+  resetCounter(key) {
+    return this.counters.delete(normalizeKey(key));
+  }
+
+  blockKey(key, ttlMs, metadata = {}) {
+    const normalizedKey = normalizeKey(key);
+    const blockExpiresAt = Date.now() + ttlMs;
+    this.blocks.set(normalizedKey, { blockExpiresAt, metadata });
+    return { key: normalizedKey, blocked: true, blockExpiresAt, metadata };
+  }
+
+  isBlocked(key) {
+    const normalizedKey = normalizeKey(key);
+    const entry = this.blocks.get(normalizedKey);
+    if (!entry) return { key: normalizedKey, blocked: false, blockExpiresAt: null, metadata: null };
+
+    const now = Date.now();
+    if (entry.blockExpiresAt <= now) {
+      this.blocks.delete(normalizedKey);
+      return { key: normalizedKey, blocked: false, blockExpiresAt: null, metadata: null };
+    }
+
+    return {
+      key: normalizedKey,
+      blocked: true,
+      blockExpiresAt: entry.blockExpiresAt,
+      metadata: entry.metadata || null,
+    };
+  }
+
+  unblockKey(key) {
+    return this.blocks.delete(normalizeKey(key));
+  }
+
   cleanup(now = Date.now()) {
     for (const [key, entry] of this.rateLimits.entries()) {
       if (!entry.timestamps.length) {
@@ -106,6 +170,14 @@ class MemoryStore {
 
     for (const [key, entry] of this.suspicious.entries()) {
       if (entry.resetAt <= now) this.suspicious.delete(key);
+    }
+
+    for (const [key, entry] of this.counters.entries()) {
+      if (entry.resetAt <= now) this.counters.delete(key);
+    }
+
+    for (const [key, entry] of this.blocks.entries()) {
+      if (entry.blockExpiresAt <= now) this.blocks.delete(key);
     }
   }
 
@@ -140,6 +212,8 @@ class MemoryStore {
     this.rateLimits.clear();
     this.bans.clear();
     this.suspicious.clear();
+    this.counters.clear();
+    this.blocks.clear();
   }
 
   close() {
