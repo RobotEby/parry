@@ -129,6 +129,25 @@ async function runAll() {
     client.calls.some((call) => call[0] === 'eval' && call[1] === 'parry-test:suspicious:10.0.0.3')
   );
 
+  const counter = await store.incrementCounter('bf:auth-login:ip:10.0.0.4', 1_000, { reason: 'test' });
+  assert('incrementCounter increments generic counter', counter.count === 1);
+  assert(
+    'incrementCounter uses namespaced generic key',
+    client.calls.some((call) => call[0] === 'eval' && call[1] === 'parry-test:bf:auth-login:ip:10.0.0.4:count')
+  );
+  assert('getCounter reads generic counter', (await store.getCounter('bf:auth-login:ip:10.0.0.4')).count === 1);
+  await store.resetCounter('bf:auth-login:ip:10.0.0.4');
+  assert('resetCounter removes generic counter', (await store.getCounter('bf:auth-login:ip:10.0.0.4')).count === 0);
+
+  await store.blockKey('bf:auth-login:ip:10.0.0.5', 1_000, { reason: 'test' });
+  assert('blockKey marks generic key blocked', (await store.isBlocked('bf:auth-login:ip:10.0.0.5')).blocked);
+  assert(
+    'blockKey uses namespaced block key',
+    client.calls.some((call) => call[0] === 'set' && call[1] === 'parry-test:bf:auth-login:ip:10.0.0.5:block')
+  );
+  await store.unblockKey('bf:auth-login:ip:10.0.0.5');
+  assert('unblockKey removes generic block', !(await store.isBlocked('bf:auth-login:ip:10.0.0.5')).blocked);
+
   return { passed, failed };
 }
 
