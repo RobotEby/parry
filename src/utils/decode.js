@@ -39,4 +39,18 @@ function decodeHtmlEntities(input, options = {}) {
   return result;
 }
 
-module.exports = { decodeSqlValue, decodeXssValue, decodeHtmlEntities };
+function decodeUrlValue(input, maxPasses = 2) {
+  let result = input;
+  for (let i = 0; i < maxPasses; i++) {
+    try {
+      const next = decodeURIComponent(result.replace(/\+/g, ' '));
+      if (next === result) break;
+      result = next;
+    } catch (_) {
+      break;
+    }
+  }
+  return result;
+}
+
+module.exports = { decodeSqlValue, decodeXssValue, decodeHtmlEntities, decodeUrlValue };
