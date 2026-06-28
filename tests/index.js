@@ -28,8 +28,14 @@ async function main() {
   console.log('\n▶ Unit — Application-Layer Guards');
   const appGuards = await require('./unit/applicationGuards.test');
 
+  console.log('\n▶ Unit — Observability');
+  const observability = await require('./unit/observability.test');
+
   console.log('\n▶ Integration — Middleware end-to-end');
   const integ = await require('./integration/middleware.test');
+
+  console.log('\n▶ Integration — Observability and Admin API');
+  const observabilityInteg = await require('./integration/observability.test');
 
   const totalPassed =
     det.passed +
@@ -41,7 +47,9 @@ async function main() {
     bruteForce.passed +
     engine.passed +
     appGuards.passed +
-    integ.passed;
+    observability.passed +
+    integ.passed +
+    observabilityInteg.passed;
   const totalFailed =
     det.failed +
     rl.failed +
@@ -52,7 +60,9 @@ async function main() {
     bruteForce.failed +
     engine.failed +
     appGuards.failed +
-    integ.failed;
+    observability.failed +
+    integ.failed +
+    observabilityInteg.failed;
 
   console.log('\n' + '═'.repeat(55));
   console.log(`  Result: ${totalPassed} passed  |  ${totalFailed} failed`);
