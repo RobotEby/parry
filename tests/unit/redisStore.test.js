@@ -1,0 +1,135 @@
+'use strict';
+
+const { RedisStore } = require('../../src/stores');
+
+let passed = 0,
+  failed = 0;
+
+function assert(description, condition) {
+  if (condition) {
+    console.log(`  ✓ ${description}`);
+    passed++;
+  } else {
+    console.error(`  ✗ FAILED: ${description}`);
+    failed++;
+  }
+}
+
+class FakeRedisClient {
+  constructor() {
+    this.records = new Map();
+    this.calls = [];
+  }
+
+  async get(key) {
+    this.calls.push(['get', key]);
+    const record = this.records.get(key);
+    if (!record) return null;
+    if (record.expiresAt && record.expiresAt <= Date.now()) {
+      this.records.delete(key);
+      return null;
+    }
+    return record.value;
+  }
+
+  async set(key, value, options = {}) {
+    this.calls.push(['set', key, value, options]);
+    if (options.NX && (await this.get(key)) !== null) return null;
+    this.records.set(key, {
+      value: String(value),
+      expiresAt: options.PX ? Date.now() + options.PX : null,
+    });
+    return 'OK';
+  }
+
+  async del(keys) {
+    this.calls.push(['del', keys]);
+    const list = Array.isArray(keys) ? keys : [keys];
+    let removed = 0;
+    for (const key of list) {
+      if (this.records.delete(key)) removed++;
+    }
+    return removed;
+  }
+
+  async incr(key) {
+    this.calls.push(['incr', key]);
+    const current = Number((await this.get(key)) || 0) + 1;
+    const record = this.records.get(key) || { expiresAt: null };
+    this.records.set(key, { value: String(current), expiresAt: record.expiresAt });
+    return current;
+  }
+
+  async pExpire(key, ttlMs) {
+    this.calls.push(['pExpire', key, ttlMs]);
+    const record = this.records.get(key);
+    if (!record) return 0;
+    record.expiresAt = Date.now() + ttlMs;
+    return 1;
+  }
+
+  async pTTL(key) {
+    this.calls.push(['pTTL', key]);
+    const record = this.records.get(key);
+    if (!record || !record.expiresAt) return -1;
+    return Math.max(0, record.expiresAt - Date.now());
+  }
+
+  async eval(_script, options) {
+    this.calls.push(['eval', options.keys[0], options.arguments[0]]);
+    const key = options.keys[0];
+    const ttlMs = Number(options.arguments[0]);
+    const count = await this.incr(key);
+    if (count === 1) await this.pExpire(key, ttlMs);
+    return [count, await this.pTTL(key)];
+  }
+}
+
+async function runAll() {
+  console.log('\n── RedisStore ──────────────────────────────────────────────');
+
+  let invalidError = null;
+  try {
+    new RedisStore({ client: { get() {} } });
+  } catch (error) {
+    invalidError = error;
+  }
+  assert(
+    'Throws clear error when client is invalid',
+    invalidError?.message.includes('get, set, del, incr and pExpire/pTTL')
+  );
+
+  const client = new FakeRedisClient();
+  const store = new RedisStore({ client, prefix: 'parry-test' });
+  const first = await store.incrementRateLimit('10.0.0.1', 1_000);
+  const second = await store.incrementRateLimit('10.0.0.1', 1_000);
+
+  assert('incrementRateLimit increments Redis counter', first.count === 1 && second.count === 2);
+  assert(
+    'incrementRateLimit uses namespaced rate limit key',
+    client.calls.some((call) => call[0] === 'eval' && call[1] === 'parry-test:rl:10.0.0.1')
+  );
+
+  await store.ban('10.0.0.2', 1_000, { reason: 'test' });
+  assert(
+    'ban writes namespaced key with TTL',
+    client.calls.some(
+      (call) => call[0] === 'set' && call[1] === 'parry-test:ban:10.0.0.2' && call[3].PX === 1_000
+    )
+  );
+  assert('isBanned reads active ban', (await store.isBanned('10.0.0.2')).banned);
+
+  await store.unban('10.0.0.2');
+  assert('unban removes ban key', !(await store.isBanned('10.0.0.2')).banned);
+
+  const suspicious = await store.recordSuspicious('10.0.0.3', 1_000, { reason: 'test' });
+  assert('recordSuspicious increments suspicious key', suspicious.count === 1);
+  assert(
+    'recordSuspicious uses namespaced suspicious key',
+    client.calls.some((call) => call[0] === 'eval' && call[1] === 'parry-test:suspicious:10.0.0.3')
+  );
+
+  return { passed, failed };
+}
+
+module.exports = runAll();
