@@ -3,10 +3,10 @@
 ![alt text](assets/image.png)
 
 **Application-layer security middleware for Express.js.**  
-Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, and optional HTTP Parameter Pollution before route handling.
+Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, optional HTTP Parameter Pollution, and route-scoped authentication abuse before route handling.
 
 ```
-63 real HTTP tests available  ·  134/134 local tests passed  ·  zero production dependencies
+63 real HTTP tests available  ·  181/181 local tests passed  ·  zero production dependencies
 ```
 
 ---
@@ -24,6 +24,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [Inspected Surfaces](#inspected-surfaces)
   - [Application-Layer Guards](#application-layer-guards)
   - [Distributed Rate Limiting with Redis](#distributed-rate-limiting-with-redis)
+  - [Brute Force Protection](#brute-force-protection)
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
@@ -59,6 +60,8 @@ Most Node.js applications rely on validation at the route or ORM layer, which me
 | **Request Shape Guard**  | Conservative limits for object depth, total keys, array length, and string length                                                                                                    |
 | **Optional HPP Guard**   | Opt-in duplicate query parameter detection with per-field allowlist                                                                                                                   |
 | **Rate Limiting**        | Store-backed rate limiting per observed IP with `X-RateLimit-*` headers                                                                                                             |
+| **Route Policies**       | Per-route matchers for exact paths, wildcards, arrays, methods, and RegExp                                                                                                           |
+| **Brute Force Guard**    | Optional login/auth abuse protection with `res.on('finish')`, manual failure/success hooks, and Store-backed counters                                                               |
 | **Intelligent Ban**      | Suspicious activity counter separate from request volume, backed by MemoryStore by default or RedisStore in distributed deployments                                                  |
 | **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
 | **`onThreat` Callback**  | Hook for integration with SIEM, Slack, PagerDuty, DataDog, etc.                                                                                                                      |
@@ -145,6 +148,33 @@ app.use(
     store: undefined,
     storeFailureMode: 'fail-open', // or 'fail-closed'
 
+    // ── Route Policies and Brute Force ──────────────────────────
+    preset: 'off', // 'off' | 'recommended' | 'strict'
+    bruteForce: { enabled: false },
+    policies: [
+      {
+        name: 'auth-login',
+        match: { method: 'POST', path: '/login' },
+        inheritGlobalRateLimit: true,
+        rateLimit: {
+          enabled: true,
+          max: 20,
+          windowMs: 60_000,
+          key: 'ip',
+        },
+        bruteForce: {
+          enabled: true,
+          maxAttempts: 5,
+          windowMs: 15 * 60_000,
+          blockDurationMs: 10 * 60_000,
+          keys: ['ip', 'body.email', 'ip+body.email'],
+          failureStatusCodes: [400, 401, 403],
+          successStatusCodes: [200, 201, 204],
+          resetOnSuccess: true,
+        },
+      },
+    ],
+
     // ── Intelligent Ban ─────────────────────────────────────────
     suspiciousThreshold: 5, // Detected attacks before ban
     banDurationMs: 300_000, // Ban duration in ms (default: 5 min)
@@ -186,6 +216,9 @@ app.use(
 | `rateLimit.headers`   | `true`           |
 | `store`               | `MemoryStore`    |
 | `storeFailureMode`    | `'fail-open'`    |
+| `preset`              | `'off'`          |
+| `bruteForce.enabled`  | `false`          |
+| `policies`            | `[]`             |
 | `suspiciousThreshold` | `5`              |
 | `banDurationMs`       | `300000` (5 min) |
 | `logThreats`          | `true`           |
@@ -202,35 +235,40 @@ Every request goes through the following pipeline before reaching any route:
 ```
 Request
     │
-    ├─► [1] Rate Limit check  ──────── 429 if exceeded or banned
+    ├─► [1] Route policy lookup
+    │       ├── optional brute force block check
+    │       └── optional route-specific rate limit
     │
-    ├─► [2] Target collection and request metadata
+    ├─► [2] Global Rate Limit check  ──────── 429 if exceeded or banned
+    │
+    ├─► [3] Target collection and request metadata
     │       ├── query params
     │       ├── body (recursive flatten up to maxObjectDepth)
     │       ├── route params
     │       └── sensitive headers (user-agent, referer, cookie, x-forwarded-for)
     │
-    ├─► [3] Application-layer guards
+    ├─► [4] Application-layer guards
     │       ├── Request shape limits
     │       ├── HTTP Parameter Pollution (when enabled)
     │       ├── Prototype Pollution keys
     │       └── Path Traversal values
     │
-    ├─► [4] Multi-layer decoding per value
+    ├─► [5] Multi-layer decoding per value
     │       ├── URL decode (up to 3 passes — anti double-encoding)
     │       ├── HTML entities (&lt; &amp; &#x27; etc.)
     │       └── Unicode zero-width strip
     │
-    ├─► [5] Parallel scan per detector
+    ├─► [6] Parallel scan per detector
     │       ├── SQLInjectionDetector.scan(value)
     │       ├── XSSDetector.scan(value)
     │       └── NoSQLDetector.scan(rawValue)  ← receives object or string
     │
-    ├─► [6] Threat detected?
+    ├─► [7] Threat detected?
     │       ├── YES → recordSuspicious(ip) · log · onThreat() · 400
     │       └── NO  → next()
     │
     └─► Application route
+            └── auth policy observes final status with res.on('finish')
 ```
 
 ### Intelligent Rate Limiting
@@ -323,6 +361,73 @@ main().catch((error) => {
 
 RedisStore helps coordinate HTTP flood and application-layer abuse controls across instances. It is not a replacement for edge protection against volumetric DDoS.
 
+### Brute Force Protection
+
+Brute force protection is route-scoped and disabled by default. Enable it with explicit policies or `preset: 'recommended'`/`'strict'`.
+
+```js
+const { Parry_DDoS, RedisStore } = require('parry');
+
+app.use(
+  Parry_DDoS({
+    store: new RedisStore({ client: redis }),
+    policies: [
+      {
+        name: 'auth-login',
+        match: { method: 'POST', path: '/login' },
+        bruteForce: {
+          enabled: true,
+          maxAttempts: 5,
+          windowMs: 15 * 60_000,
+          blockDurationMs: 10 * 60_000,
+          keys: ['ip', 'body.email', 'ip+body.email'],
+          failureStatusCodes: [400, 401, 403],
+          resetOnSuccess: true,
+        },
+        rateLimit: {
+          enabled: true,
+          max: 20,
+          windowMs: 60_000,
+          key: 'ip',
+        },
+      },
+    ],
+  })
+);
+```
+
+Policies support exact methods/paths, arrays, simple wildcards such as `/auth/*`, and `RegExp` paths. Policy rate limits are additional only when configured; the global rate limit still applies unless `inheritGlobalRateLimit: false` is set.
+
+The BruteForceGuard checks Store-backed block keys before the route handler and observes the final response with `res.on('finish')`. It records failures from status codes such as `400`, `401`, and `403`, and resets counters on success when `resetOnSuccess` is enabled.
+
+For APIs that return `200` with `{ success: false }`, use the manual hooks:
+
+```js
+app.post('/login', async (req, res) => {
+  const user = await authService.validate(req.body.email, req.body.password);
+
+  if (!user) {
+    req.parry.recordAuthFailure('invalid_credentials');
+    return res.status(200).json({ success: false });
+  }
+
+  req.parry.recordAuthSuccess();
+  return res.json({ success: true });
+});
+```
+
+When blocked, the response is generic and includes `Retry-After`:
+
+```json
+{
+  "error": "Too many authentication attempts",
+  "code": "BRUTE_FORCE_BLOCKED",
+  "retryAfter": 600
+}
+```
+
+Keys never include `body.password` by default. Avoid putting tokens, passwords, cookies, or authorization headers into custom keys. RedisStore can share brute force counters across instances, but applications should still use password hashing, MFA where appropriate, generic login errors, monitoring, and edge/WAF controls.
+
 ### DDoS Scope and Edge Protection
 
 Parry_DDoS runs inside Express after traffic has already reached your Node.js process. It can reject malicious or excessive application-layer requests seen by that process, but it does not absorb volumetric floods, network-layer attacks, or connection exhaustion that must be stopped before the application receives traffic.
@@ -352,6 +457,8 @@ Parry_DDoS/
 │   │   └── index.js          ← Barrel export
 │   │
 │   ├── rate-limit/           ← Store-backed limiter and key helpers
+│   ├── policies/             ← Route policy matcher, presets, normalization
+│   ├── brute-force/          ← BruteForceGuard, auth key builder, block responses
 │   ├── stores/               ← Store contract, MemoryStore, RedisStore
 │   ├── logger/               ← Console reporter
 │   └── utils/                ← Decode, normalize, flatten helpers
@@ -395,25 +502,27 @@ Parry_DDoS/
 
 ## Tests
 
-Parry_DDoS has two independent test suites totalling **197 tests**.
+Parry_DDoS has two independent test suites totalling **244 tests**.
 
-### Local suite (134 tests) — no network, no server
+### Local suite (181 tests) — no network, no server
 
 ```bash
 npm test
 ```
 
-Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, the core engine, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
+Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, policy matching, brute force behavior, the core engine, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
 
 ```
 ▶ Unit — Detectors          30 tests
 ▶ Unit — RateLimiter        14 tests
-▶ Unit — Stores             16 tests
+▶ Unit — Stores             28 tests
+▶ Unit — Policies            8 tests
+▶ Unit — Brute Force        20 tests
 ▶ Unit — Core Engine         6 tests
 ▶ Unit — App Guards         19 tests
-▶ Integration — Middleware  49 tests
+▶ Integration — Middleware  56 tests
 ─────────────────────────────────────
-Total                      134 tests  |  0 failures
+Total                      181 tests  |  0 failures
 ```
 
 ### Real HTTP suite (63 tests) — fires real requests against Express
@@ -474,6 +583,13 @@ When a request is blocked, the response follows this format:
   "message": "Too many suspicious requests. IP temporarily banned.",
   "banExpiresAt": 1712700000000
 }
+
+// 429 — brute force block
+{
+  "error": "Too many authentication attempts",
+  "code": "BRUTE_FORCE_BLOCKED",
+  "retryAfter": 600
+}
 ```
 
 ---
@@ -491,7 +607,7 @@ Parry_DDoS({
     fetch('https://hooks.slack.com/services/...', {
       method: 'POST',
       body: JSON.stringify({
-        text: `🚨 *${entry.threats[0].detector}* detected\nIP: ${entry.ip}\nRoute: ${entry.method} ${entry.url}`,
+        text: `Parry event: ${entry.type}\nIP: ${entry.ip}\nRoute: ${entry.method} ${entry.url || entry.path}`,
       }),
     });
   },
@@ -534,7 +650,7 @@ app.use(Parry_DDoS(options));
 ```
 
 Exported types: `Parry_DDoSOptions`, `ThreatLogEntry`, `ThreatMatch`, `RateLimitResult`, `IPSnapshot`, `DetectorType`, `LogEntryType`, `RateLimiter`, `SQLInjectionDetector`, `XSSDetector`, `NoSQLDetector`, `HPPDetector`, `PrototypePollutionDetector`, `PathTraversalDetector`, `RequestShapeGuard`.
-Store exports are also typed: `RateLimitStore`, `MemoryStore`, and `RedisStore`.
+Store and policy exports are also typed: `RateLimitStore`, `StoreBlockResult`, `MemoryStore`, `RedisStore`, `PolicyConfig`, and `ParryRequestContext`.
 
 ---
 
@@ -608,5 +724,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 197 application-layer cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 244 application-layer cases</sub>
 </div>
