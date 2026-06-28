@@ -6,8 +6,12 @@
 ParryWAF/
 ├── src/
 │   ├── detectors/          Detectores de ameaça (SQL, XSS, NoSQL)
-│   ├── middleware/         Ponto de entrada do Express middleware
-│   └── core/               Utilitários reutilizáveis (RateLimiter, Logger)
+│   ├── express/            Adapter Express: req/res/next, IP, targets
+│   ├── middleware/         Ponto de entrada público compatível
+│   ├── core/               Engine, eventos e scoring
+│   ├── rate-limit/         RateLimiter baseado em Store
+│   ├── stores/             Contrato Store, MemoryStore e RedisStore
+│   └── logger/             Reporter de console
 ├── config/                 Valores padrão configuráveis
 ├── constants/              Padrões regex centralizados
 ├── types/                  Tipagem pública TypeScript
@@ -23,10 +27,10 @@ ParryWAF/
 
 ## Por que `core/` é separado de `middleware/`?
 
-`RateLimiter` e `ThreatLogger` são utilitários independentes. Eles não dependem do
-protocolo HTTP e poderiam ser usados em qualquer contexto (workers, CLIs, testes).
-Misturá-los dentro de `middleware/` criaria acoplamento desnecessário e dificultaria
-testes unitários isolados.
+O código que conhece `req`, `res` e `next` fica em `src/express/`. O engine recebe
+dados normalizados e não depende do protocolo HTTP. `RateLimiter`, stores e logger
+são utilitários independentes, o que permite testes unitários isolados e uso futuro
+em outros adapters.
 
 ## Por que `constants/patterns.js` existe?
 
@@ -60,9 +64,9 @@ entity injection) sem depender de bibliotecas externas.
 
 ## Rate Limiting inteligente
 
-O `RateLimiter` mantém dois contadores separados por IP:
+O `RateLimiter` mantém dois contadores separados por IP através de uma Store:
 
-- **`timestamps[]`** — janela deslizante de requisições normais.
+- **rate limit** — contador de requisições da janela ativa.
 - **`suspicious`** — incrementado a cada ameaça detectada, independente da janela.
 
 O banimento é acionado pelo `suspicious`, não pelo volume. Isso permite que um IP
@@ -71,8 +75,11 @@ mas todas maliciosas seja bloqueado rapidamente.
 
 ## Considerações de produção
 
-- O armazenamento do `RateLimiter` é in-memory. Para ambientes com múltiplas
-  instâncias (clusters, Kubernetes), substitua o `Map` interno por Redis.
+- `MemoryStore` é o padrão e protege apenas o processo atual. Para múltiplas
+  instâncias (clusters, Kubernetes, containers ou load balancers), use `RedisStore`
+  ou outra Store compartilhada.
+- `RedisStore` recebe um client Redis externo. O pacote não adiciona Redis como
+  dependência obrigatória.
 - O `x-forwarded-for` não é verificado contra uma lista de proxies confiáveis.
   Em produção, adicione verificação de CIDR antes de confiar nesse header.
 - Os padrões regex cobrem os vetores mais comuns mas não são exaustivos.
