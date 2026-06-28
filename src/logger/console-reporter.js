@@ -12,6 +12,7 @@ const TYPE_COLOR = {
   THREAT: COLORS.red,
   BAN: COLORS.red,
   RATE_LIMIT: COLORS.yellow,
+  STORE_FAILURE: COLORS.yellow,
 };
 
 class ThreatLogger {
@@ -51,6 +52,19 @@ class ThreatLogger {
     const meta = `${COLORS.gray}${timestamp} — IP: ${ip}${COLORS.reset}`;
 
     console.warn(`${prefix} ${meta} — onThreat callback failed: ${message}`);
+  }
+
+  logStoreError(error, entry) {
+    if (!this.enabled) return;
+
+    const timestamp = entry?.timestamp || new Date().toISOString();
+    const ip = entry?.ip || 'unknown';
+    const mode = entry?.mode || 'fail-open';
+    const message = error && error.message ? error.message : String(error);
+    const prefix = `${COLORS.yellow}[Parry_DDoS][STORE_FAILURE]${COLORS.reset}`;
+    const meta = `${COLORS.gray}${timestamp} — IP: ${ip}${COLORS.reset}`;
+
+    console.warn(`${prefix} ${meta} — ${mode}: ${message}`);
   }
 }
 
