@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Request, Response, RequestHandler, Router } from 'express';
 
 export interface Parry_DDoSOptions {
   /** Enables SQL injection detection. Default: true */
@@ -52,6 +52,23 @@ export interface Parry_DDoSOptions {
   preset?: 'off' | 'recommended' | 'strict';
   /** Global brute force switch. Default: disabled */
   bruteForce?: false | { enabled?: boolean };
+  /** Recent event buffer configuration. Default: { maxEvents: 500 } */
+  events?: {
+    maxEvents?: number;
+  };
+  /** Admin API metadata. The router is never mounted automatically. */
+  admin?: {
+    enabled?: boolean;
+    allowMutations?: boolean;
+  };
+  /** Request id configuration. Default: enabled with x-request-id input and no response header. */
+  requestId?: {
+    enabled?: boolean;
+    header?: string;
+    responseHeader?: false | string;
+  };
+  /** Emits extra internal observability events where supported. Default: false */
+  debug?: boolean;
   /** Suspicious attempts before temporary ban. Default: 5 */
   suspiciousThreshold?: number;
   /** Duration of the ban in ms. Default: 300000 (5 min) */
@@ -59,8 +76,15 @@ export interface Parry_DDoSOptions {
   /** Displays colored threat logs in the console. Default: true */
   logThreats?: boolean;
   /** Callback triggered for each detected threat */
-  onThreat?: (entry: ThreatLogEntry, req: Request, res: Response) => void;
+  onThreat?: (entry: ThreatEvent, req: Request, res: Response) => void;
+  /** Callback triggered for every emitted Parry event */
+  onEvent?: (event: ThreatEvent) => void;
+  /** Callback triggered when a configured store throws */
+  onStoreError?: (error: Error, event: ThreatEvent) => void;
 }
+
+export type ThreatSeverity = 'none' | 'low' | 'medium' | 'high' | 'critical';
+export type ThreatAction = 'allowed' | 'blocked' | 'observed' | 'reset' | 'error' | 'created';
 
 export type DetectorType =
   | 'SQL_INJECTION'
@@ -78,7 +102,7 @@ export interface ThreatMatch {
   field: string;
   pattern: string;
   reason?: string;
-  severity?: 'none' | 'low' | 'medium' | 'high';
+  severity?: ThreatSeverity;
 }
 
 export type LogEntryType =
@@ -91,23 +115,55 @@ export type LogEntryType =
   | 'BRUTE_FORCE_RESET'
   | 'ROUTE_RATE_LIMIT_EXCEEDED';
 
+export type ThreatEventType =
+  | 'SQL_INJECTION_BLOCKED'
+  | 'XSS_BLOCKED'
+  | 'NOSQL_INJECTION_BLOCKED'
+  | 'HPP_BLOCKED'
+  | 'PROTOTYPE_POLLUTION_BLOCKED'
+  | 'PATH_TRAVERSAL_BLOCKED'
+  | 'REQUEST_SHAPE_BLOCKED'
+  | 'RATE_LIMIT_EXCEEDED'
+  | 'ROUTE_RATE_LIMIT_EXCEEDED'
+  | 'TEMPORARY_BAN_CREATED'
+  | 'TEMPORARY_BAN_HIT'
+  | 'BRUTE_FORCE_ATTEMPT'
+  | 'BRUTE_FORCE_BLOCKED'
+  | 'BRUTE_FORCE_RESET'
+  | 'STORE_ERROR'
+  | 'HOOK_ERROR'
+  | 'SECURITY_EVENT';
+
 export interface ThreatLogEntry {
-  type: LogEntryType;
+  id?: string;
+  type: LogEntryType | ThreatEventType | string;
   ip: string;
   timestamp: string;
   method?: string;
   url?: string;
+  path?: string;
   detector?: DetectorType;
-  severity?: 'none' | 'low' | 'medium' | 'high';
+  detectorSlug?: string;
+  severity?: ThreatSeverity;
+  action?: ThreatAction;
+  statusCode?: number;
   target?: string;
   reason?: string;
   module?: string;
   policyName?: string;
-  path?: string;
   keyTypes?: string[];
   requestId?: string;
   userAgent?: string;
+  metadata?: Record<string, unknown>;
   threats?: ThreatMatch[];
+}
+
+export interface ThreatEvent extends ThreatLogEntry {
+  id: string;
+  timestamp: string;
+  severity: ThreatSeverity;
+  action: ThreatAction;
+  metadata: Record<string, unknown>;
 }
 
 export interface PolicyConfig {
@@ -138,9 +194,61 @@ export interface PolicyConfig {
 }
 
 export interface ParryRequestContext {
+  requestId?: string;
   recordAuthFailure(reason?: string): void;
   recordAuthSuccess(): void;
   [key: string]: unknown;
+}
+
+export interface EventPage {
+  data: ThreatEvent[];
+  pagination: {
+    limit: number;
+    offset: number;
+    total: number;
+  };
+}
+
+export interface EventFilters {
+  limit?: number | string;
+  offset?: number | string;
+  type?: string;
+  severity?: ThreatSeverity | string;
+  action?: ThreatAction | string;
+  detector?: string;
+  ip?: string;
+  path?: string;
+  policyName?: string;
+}
+
+export interface MetricsSnapshot {
+  startedAt: string;
+  uptimeMs: number;
+  totalRequests: number;
+  allowedRequests: number;
+  blockedRequests: number;
+  rateLimitedRequests: number;
+  bruteForceBlocks: number;
+  activeBans: number;
+  eventsByType: Record<string, number>;
+  eventsBySeverity: Record<string, number>;
+  eventsByDetector: Record<string, number>;
+  eventsByAction: Record<string, number>;
+}
+
+export interface AdminRouterOptions {
+  requireAuth?: boolean;
+  auth?: (req: Request) => boolean | Promise<boolean>;
+}
+
+export interface ParryInstance {
+  middleware(): RequestHandler;
+  eventBus: EventBus;
+  metrics: Metrics;
+  eventStore: MemoryEventStore;
+  store: RateLimitStore;
+  policies: PolicyConfig[];
+  getContext(): unknown;
 }
 
 export interface RateLimitResult {
@@ -201,6 +309,12 @@ export interface IPSnapshot {
   banExpiresAt: number | null;
 }
 
+export interface BanSnapshot {
+  key: string;
+  banExpiresAt: number;
+  metadata?: unknown;
+}
+
 export declare class RateLimiter {
   constructor(
     config: Pick<
@@ -233,6 +347,7 @@ export declare class MemoryStore implements RateLimitStore {
   unblockKey(key: string): boolean;
   cleanup(now?: number): void;
   snapshot(windowMs: number): IPSnapshot[];
+  listBans(): BanSnapshot[];
   clear(): void;
   close(): void;
 }
@@ -284,7 +399,36 @@ export declare const RequestShapeGuard: {
   ): ThreatMatch | null;
 };
 
+export declare class MemoryEventStore {
+  constructor(options?: { maxEvents?: number });
+  add(event: ThreatEvent): ThreatEvent;
+  getRecentEvents(options?: EventFilters): EventPage;
+  getById(id: string): ThreatEvent | null;
+  clear(): void;
+}
+
+export declare class EventBus {
+  constructor(options?: { eventStore?: MemoryEventStore; maxEvents?: number });
+  emitThreat(event: Partial<ThreatEvent> | ThreatLogEntry, context?: { req?: Request; res?: Response }): ThreatEvent;
+  onThreat(listener: (event: ThreatEvent, req?: Request, res?: Response) => void): () => void;
+  getRecentEvents(options?: EventFilters): EventPage;
+  getEventById(id: string): ThreatEvent | null;
+}
+
+export declare class Metrics {
+  constructor();
+  increment(name: string, value?: number): void;
+  recordRequest(action: 'started' | 'allowed' | 'blocked'): void;
+  recordEvent(event: ThreatEvent): void;
+  snapshot(extra?: { activeBans?: number }): MetricsSnapshot;
+}
+
 export declare function Parry_DDoS(options?: Parry_DDoSOptions): RequestHandler;
+export declare function createParry(options?: Parry_DDoSOptions): ParryInstance;
+export declare function createParryAdminRouter(
+  parry: ParryInstance | RequestHandler,
+  options?: AdminRouterOptions
+): Router;
 
 declare module 'express-serve-static-core' {
   interface Request {
