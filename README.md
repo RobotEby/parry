@@ -6,7 +6,7 @@
 Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, and optional HTTP Parameter Pollution before route handling.
 
 ```
-63 real HTTP tests available  ·  108/108 local tests passed  ·  zero production dependencies
+63 real HTTP tests available  ·  134/134 local tests passed  ·  zero production dependencies
 ```
 
 ---
@@ -23,6 +23,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [Intelligent Rate Limiting](#intelligent-rate-limiting)
   - [Inspected Surfaces](#inspected-surfaces)
   - [Application-Layer Guards](#application-layer-guards)
+  - [Distributed Rate Limiting with Redis](#distributed-rate-limiting-with-redis)
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
@@ -42,7 +43,7 @@ Most Node.js applications rely on validation at the route or ORM layer, which me
 - Common malicious payloads can be blocked before route logic and database access.
 - No extra production dependencies — pure Node.js native.
 - Every threat is logged with IP, method, route, and affected field.
-- IPs that repeatedly send detected attacks can be temporarily banned by the in-memory limiter.
+- IPs that repeatedly send detected attacks can be temporarily banned by the store-backed limiter.
 
 ---
 
@@ -57,8 +58,8 @@ Most Node.js applications rely on validation at the route or ORM layer, which me
 | **Path Traversal**       | Raw, URL-encoded, and double-encoded traversal segments in request values                                                                                                             |
 | **Request Shape Guard**  | Conservative limits for object depth, total keys, array length, and string length                                                                                                    |
 | **Optional HPP Guard**   | Opt-in duplicate query parameter detection with per-field allowlist                                                                                                                   |
-| **Rate Limiting**        | In-memory sliding window per observed IP with `X-RateLimit-*` headers                                                                                                                |
-| **Intelligent Ban**      | Suspicious activity counter separate from request volume, scoped to the current Node.js process                                                                                      |
+| **Rate Limiting**        | Store-backed rate limiting per observed IP with `X-RateLimit-*` headers                                                                                                             |
+| **Intelligent Ban**      | Suspicious activity counter separate from request volume, backed by MemoryStore by default or RedisStore in distributed deployments                                                  |
 | **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
 | **`onThreat` Callback**  | Hook for integration with SIEM, Slack, PagerDuty, DataDog, etc.                                                                                                                      |
 | **TypeScript**           | Full typings included in `types/index.d.ts`                                                                                                                                          |
@@ -73,6 +74,7 @@ npm install express   # only peer dependency
 
 > **Parry_DDoS has zero production dependencies.**  
 > `express` is a `peerDependency` — if it's already in your project, nothing else to install.
+> For Redis-backed distributed rate limiting, install and configure a Redis client in your application, for example `npm install redis`.
 
 ---
 
@@ -96,7 +98,7 @@ app.post('/login', (req, res) => {
 app.listen(3000);
 ```
 
-With default settings, the middleware is fully operational. Core detectors, conservative guards, and in-memory rate limiting are enabled out of the box; HPP is opt-in.
+With default settings, the middleware is fully operational. Core detectors, conservative guards, and MemoryStore-backed rate limiting are enabled out of the box; HPP is opt-in.
 
 ---
 
@@ -130,9 +132,18 @@ app.use(
     },
 
     // ── Rate Limiting ───────────────────────────────────────────
-    rateLimit: true,
-    maxRequests: 100, // Max requests per window per IP
-    windowMs: 60_000, // Window duration in ms (default: 1 min)
+    rateLimit: {
+      enabled: true,
+      max: 100, // Max requests per window per IP
+      windowMs: 60_000, // Window duration in ms (default: 1 min)
+      headers: true, // Emit X-RateLimit-* headers when a store result exists
+    },
+    // Legacy top-level maxRequests/windowMs options are still supported.
+
+    // ── Store ───────────────────────────────────────────────────
+    // Defaults to MemoryStore. Pass RedisStore for distributed deployments.
+    store: undefined,
+    storeFailureMode: 'fail-open', // or 'fail-closed'
 
     // ── Intelligent Ban ─────────────────────────────────────────
     suspiciousThreshold: 5, // Detected attacks before ban
@@ -169,9 +180,12 @@ app.use(
 | `requestShape.maxKeys` | `500`          |
 | `requestShape.maxArrayLength` | `100`    |
 | `requestShape.maxStringLength` | `10000` |
-| `rateLimit`           | `true`           |
-| `maxRequests`         | `100`            |
-| `windowMs`            | `60000` (1 min)  |
+| `rateLimit` / `rateLimit.enabled` | `true` |
+| `rateLimit.max` / `maxRequests` | `100`  |
+| `rateLimit.windowMs` / `windowMs` | `60000` (1 min) |
+| `rateLimit.headers`   | `true`           |
+| `store`               | `MemoryStore`    |
+| `storeFailureMode`    | `'fail-open'`    |
 | `suspiciousThreshold` | `5`              |
 | `banDurationMs`       | `300000` (5 min) |
 | `logThreats`          | `true`           |
@@ -221,19 +235,21 @@ Request
 
 ### Intelligent Rate Limiting
 
-Parry_DDoS maintains **two independent in-memory counters** per observed IP in the current Node.js process:
+Parry_DDoS maintains **two independent counters** per observed IP through a Store:
 
 ```
 IP: 203.0.113.42
-├── timestamps[]   → sliding window of normal requests
-│                    (blocked when > maxRequests)
+├── rate limit     → request count for the active window
+│                    (blocked when > maxRequests / rateLimit.max)
 └── suspicious     → incremented on every detected attack
                      (banned when >= suspiciousThreshold)
 ```
 
 This means an IP can exceed the request limit without being marked malicious, while an IP making only a few malicious requests is temporarily banned after reaching the suspicious threshold.
 
-The `RateLimiter` runs automatic cleanup every 10 minutes to prevent unbounded memory growth. In multi-process, serverless, or clustered deployments, each instance has its own local counters unless you add shared persistence.
+By default, Parry_DDoS uses `MemoryStore`, which is appropriate for development and single-process deployments. In multi-process, containerized, serverless, or load-balanced deployments, each process has its own MemoryStore state unless you configure a shared store.
+
+If the store fails, Parry_DDoS defaults to `storeFailureMode: 'fail-open'`: rate limiting is skipped for that request, but SQL/XSS/NoSQL and application-layer detectors still run. Use `storeFailureMode: 'fail-closed'` in high-security environments when a rate-limit store outage should block requests with `503`.
 
 ### Inspected Surfaces
 
@@ -259,6 +275,53 @@ The additional guards are intentionally conservative:
 - **Prototype Pollution** blocks dangerous keys in `query`, `params`, and `body`, including nested objects.
 - **Path Traversal** checks request values after safe URL decoding, including double-encoded traversal segments.
 - **Request Shape Guard** blocks unusually deep, large, or long request structures before they reach route handlers.
+
+### Distributed Rate Limiting with Redis
+
+Use `RedisStore` when your application runs behind multiple instances, containers, PM2 cluster workers, ECS/Kubernetes replicas, or load-balanced services. MemoryStore only protects each process individually.
+
+Parry_DDoS does not install Redis for you. Create and connect the Redis client in your application, then pass it to the middleware:
+
+```js
+const express = require('express');
+const { createClient } = require('redis');
+const { Parry_DDoS, RedisStore } = require('parry');
+
+async function main() {
+  const redis = createClient({ url: process.env.REDIS_URL });
+  await redis.connect();
+
+  const app = express();
+  app.use(express.json());
+
+  app.use(
+    Parry_DDoS({
+      store: new RedisStore({
+        client: redis,
+        prefix: 'parry',
+      }),
+      storeFailureMode: 'fail-open',
+      rateLimit: {
+        enabled: true,
+        windowMs: 60_000,
+        max: 100,
+        headers: true,
+      },
+    })
+  );
+
+  app.listen(3000);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+```
+
+`RedisStore` expects a node-redis v4 compatible client with `get`, `set`, `del`, `incr`, `pExpire`/`pTTL`, and `eval` or `multi/exec` support. It uses namespaced keys such as `parry:rl:{key}`, `parry:ban:{key}`, and `parry:suspicious:{key}`.
+
+RedisStore helps coordinate HTTP flood and application-layer abuse controls across instances. It is not a replacement for edge protection against volumetric DDoS.
 
 ### DDoS Scope and Edge Protection
 
@@ -288,8 +351,8 @@ Parry_DDoS/
 │   │   ├── request-shape.js
 │   │   └── index.js          ← Barrel export
 │   │
-│   ├── rate-limit/           ← Sliding-window limiter
-│   ├── stores/               ← In-memory store
+│   ├── rate-limit/           ← Store-backed limiter and key helpers
+│   ├── stores/               ← Store contract, MemoryStore, RedisStore
 │   ├── logger/               ← Console reporter
 │   └── utils/                ← Decode, normalize, flatten helpers
 │
@@ -332,24 +395,25 @@ Parry_DDoS/
 
 ## Tests
 
-Parry_DDoS has two independent test suites totalling **171 tests**.
+Parry_DDoS has two independent test suites totalling **197 tests**.
 
-### Local suite (108 tests) — no network, no server
+### Local suite (134 tests) — no network, no server
 
 ```bash
 npm test
 ```
 
-Covers isolated detectors, application-layer guards, the `RateLimiter`, the core engine, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
+Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, the core engine, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
 
 ```
-▶ Unit — Detectors          32 tests
-▶ Unit — RateLimiter         9 tests
+▶ Unit — Detectors          30 tests
+▶ Unit — RateLimiter        14 tests
+▶ Unit — Stores             16 tests
 ▶ Unit — Core Engine         6 tests
 ▶ Unit — App Guards         19 tests
-▶ Integration — Middleware  42 tests
+▶ Integration — Middleware  49 tests
 ─────────────────────────────────────
-Total                      108 tests  |  0 failures
+Total                      134 tests  |  0 failures
 ```
 
 ### Real HTTP suite (63 tests) — fires real requests against Express
@@ -382,7 +446,7 @@ Total                           63 tests  |  0 failures
 
 ## Response Headers
 
-Parry_DDoS injects the following headers into **every** response:
+When rate limiting is enabled and the Store check succeeds, Parry_DDoS injects the following headers into responses:
 
 | Header                  | Description                              |
 | ----------------------- | ---------------------------------------- |
@@ -470,6 +534,7 @@ app.use(Parry_DDoS(options));
 ```
 
 Exported types: `Parry_DDoSOptions`, `ThreatLogEntry`, `ThreatMatch`, `RateLimitResult`, `IPSnapshot`, `DetectorType`, `LogEntryType`, `RateLimiter`, `SQLInjectionDetector`, `XSSDetector`, `NoSQLDetector`, `HPPDetector`, `PrototypePollutionDetector`, `PathTraversalDetector`, `RequestShapeGuard`.
+Store exports are also typed: `RateLimitStore`, `MemoryStore`, and `RedisStore`.
 
 ---
 
@@ -483,11 +548,11 @@ Parry_DDoS is under active development. Upcoming versions focus on stronger appl
 - [ ] Protection against Header Injection and HTTP Response Splitting
 - [ ] IP and route allowlist support for excluding specific paths from inspection
 
-### `v1.2` — Distributed Persistence
+### `v1.2` — Distributed Persistence Hardening
 
-- [ ] Redis adapter for `RateLimiter` — multi-instance and Kubernetes cluster support without state loss
-- [ ] `StorageAdapter` interface to plug in any backend (Memcached, DynamoDB, etc.)
-- [ ] Real-time ban synchronization across instances via Pub/Sub
+- [ ] Additional shared store adapters (Memcached, DynamoDB, etc.)
+- [ ] Optional key hashing for stores that should not persist raw client identifiers
+- [ ] Real-time ban synchronization patterns via Pub/Sub where appropriate
 
 ### `v1.3` — Application-Layer Abuse Controls
 
@@ -543,5 +608,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 171 application-layer cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 197 application-layer cases</sub>
 </div>
