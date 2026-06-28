@@ -2,8 +2,8 @@
 
 ![alt text](assets/image.png)
 
-**Real-time security middleware for Node.js.**  
-Detects and blocks SQL Injection, XSS, and NoSQL Injection before they reach the database, with intelligent Rate Limiting and automatic suspicious IP banning.
+**Application-layer security middleware for Express.js.**  
+Detects common SQL Injection, XSS, and NoSQL Injection payloads before route handling, with in-memory rate limiting and temporary bans for repeated suspicious activity.
 
 ```
 63/63 real HTTP tests passed  ·  66/66 unit tests passed  ·  zero production dependencies
@@ -22,6 +22,7 @@ Detects and blocks SQL Injection, XSS, and NoSQL Injection before they reach the
   - [Detection Pipeline](#detection-pipeline)
   - [Intelligent Rate Limiting](#intelligent-rate-limiting)
   - [Inspected Surfaces](#inspected-surfaces)
+  - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
 - [Response Headers](#response-headers)
@@ -35,12 +36,12 @@ Detects and blocks SQL Injection, XSS, and NoSQL Injection before they reach the
 
 ## Why Parry_DDoS?
 
-Most Node.js applications rely on validation at the route or ORM layer — which means malicious payloads reach application logic before hitting any barrier. Parry_DDoS acts **before** any route, like a gatekeeper at the request entry point.
+Most Node.js applications rely on validation at the route or ORM layer, which means malicious payloads can reach application logic before hitting any barrier. Parry_DDoS acts **before** your routes as an Express middleware.
 
-- No malicious payload ever reaches the database.
+- Common malicious payloads can be blocked before route logic and database access.
 - No extra production dependencies — pure Node.js native.
 - Every threat is logged with IP, method, route, and affected field.
-- IPs that repeatedly attempt attacks are automatically banned.
+- IPs that repeatedly send detected attacks can be temporarily banned by the in-memory limiter.
 
 ---
 
@@ -51,8 +52,8 @@ Most Node.js applications rely on validation at the route or ORM layer — which
 | **SQL Injection**        | 13 patterns — UNION, OR/AND bypass, comments, SLEEP/BENCHMARK, DROP/ALTER, xp_cmdshell, information_schema, hex encoding, LOAD FILE                                                  |
 | **XSS**                  | 15 patterns — `<script>`, inline event handlers, `javascript:`, `vbscript:`, `data:` URI, SVG injection, template injection (Angular/Vue/Handlebars), null-byte, `autofocus+onfocus` |
 | **NoSQL Injection**      | Dangerous MongoDB operators (`$where`, `$expr`, `$function`) and suspicious ones (`$gt`, `$ne`, `$or`, `$regex` etc.) in objects and JSON strings                                    |
-| **Rate Limiting**        | Sliding window per IP with `X-RateLimit-*` headers                                                                                                                                   |
-| **Intelligent Ban**      | Suspicious activity counter separate from volume — attacking IPs are banned before hitting the request limit                                                                         |
+| **Rate Limiting**        | In-memory sliding window per observed IP with `X-RateLimit-*` headers                                                                                                                |
+| **Intelligent Ban**      | Suspicious activity counter separate from request volume, scoped to the current Node.js process                                                                                      |
 | **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
 | **`onThreat` Callback**  | Hook for integration with SIEM, Slack, PagerDuty, DataDog, etc.                                                                                                                      |
 | **TypeScript**           | Full typings included in `types/index.d.ts`                                                                                                                                          |
@@ -90,7 +91,7 @@ app.post('/login', (req, res) => {
 app.listen(3000);
 ```
 
-With default settings, the middleware is fully operational. All detectors and rate limiting are enabled out of the box.
+With default settings, the middleware is fully operational. All detectors and in-memory rate limiting are enabled out of the box.
 
 ---
 
@@ -181,7 +182,7 @@ Request
 
 ### Intelligent Rate Limiting
 
-Parry_DDoS maintains **two independent counters** per IP:
+Parry_DDoS maintains **two independent in-memory counters** per observed IP in the current Node.js process:
 
 ```
 IP: 203.0.113.42
@@ -191,9 +192,9 @@ IP: 203.0.113.42
                      (banned when >= suspiciousThreshold)
 ```
 
-This means a high-volume legitimate IP is **not** banned, while an IP making only 3 requests — all malicious — is banned immediately upon reaching the threshold.
+This means an IP can exceed the request limit without being marked malicious, while an IP making only a few malicious requests is temporarily banned after reaching the suspicious threshold.
 
-The `RateLimiter` runs automatic cleanup every 10 minutes to prevent unbounded memory growth.
+The `RateLimiter` runs automatic cleanup every 10 minutes to prevent unbounded memory growth. In multi-process, serverless, or clustered deployments, each instance has its own local counters unless you add shared persistence.
 
 ### Inspected Surfaces
 
@@ -210,6 +211,12 @@ POST /api/users?search=<payload>
 ├── header.cookie
 └── header.x-forwarded-for
 ```
+
+### DDoS Scope and Edge Protection
+
+Parry_DDoS runs inside Express after traffic has already reached your Node.js process. It can reject malicious or excessive application-layer requests seen by that process, but it does not absorb volumetric floods, network-layer attacks, or connection exhaustion that must be stopped before the application receives traffic.
+
+For volumetric DDoS protection, use edge and infrastructure controls such as CloudFront, AWS WAF, AWS Shield, ALB rate-based rules, or an equivalent CDN, WAF, load balancer, or provider-level protection. Treat Parry_DDoS as one application-layer control behind those services.
 
 ---
 
@@ -408,7 +415,7 @@ Exported types: `Parry_DDoSOptions`, `ThreatLogEntry`, `ThreatMatch`, `RateLimit
 
 ## Roadmap
 
-Parry_DDoS is under active development. Upcoming versions will bring robust additions that expand protection beyond the middleware layer:
+Parry_DDoS is under active development. Upcoming versions focus on stronger application-layer controls, production hardening, and clearer integration with edge protection layers:
 
 ### `v1.1` — Production Hardening
 
@@ -423,19 +430,17 @@ Parry_DDoS is under active development. Upcoming versions will bring robust addi
 - [ ] `StorageAdapter` interface to plug in any backend (Memcached, DynamoDB, etc.)
 - [ ] Real-time ban synchronization across instances via Pub/Sub
 
-### `v1.3` — DDoS Defense
+### `v1.3` — Application-Layer Abuse Controls
 
 - [ ] Token Bucket with per-route burst control
-- [ ] Simultaneous connection flood detection per IP
-- [ ] Request fingerprinting to identify bots even with rotating IPs
-- [ ] Slowloris detection — blocking connections that deliberately delay data transmission
-- [ ] Challenge-response (headless CAPTCHA) for IPs in the grey zone
+- [ ] Request fingerprinting for repeated application-layer attack patterns
+- [ ] Hooks for challenge-response providers when clients enter a grey zone
+- [ ] Guidance for handling slow requests at the proxy/load-balancer layer
 
-### `v1.4` — Self-hosting on Any Infrastructure
+### `v1.4` — Operations and Observability
 
-- [ ] Official Docker image with built-in configuration server
-- [ ] Helm chart for Kubernetes deployment as a sidecar or centralized gateway
-- [ ] Standalone mode: Parry_DDoS as an independent reverse proxy, requiring no code-level integration in the application
+- [ ] Docker and Kubernetes deployment examples for applications using the middleware
+- [ ] Reference architectures behind CloudFront, AWS WAF, Shield, ALB, or equivalent edge protection
 - [ ] Web monitoring dashboard with real-time threat map, ban history, and per-detector metrics
 - [ ] Metrics export in Prometheus/OpenTelemetry format
 
@@ -455,7 +460,7 @@ Contributions are welcome. To get started:
 ```bash
 git clone <repo>
 cd Parry_DDoS
-npm install express
+npm install
 
 # Run the tests before any changes
 npm test
@@ -479,5 +484,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 129 real cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 129 application-layer cases</sub>
 </div>
