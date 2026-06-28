@@ -4,6 +4,10 @@ const THREAT_SEVERITY = {
   SQL_INJECTION: 'high',
   XSS: 'high',
   NOSQL_INJECTION: 'high',
+  HTTP_PARAMETER_POLLUTION: 'medium',
+  PROTOTYPE_POLLUTION: 'high',
+  PATH_TRAVERSAL: 'high',
+  REQUEST_SHAPE: 'medium',
 };
 
 function severityForThreats(threats) {
