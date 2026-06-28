@@ -1,6 +1,6 @@
 'use strict';
 
-const { Parry_DDoS } = require('../../src/middleware/Parry_DDoS');
+const { Parry_DDoS } = require('../../src/middleware/index.js');
 const { SQL_MALICIOUS, XSS_MALICIOUS, NOSQL_MALICIOUS_OBJECTS } = require('../fixtures/payloads');
 
 let passed = 0,
