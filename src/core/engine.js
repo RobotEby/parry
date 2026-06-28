@@ -1,6 +1,14 @@
 'use strict';
 
-const { SQLInjectionDetector, XSSDetector, NoSQLDetector } = require('../detectors');
+const {
+  SQLInjectionDetector,
+  XSSDetector,
+  NoSQLDetector,
+  HPPDetector,
+  PrototypePollutionDetector,
+  PathTraversalDetector,
+  RequestShapeGuard,
+} = require('../detectors');
 const { safeStringify } = require('../utils/normalize');
 const { severityForThreats } = require('./scoring');
 const { createThreatEvent, createBanEvent, createRateLimitEvent } = require('./threat-event');
@@ -42,17 +50,21 @@ function analyzeRequest(requestData, context) {
     };
   }
 
-  const threats = scanTargets(requestData.targets || [], config);
+  const threats = [
+    ...scanApplicationLayerGuards(requestData, config),
+    ...scanTargets(requestData.targets || [], config),
+  ];
 
   if (threats.length > 0) {
     if (config.rateLimit && rateLimiter) rateLimiter.recordSuspicious(requestData.ip);
+    const normalizedThreats = enrichThreats(threats);
 
     const event = createThreatEvent({
       ip: requestData.ip,
       timestamp,
       method: requestData.method,
       url: requestData.url,
-      threats,
+      threats: normalizedThreats,
     });
 
     return {
@@ -61,16 +73,13 @@ function analyzeRequest(requestData, context) {
       reason: 'THREAT',
       statusCode: 400,
       message: 'Request blocked: malicious pattern detected.',
-      severity: severityForThreats(threats),
-      detector: threats[0].detector,
-      threats,
+      severity: severityForThreats(normalizedThreats),
+      detector: normalizedThreats[0].detector,
+      threats: normalizedThreats,
       event,
       rateLimit,
       responseExtra: {
-        threats: threats.map((threat) => ({
-          detector: threat.detector,
-          field: threat.field,
-        })),
+        threats: normalizedThreats.map(toResponseThreat),
       },
     };
   }
@@ -88,6 +97,37 @@ function analyzeRequest(requestData, context) {
     rateLimit,
     responseExtra: {},
   };
+}
+
+function scanApplicationLayerGuards(requestData, config) {
+  const threats = [];
+  const surfaces = {
+    query: requestData.query || {},
+    params: requestData.params || {},
+    body: requestData.body,
+  };
+
+  if (config.requestShape?.enabled) {
+    const hit = RequestShapeGuard.scan(surfaces, config.requestShape);
+    if (hit) return [hit];
+  }
+
+  if (config.hpp?.enabled) {
+    const hit = HPPDetector.scan(surfaces.query, config.hpp);
+    if (hit) threats.push(hit);
+  }
+
+  if (config.prototypePollution?.enabled) {
+    const hit = PrototypePollutionDetector.scan(surfaces);
+    if (hit) threats.push(hit);
+  }
+
+  if (config.pathTraversal?.enabled) {
+    const hit = PathTraversalDetector.scan(requestData.targets || []);
+    if (hit) threats.push(hit);
+  }
+
+  return threats;
 }
 
 function scanTargets(targets, config) {
@@ -115,4 +155,21 @@ function scanTargets(targets, config) {
   return threats;
 }
 
-module.exports = { analyzeRequest, scanTargets };
+function enrichThreats(threats) {
+  return threats.map((threat) => ({
+    ...threat,
+    severity: threat.severity || severityForThreats([threat]),
+  }));
+}
+
+function toResponseThreat(threat) {
+  const responseThreat = {
+    detector: threat.detector,
+    field: threat.field,
+  };
+
+  if (threat.reason) responseThreat.reason = threat.reason;
+  return responseThreat;
+}
+
+module.exports = { analyzeRequest, scanTargets, scanApplicationLayerGuards };
