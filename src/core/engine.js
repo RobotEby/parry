@@ -11,12 +11,33 @@ const {
 } = require('../detectors');
 const { safeStringify } = require('../utils/normalize');
 const { severityForThreats } = require('./scoring');
-const { createThreatEvent, createBanEvent, createRateLimitEvent } = require('./threat-event');
+const {
+  createThreatEvent,
+  createBanEvent,
+  createRateLimitEvent,
+  createStoreFailureEvent,
+} = require('./threat-event');
 
-function analyzeRequest(requestData, context) {
-  const { config, rateLimiter } = context;
+async function analyzeRequest(requestData, context) {
+  const { config, rateLimiter, logger } = context;
   const timestamp = requestData.timestamp || new Date().toISOString();
-  const rateLimit = config.rateLimit && rateLimiter ? rateLimiter.check(requestData.ip) : null;
+  const rateLimit = await checkRateLimit(requestData, { config, rateLimiter, logger, timestamp });
+
+  if (rateLimit?.storeFailure && rateLimit.failClosed) {
+    return {
+      allowed: false,
+      blocked: true,
+      reason: 'STORE_FAILURE',
+      statusCode: 503,
+      message: 'Rate limit store unavailable.',
+      severity: 'medium',
+      detector: null,
+      threats: [],
+      event: rateLimit.event,
+      rateLimit: null,
+      responseExtra: {},
+    };
+  }
 
   if (rateLimit?.banned) {
     return {
@@ -56,7 +77,9 @@ function analyzeRequest(requestData, context) {
   ];
 
   if (threats.length > 0) {
-    if (config.rateLimit && rateLimiter) rateLimiter.recordSuspicious(requestData.ip);
+    if (config.rateLimit && rateLimiter) {
+      await recordSuspicious(requestData, { config, rateLimiter, logger, timestamp });
+    }
     const normalizedThreats = enrichThreats(threats);
 
     const event = createThreatEvent({
@@ -97,6 +120,35 @@ function analyzeRequest(requestData, context) {
     rateLimit,
     responseExtra: {},
   };
+}
+
+async function checkRateLimit(requestData, context) {
+  const { config, rateLimiter, logger, timestamp } = context;
+  if (!config.rateLimit || !rateLimiter) return null;
+
+  try {
+    return await rateLimiter.check(requestData.ip);
+  } catch (error) {
+    const mode = config.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
+    const event = createStoreFailureEvent({ ip: requestData.ip, timestamp, error, mode });
+    if (logger && typeof logger.logStoreError === 'function') logger.logStoreError(error, event);
+
+    if (mode === 'fail-open') return null;
+
+    return { storeFailure: true, failClosed: true, event };
+  }
+}
+
+async function recordSuspicious(requestData, context) {
+  const { config, rateLimiter, logger, timestamp } = context;
+
+  try {
+    await rateLimiter.recordSuspicious(requestData.ip);
+  } catch (error) {
+    const mode = config.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
+    const event = createStoreFailureEvent({ ip: requestData.ip, timestamp, error, mode });
+    if (logger && typeof logger.logStoreError === 'function') logger.logStoreError(error, event);
+  }
 }
 
 function scanApplicationLayerGuards(requestData, config) {
