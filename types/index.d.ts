@@ -46,6 +46,12 @@ export interface Parry_DDoSOptions {
   store?: RateLimitStore;
   /** Store error behavior. Default: fail-open */
   storeFailureMode?: 'fail-open' | 'fail-closed';
+  /** Optional route-based policies. */
+  policies?: PolicyConfig[];
+  /** Optional policy preset. Default: off */
+  preset?: 'off' | 'recommended' | 'strict';
+  /** Global brute force switch. Default: disabled */
+  bruteForce?: false | { enabled?: boolean };
   /** Suspicious attempts before temporary ban. Default: 5 */
   suspiciousThreshold?: number;
   /** Duration of the ban in ms. Default: 300000 (5 min) */
@@ -63,7 +69,9 @@ export type DetectorType =
   | 'HTTP_PARAMETER_POLLUTION'
   | 'PROTOTYPE_POLLUTION'
   | 'PATH_TRAVERSAL'
-  | 'REQUEST_SHAPE';
+  | 'REQUEST_SHAPE'
+  | 'BRUTE_FORCE'
+  | 'ROUTE_RATE_LIMIT';
 
 export interface ThreatMatch {
   detector: DetectorType;
@@ -73,7 +81,15 @@ export interface ThreatMatch {
   severity?: 'none' | 'low' | 'medium' | 'high';
 }
 
-export type LogEntryType = 'THREAT' | 'BAN' | 'RATE_LIMIT' | 'STORE_FAILURE';
+export type LogEntryType =
+  | 'THREAT'
+  | 'BAN'
+  | 'RATE_LIMIT'
+  | 'STORE_FAILURE'
+  | 'BRUTE_FORCE_ATTEMPT'
+  | 'BRUTE_FORCE_BLOCK'
+  | 'BRUTE_FORCE_RESET'
+  | 'ROUTE_RATE_LIMIT_EXCEEDED';
 
 export interface ThreatLogEntry {
   type: LogEntryType;
@@ -85,7 +101,46 @@ export interface ThreatLogEntry {
   severity?: 'none' | 'low' | 'medium' | 'high';
   target?: string;
   reason?: string;
+  module?: string;
+  policyName?: string;
+  path?: string;
+  keyTypes?: string[];
+  requestId?: string;
+  userAgent?: string;
   threats?: ThreatMatch[];
+}
+
+export interface PolicyConfig {
+  name: string;
+  match: {
+    method?: string | string[];
+    path?: string | string[] | RegExp;
+  };
+  inheritGlobalRateLimit?: boolean;
+  rateLimit?: {
+    enabled?: boolean;
+    max?: number;
+    maxRequests?: number;
+    windowMs?: number;
+    key?: 'ip' | 'ip+path' | ((requestData: unknown) => string | { type?: string; value: string } | null);
+  };
+  bruteForce?: {
+    enabled?: boolean;
+    maxAttempts?: number;
+    windowMs?: number;
+    blockDurationMs?: number;
+    keys?: Array<string | ((requestData: unknown) => string | { type?: string; value: string } | null)>;
+    failureStatusCodes?: number[];
+    successStatusCodes?: number[];
+    blockedStatusCode?: number;
+    resetOnSuccess?: boolean;
+  };
+}
+
+export interface ParryRequestContext {
+  recordAuthFailure(reason?: string): void;
+  recordAuthSuccess(): void;
+  [key: string]: unknown;
 }
 
 export interface RateLimitResult {
@@ -122,7 +177,20 @@ export interface RateLimitStore {
     ttlMs: number,
     metadata?: unknown
   ): StoreCounterResult | Promise<StoreCounterResult>;
+  incrementCounter(key: string, ttlMs: number, metadata?: unknown): StoreCounterResult | Promise<StoreCounterResult>;
+  getCounter(key: string): StoreCounterResult | Promise<StoreCounterResult>;
+  resetCounter(key: string): unknown;
+  blockKey(key: string, ttlMs: number, metadata?: unknown): StoreBlockResult | Promise<StoreBlockResult>;
+  isBlocked(key: string): StoreBlockResult | Promise<StoreBlockResult>;
+  unblockKey(key: string): unknown;
   close?(): unknown;
+}
+
+export interface StoreBlockResult {
+  key: string;
+  blocked: boolean;
+  blockExpiresAt: number | null;
+  metadata?: unknown;
 }
 
 export interface IPSnapshot {
@@ -157,6 +225,12 @@ export declare class MemoryStore implements RateLimitStore {
   isBanned(key: string): StoreBanResult;
   unban(key: string): boolean;
   recordSuspicious(key: string, ttlMs: number, metadata?: unknown): StoreCounterResult;
+  incrementCounter(key: string, ttlMs: number, metadata?: unknown): StoreCounterResult;
+  getCounter(key: string): StoreCounterResult;
+  resetCounter(key: string): boolean;
+  blockKey(key: string, ttlMs: number, metadata?: unknown): StoreBlockResult;
+  isBlocked(key: string): StoreBlockResult;
+  unblockKey(key: string): boolean;
   cleanup(now?: number): void;
   snapshot(windowMs: number): IPSnapshot[];
   clear(): void;
@@ -172,6 +246,12 @@ export declare class RedisStore implements RateLimitStore {
   isBanned(key: string): Promise<StoreBanResult>;
   unban(key: string): Promise<unknown>;
   recordSuspicious(key: string, ttlMs: number, metadata?: unknown): Promise<StoreCounterResult>;
+  incrementCounter(key: string, ttlMs: number, metadata?: unknown): Promise<StoreCounterResult>;
+  getCounter(key: string): Promise<StoreCounterResult>;
+  resetCounter(key: string): Promise<unknown>;
+  blockKey(key: string, ttlMs: number, metadata?: unknown): Promise<StoreBlockResult>;
+  isBlocked(key: string): Promise<StoreBlockResult>;
+  unblockKey(key: string): Promise<unknown>;
   close(): Promise<unknown>;
 }
 
@@ -205,3 +285,9 @@ export declare const RequestShapeGuard: {
 };
 
 export declare function Parry_DDoS(options?: Parry_DDoSOptions): RequestHandler;
+
+declare module 'express-serve-static-core' {
+  interface Request {
+    parry?: ParryRequestContext;
+  }
+}
