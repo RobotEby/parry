@@ -49,7 +49,7 @@ async function analyzeRequest(requestData, context) {
       severity: 'high',
       detector: null,
       threats: [],
-      event: createBanEvent({ ip: requestData.ip, timestamp }),
+      event: createBanEvent(createRequestEventContext(requestData, timestamp)),
       rateLimit,
       responseExtra: { banExpiresAt: rateLimit.banExpiresAt },
     };
@@ -65,7 +65,7 @@ async function analyzeRequest(requestData, context) {
       severity: 'medium',
       detector: null,
       threats: [],
-      event: createRateLimitEvent({ ip: requestData.ip, timestamp }),
+      event: createRateLimitEvent(createRequestEventContext(requestData, timestamp)),
       rateLimit,
       responseExtra: {},
     };
@@ -87,6 +87,9 @@ async function analyzeRequest(requestData, context) {
       timestamp,
       method: requestData.method,
       url: requestData.url,
+      path: requestData.path,
+      requestId: requestData.requestId,
+      userAgent: requestData.userAgent,
       threats: normalizedThreats,
     });
 
@@ -130,7 +133,12 @@ async function checkRateLimit(requestData, context) {
     return await rateLimiter.check(requestData.ip);
   } catch (error) {
     const mode = config.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
-    const event = createStoreFailureEvent({ ip: requestData.ip, timestamp, error, mode });
+    const event = createStoreFailureEvent({
+      ...createRequestEventContext(requestData, timestamp),
+      error,
+      mode,
+      module: 'rate-limit',
+    });
     if (logger && typeof logger.logStoreError === 'function') logger.logStoreError(error, event);
 
     if (mode === 'fail-open') return null;
@@ -143,12 +151,41 @@ async function recordSuspicious(requestData, context) {
   const { config, rateLimiter, logger, timestamp } = context;
 
   try {
-    await rateLimiter.recordSuspicious(requestData.ip);
+    const result = await rateLimiter.recordSuspicious(requestData.ip);
+    if (result?.banned && logger && typeof logger.log === 'function') {
+      logger.log({
+        type: 'TEMPORARY_BAN_CREATED',
+        module: 'rate-limit',
+        severity: 'high',
+        action: 'created',
+        reason: 'Suspicious activity threshold reached',
+        ...createRequestEventContext(requestData, timestamp),
+        metadata: {
+          banExpiresAt: result.banExpiresAt,
+        },
+      });
+    }
   } catch (error) {
     const mode = config.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
-    const event = createStoreFailureEvent({ ip: requestData.ip, timestamp, error, mode });
+    const event = createStoreFailureEvent({
+      ...createRequestEventContext(requestData, timestamp),
+      error,
+      mode,
+      module: 'rate-limit',
+    });
     if (logger && typeof logger.logStoreError === 'function') logger.logStoreError(error, event);
   }
+}
+
+function createRequestEventContext(requestData, timestamp) {
+  return {
+    ip: requestData.ip,
+    timestamp,
+    method: requestData.method,
+    path: requestData.path,
+    requestId: requestData.requestId,
+    userAgent: requestData.userAgent,
+  };
 }
 
 function scanApplicationLayerGuards(requestData, config) {
