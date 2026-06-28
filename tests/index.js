@@ -14,11 +14,14 @@ async function main() {
   console.log('\n▶ Unit — Core Engine');
   const engine = require('./unit/engine.test');
 
+  console.log('\n▶ Unit — Application-Layer Guards');
+  const appGuards = require('./unit/applicationGuards.test');
+
   console.log('\n▶ Integration — Middleware end-to-end');
   const integ = await require('./integration/middleware.test');
 
-  const totalPassed = det.passed + rl.passed + engine.passed + integ.passed;
-  const totalFailed = det.failed + rl.failed + engine.failed + integ.failed;
+  const totalPassed = det.passed + rl.passed + engine.passed + appGuards.passed + integ.passed;
+  const totalFailed = det.failed + rl.failed + engine.failed + appGuards.failed + integ.failed;
 
   console.log('\n' + '═'.repeat(55));
   console.log(`  Result: ${totalPassed} passed  |  ${totalFailed} failed`);
