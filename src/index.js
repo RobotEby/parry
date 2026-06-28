@@ -2,6 +2,7 @@
 
 const { Parry_DDoS } = require('./middleware');
 const { RateLimiter, ThreatLogger } = require('./core');
+const { MemoryStore, RedisStore } = require('./stores');
 const {
   SQLInjectionDetector,
   XSSDetector,
@@ -16,6 +17,8 @@ module.exports = {
   Parry_DDoS,
   RateLimiter,
   ThreatLogger,
+  MemoryStore,
+  RedisStore,
   SQLInjectionDetector,
   XSSDetector,
   NoSQLDetector,
