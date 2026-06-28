@@ -10,6 +10,8 @@ ParryWAF/
 │   ├── middleware/         Ponto de entrada público compatível
 │   ├── core/               Engine, eventos e scoring
 │   ├── rate-limit/         RateLimiter baseado em Store
+│   ├── policies/           Match e normalização de policies por rota
+│   ├── brute-force/        BruteForceGuard e key builder de autenticação
 │   ├── stores/             Contrato Store, MemoryStore e RedisStore
 │   └── logger/             Reporter de console
 ├── config/                 Valores padrão configuráveis
@@ -73,6 +75,20 @@ O banimento é acionado pelo `suspicious`, não pelo volume. Isso permite que um
 legítimo com alto volume não seja banido, enquanto um IP com poucas requisições
 mas todas maliciosas seja bloqueado rapidamente.
 
+## Policies por rota e brute force
+
+Policies são avaliadas no adapter Express, antes do engine principal, porque
+dependem de `method`, `path`, `req`, `res` e do status final da resposta.
+
+- O matcher suporta method/path exatos, arrays, wildcard simples e `RegExp`.
+- O route rate limit usa counters genéricos da Store com namespace separado.
+- O `BruteForceGuard` verifica bloqueios antes da rota e usa `res.on('finish')`
+  para registrar falhas ou sucessos de autenticação depois que o handler decide
+  o status final.
+- `req.parry.recordAuthFailure()` e `req.parry.recordAuthSuccess()` permitem que
+  handlers que respondem `200` com `{ success: false }` controlem o resultado
+  manualmente sem dupla contagem.
+
 ## Considerações de produção
 
 - `MemoryStore` é o padrão e protege apenas o processo atual. Para múltiplas
@@ -80,6 +96,9 @@ mas todas maliciosas seja bloqueado rapidamente.
   ou outra Store compartilhada.
 - `RedisStore` recebe um client Redis externo. O pacote não adiciona Redis como
   dependência obrigatória.
+- Chaves de brute force não devem incluir senha, tokens, cookies ou headers de
+  autorização. O key builder padrão bloqueia caminhos sensíveis como
+  `body.password`.
 - O `x-forwarded-for` não é verificado contra uma lista de proxies confiáveis.
   Em produção, adicione verificação de CIDR antes de confiar nesse header.
 - Os padrões regex cobrem os vetores mais comuns mas não são exaustivos.
