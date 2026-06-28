@@ -16,7 +16,7 @@ const { setRateLimitHeaders, respond } = require('./response');
  * @returns {import('express').RequestHandler}
  */
 function Parry_DDoS(options = {}) {
-  const config = { ...DEFAULTS, ...options };
+  const config = mergeConfig(options);
   const rateLimiter = new RateLimiter(config);
   const logger = new ThreatLogger(config.logThreats);
 
@@ -28,6 +28,9 @@ function Parry_DDoS(options = {}) {
       timestamp,
       method: req.method,
       url: req.originalUrl || req.url,
+      query: req.query || {},
+      params: req.params || {},
+      body: req.body,
       targets: collectRequestTargets(req, config.maxObjectDepth),
     };
 
@@ -51,6 +54,19 @@ function Parry_DDoS(options = {}) {
 
     return respond(res, decision.statusCode, decision.message, decision.responseExtra);
   };
+}
+
+function mergeConfig(options) {
+  const config = { ...DEFAULTS, ...options };
+
+  for (const key of ['hpp', 'prototypePollution', 'pathTraversal', 'requestShape']) {
+    config[key] = {
+      ...DEFAULTS[key],
+      ...(options[key] || {}),
+    };
+  }
+
+  return config;
 }
 
 module.exports = { Parry_DDoS };
