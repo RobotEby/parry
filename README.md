@@ -3,10 +3,10 @@
 ![alt text](assets/image.png)
 
 **Application-layer security middleware for Express.js.**  
-Detects common SQL Injection, XSS, and NoSQL Injection payloads before route handling, with in-memory rate limiting and temporary bans for repeated suspicious activity.
+Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, and optional HTTP Parameter Pollution before route handling.
 
 ```
-63/63 real HTTP tests passed  ·  66/66 unit tests passed  ·  zero production dependencies
+63 real HTTP tests available  ·  108/108 local tests passed  ·  zero production dependencies
 ```
 
 ---
@@ -22,6 +22,7 @@ Detects common SQL Injection, XSS, and NoSQL Injection payloads before route han
   - [Detection Pipeline](#detection-pipeline)
   - [Intelligent Rate Limiting](#intelligent-rate-limiting)
   - [Inspected Surfaces](#inspected-surfaces)
+  - [Application-Layer Guards](#application-layer-guards)
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
@@ -52,6 +53,10 @@ Most Node.js applications rely on validation at the route or ORM layer, which me
 | **SQL Injection**        | 13 patterns — UNION, OR/AND bypass, comments, SLEEP/BENCHMARK, DROP/ALTER, xp_cmdshell, information_schema, hex encoding, LOAD FILE                                                  |
 | **XSS**                  | 15 patterns — `<script>`, inline event handlers, `javascript:`, `vbscript:`, `data:` URI, SVG injection, template injection (Angular/Vue/Handlebars), null-byte, `autofocus+onfocus` |
 | **NoSQL Injection**      | Dangerous MongoDB operators (`$where`, `$expr`, `$function`) and suspicious ones (`$gt`, `$ne`, `$or`, `$regex` etc.) in objects and JSON strings                                    |
+| **Prototype Pollution**  | Dangerous keys such as `__proto__`, `constructor`, and `prototype` in query, params, and body                                                                                         |
+| **Path Traversal**       | Raw, URL-encoded, and double-encoded traversal segments in request values                                                                                                             |
+| **Request Shape Guard**  | Conservative limits for object depth, total keys, array length, and string length                                                                                                    |
+| **Optional HPP Guard**   | Opt-in duplicate query parameter detection with per-field allowlist                                                                                                                   |
 | **Rate Limiting**        | In-memory sliding window per observed IP with `X-RateLimit-*` headers                                                                                                                |
 | **Intelligent Ban**      | Suspicious activity counter separate from request volume, scoped to the current Node.js process                                                                                      |
 | **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
@@ -91,7 +96,7 @@ app.post('/login', (req, res) => {
 app.listen(3000);
 ```
 
-With default settings, the middleware is fully operational. All detectors and in-memory rate limiting are enabled out of the box.
+With default settings, the middleware is fully operational. Core detectors, conservative guards, and in-memory rate limiting are enabled out of the box; HPP is opt-in.
 
 ---
 
@@ -104,6 +109,25 @@ app.use(
     sql: true, // Enable SQL Injection detection
     xss: true, // Enable XSS detection
     nosql: true, // Enable NoSQL Injection detection
+
+    // ── Additional Application-Layer Guards ─────────────────────
+    hpp: {
+      enabled: false, // Opt-in: duplicated query params can be valid for some APIs
+      allowDuplicateParamsFor: ['tags', 'filters'],
+    },
+    prototypePollution: {
+      enabled: true,
+    },
+    pathTraversal: {
+      enabled: true,
+    },
+    requestShape: {
+      enabled: true,
+      maxDepth: 8,
+      maxKeys: 500,
+      maxArrayLength: 100,
+      maxStringLength: 10_000,
+    },
 
     // ── Rate Limiting ───────────────────────────────────────────
     rateLimit: true,
@@ -136,6 +160,15 @@ app.use(
 | `sql`                 | `true`           |
 | `xss`                 | `true`           |
 | `nosql`               | `true`           |
+| `hpp.enabled`         | `false`          |
+| `hpp.allowDuplicateParamsFor` | `[]`     |
+| `prototypePollution.enabled` | `true`    |
+| `pathTraversal.enabled` | `true`         |
+| `requestShape.enabled` | `true`         |
+| `requestShape.maxDepth` | `8`           |
+| `requestShape.maxKeys` | `500`          |
+| `requestShape.maxArrayLength` | `100`    |
+| `requestShape.maxStringLength` | `10000` |
 | `rateLimit`           | `true`           |
 | `maxRequests`         | `100`            |
 | `windowMs`            | `60000` (1 min)  |
@@ -157,23 +190,29 @@ Request
     │
     ├─► [1] Rate Limit check  ──────── 429 if exceeded or banned
     │
-    ├─► [2] Target collection
+    ├─► [2] Target collection and request metadata
     │       ├── query params
     │       ├── body (recursive flatten up to maxObjectDepth)
     │       ├── route params
     │       └── sensitive headers (user-agent, referer, cookie, x-forwarded-for)
     │
-    ├─► [3] Multi-layer decoding per value
+    ├─► [3] Application-layer guards
+    │       ├── Request shape limits
+    │       ├── HTTP Parameter Pollution (when enabled)
+    │       ├── Prototype Pollution keys
+    │       └── Path Traversal values
+    │
+    ├─► [4] Multi-layer decoding per value
     │       ├── URL decode (up to 3 passes — anti double-encoding)
     │       ├── HTML entities (&lt; &amp; &#x27; etc.)
     │       └── Unicode zero-width strip
     │
-    ├─► [4] Parallel scan per detector
+    ├─► [5] Parallel scan per detector
     │       ├── SQLInjectionDetector.scan(value)
     │       ├── XSSDetector.scan(value)
     │       └── NoSQLDetector.scan(rawValue)  ← receives object or string
     │
-    ├─► [5] Threat detected?
+    ├─► [6] Threat detected?
     │       ├── YES → recordSuspicious(ip) · log · onThreat() · 400
     │       └── NO  → next()
     │
@@ -212,6 +251,15 @@ POST /api/users?search=<payload>
 └── header.x-forwarded-for
 ```
 
+### Application-Layer Guards
+
+The additional guards are intentionally conservative:
+
+- **HPP** is disabled by default. Enable it when your API does not intentionally accept duplicated query parameters, or allow specific fields with `allowDuplicateParamsFor`.
+- **Prototype Pollution** blocks dangerous keys in `query`, `params`, and `body`, including nested objects.
+- **Path Traversal** checks request values after safe URL decoding, including double-encoded traversal segments.
+- **Request Shape Guard** blocks unusually deep, large, or long request structures before they reach route handlers.
+
 ### DDoS Scope and Edge Protection
 
 Parry_DDoS runs inside Express after traffic has already reached your Node.js process. It can reject malicious or excessive application-layer requests seen by that process, but it does not absorb volumetric floods, network-layer attacks, or connection exhaustion that must be stopped before the application receives traffic.
@@ -226,20 +274,24 @@ For volumetric DDoS protection, use edge and infrastructure controls such as Clo
 Parry_DDoS/
 │
 ├── src/
-│   ├── middleware/
-│   │   ├── parry_ddos.js     ← Main orchestrator
-│   │   └── index.js          ← Barrel export
+│   ├── middleware/           ← Backwards-compatible public entrypoint
+│   ├── express/              ← Express adapter: req/res/next, IP, targets, responses
+│   ├── core/                 ← Analysis engine, events, scoring, compatibility shims
 │   │
 │   ├── detectors/
 │   │   ├── sql.js            ← SQL Injection detector
 │   │   ├── xss.js            ← XSS detector
 │   │   ├── nosql.js          ← NoSQL Injection detector
+│   │   ├── hpp.js            ← HTTP Parameter Pollution detector
+│   │   ├── prototype-pollution.js
+│   │   ├── path-traversal.js
+│   │   ├── request-shape.js
 │   │   └── index.js          ← Barrel export
 │   │
-│   └── core/
-│       ├── rateLimiter.js    ← Sliding-window rate limiter + ban
-│       ├── logger.js         ← Colored logger with timestamps
-│       └── index.js          ← Barrel export
+│   ├── rate-limit/           ← Sliding-window limiter
+│   ├── stores/               ← In-memory store
+│   ├── logger/               ← Console reporter
+│   └── utils/                ← Decode, normalize, flatten helpers
 │
 ├── config/
 │   └── defaults.js           ← Centralized default values
@@ -252,12 +304,15 @@ Parry_DDoS/
 │
 ├── tests/
 │   ├── unit/
-│   │   ├── detectors.test.js    ← Isolated tests per detector
-│   │   └── rateLimiter.test.js  ← RateLimiter tests
+│   │   ├── detectors.test.js        ← SQL/XSS/NoSQL tests
+│   │   ├── applicationGuards.test.js
+│   │   ├── engine.test.js
+│   │   └── rateLimiter.test.js      ← RateLimiter tests
 │   ├── integration/
 │   │   └── middleware.test.js   ← Middleware end-to-end with req/res mock
 │   ├── fixtures/
-│   │   └── payloads.js          ← Reusable attack payloads across suites
+│   │   ├── payloads.js              ← Reusable attack payloads
+│   │   └── application-layer.js     ← Curated guard fixtures
 │   └── index.js                 ← Aggregated test runner
 │
 ├── scripts/
@@ -277,22 +332,24 @@ Parry_DDoS/
 
 ## Tests
 
-Parry_DDoS has two independent test suites totalling **129 tests**.
+Parry_DDoS has two independent test suites totalling **171 tests**.
 
-### Unit suite (66 tests) — no network, no server
+### Local suite (108 tests) — no network, no server
 
 ```bash
 npm test
 ```
 
-Covers isolated detectors (SQL, XSS, NoSQL), the `RateLimiter`, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
+Covers isolated detectors, application-layer guards, the `RateLimiter`, the core engine, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
 
 ```
 ▶ Unit — Detectors          32 tests
 ▶ Unit — RateLimiter         9 tests
-▶ Integration — Middleware  25 tests
+▶ Unit — Core Engine         6 tests
+▶ Unit — App Guards         19 tests
+▶ Integration — Middleware  42 tests
 ─────────────────────────────────────
-Total                       66 tests  |  0 failures
+Total                      108 tests  |  0 failures
 ```
 
 ### Real HTTP suite (63 tests) — fires real requests against Express
@@ -342,7 +399,8 @@ When a request is blocked, the response follows this format:
   "message": "Request blocked: malicious pattern detected.",
   "threats": [
     { "detector": "SQL_INJECTION", "field": "body.username" },
-    { "detector": "XSS",           "field": "body.comment"  }
+    { "detector": "XSS",           "field": "body.comment"  },
+    { "detector": "REQUEST_SHAPE", "field": "body", "reason": "Object key count exceeds 500" }
   ]
 }
 
@@ -364,6 +422,8 @@ Use the `onThreat` callback to forward events to any external system:
 // Slack
 Parry_DDoS({
   onThreat(entry) {
+    // New threat events include top-level detector, severity, reason, and target
+    // while preserving entry.threats[] for compatibility.
     fetch('https://hooks.slack.com/services/...', {
       method: 'POST',
       body: JSON.stringify({
@@ -409,7 +469,7 @@ const options: Parry_DDoSOptions = {
 app.use(Parry_DDoS(options));
 ```
 
-Exported types: `Parry_DDoSOptions`, `ThreatLogEntry`, `ThreatMatch`, `RateLimitResult`, `IPSnapshot`, `DetectorType`, `LogEntryType`, `RateLimiter`, `SQLInjectionDetector`, `XSSDetector`, `NoSQLDetector`.
+Exported types: `Parry_DDoSOptions`, `ThreatLogEntry`, `ThreatMatch`, `RateLimitResult`, `IPSnapshot`, `DetectorType`, `LogEntryType`, `RateLimiter`, `SQLInjectionDetector`, `XSSDetector`, `NoSQLDetector`, `HPPDetector`, `PrototypePollutionDetector`, `PathTraversalDetector`, `RequestShapeGuard`.
 
 ---
 
@@ -421,7 +481,6 @@ Parry_DDoS is under active development. Upcoming versions focus on stronger appl
 
 - [ ] CIDR verification for trusted proxies before accepting `X-Forwarded-For`
 - [ ] Protection against Header Injection and HTTP Response Splitting
-- [ ] Path Traversal detection (`../`, `%2e%2e%2f`) in params and query
 - [ ] IP and route allowlist support for excluding specific paths from inspection
 
 ### `v1.2` — Distributed Persistence
@@ -484,5 +543,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 129 application-layer cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 171 application-layer cases</sub>
 </div>
