@@ -4,6 +4,8 @@ const { DEFAULTS } = require('../../config/defaults');
 const { analyzeRequest } = require('../core/engine');
 const { RateLimiter } = require('../rate-limit/limiter');
 const { ThreatLogger } = require('../logger/console-reporter');
+const { EventBus, MemoryEventStore } = require('../events');
+const { Metrics } = require('../observability');
 const { buildPolicies, findMatchingPolicy } = require('../policies');
 const {
   attachParryRequestApi,
@@ -25,20 +27,70 @@ const { setRateLimitHeaders, respond } = require('./response');
  * @returns {import('express').RequestHandler}
  */
 function Parry_DDoS(options = {}) {
+  return createParry(options).middleware();
+}
+
+function createParry(options = {}) {
   const config = mergeConfig(options);
   const rateLimiter = new RateLimiter(config, config.store);
-  const logger = new ThreatLogger(config.logThreats);
+  const eventStore = new MemoryEventStore({ maxEvents: config.events.maxEvents });
+  const eventBus = new EventBus({ eventStore });
+  const metrics = new Metrics();
+  const consoleReporter = new ThreatLogger(config.logThreats);
 
-  return function Parry_DDoSMiddleware(req, res, next) {
-    return handleRequest(req, res, next, { config, rateLimiter, logger, store: rateLimiter.store }).catch(next);
+  eventBus.onThreat((event) => consoleReporter.log(event));
+  eventBus.onThreat((event) => metrics.recordEvent(event));
+  if (typeof config.onThreat === 'function') eventBus.onThreat(config.onThreat);
+  if (typeof config.onEvent === 'function') eventBus.onThreat(config.onEvent);
+  if (typeof config.onStoreError === 'function') {
+    eventBus.onThreat((event) => {
+      if (event.type !== 'STORE_ERROR') return;
+      config.onStoreError(new Error(event.reason || 'Store error'), event);
+    });
+  }
+
+  const eventReporter = createEventReporter(eventBus);
+  const context = {
+    config,
+    rateLimiter,
+    logger: eventReporter,
+    store: rateLimiter.store,
+    eventBus,
+    eventStore,
+    metrics,
+    policies: config.policies,
+  };
+
+  const middleware = function Parry_DDoSMiddleware(req, res, next) {
+    return handleRequest(req, res, next, context).catch(next);
+  };
+  Object.defineProperty(middleware, '__parryContext', {
+    value: context,
+    enumerable: false,
+  });
+
+  return {
+    middleware() {
+      return middleware;
+    },
+    eventBus,
+    metrics,
+    eventStore,
+    store: rateLimiter.store,
+    policies: config.policies,
+    getContext() {
+      return context;
+    },
   };
 }
 
 async function handleRequest(req, res, next, context) {
-  const { config, rateLimiter, logger, store } = context;
+  const { config, rateLimiter, logger, store, eventBus, metrics } = context;
+  metrics.recordRequest('started');
   const ip = resolveClientIP(req);
   const timestamp = new Date().toISOString();
   const url = req.originalUrl || req.url;
+  const requestId = resolveRequestId(req, res, config.requestId);
   const requestData = {
     ip,
     timestamp,
@@ -50,6 +102,8 @@ async function handleRequest(req, res, next, context) {
     params: req.params || {},
     body: req.body,
     targets: collectRequestTargets(req, config.maxObjectDepth),
+    requestId,
+    userAgent: getHeader(req.headers || {}, 'user-agent'),
   };
 
   const policy = findMatchingPolicy(config.policies, requestData);
@@ -61,8 +115,10 @@ async function handleRequest(req, res, next, context) {
     store,
     config,
     logger,
+    eventBus,
   });
   attachParryRequestApi(req, bruteForceContext);
+  req.parry.requestId = requestId;
 
   const bruteForce = await checkBruteForceBlock(bruteForceContext);
   if (bruteForce.blocked) {
@@ -72,16 +128,18 @@ async function handleRequest(req, res, next, context) {
 
     const response = createBlockedResponse(bruteForce);
     setHeaders(res, response.headers);
+    metrics.recordRequest('blocked');
     return res.status(response.statusCode).json(response.body);
   }
 
-  const routeRateLimit = await checkRouteRateLimit({ policy, requestData, store, config, logger, req, res });
+  const routeRateLimit = await checkRouteRateLimit({ policy, requestData, store, config, logger, eventBus, req, res });
   if (routeRateLimit?.blocked) {
     if (routeRateLimit.storeFailure) {
       return respond(res, routeRateLimit.statusCode, 'Rate limit store unavailable.');
     }
 
     setRateLimitHeaders(res, routeRateLimit.headerConfig, routeRateLimit.rateLimit);
+    metrics.recordRequest('blocked');
     return respond(res, 429, 'Request limit reached. Please try again shortly.');
   }
 
@@ -94,17 +152,13 @@ async function handleRequest(req, res, next, context) {
     setRateLimitHeaders(res, engineConfig, decision.rateLimit);
   }
 
-  if (!decision.blocked) return next();
-
-  if (decision.event) logger.log(decision.event);
-
-  if (decision.reason === 'THREAT' && config.onThreat) {
-    try {
-      config.onThreat(decision.event, req, res);
-    } catch (error) {
-      logger.logHookError(error, decision.event);
-    }
+  if (!decision.blocked) {
+    metrics.recordRequest('allowed');
+    return next();
   }
+
+  if (decision.event) eventBus.emitThreat({ ...decision.event, statusCode: decision.statusCode }, { req, res });
+  metrics.recordRequest('blocked');
 
   return respond(res, decision.statusCode, decision.message, decision.responseExtra);
 }
@@ -113,6 +167,13 @@ function mergeConfig(options) {
   const config = { ...DEFAULTS, ...options };
 
   for (const key of ['hpp', 'prototypePollution', 'pathTraversal', 'requestShape']) {
+    config[key] = {
+      ...DEFAULTS[key],
+      ...(options[key] || {}),
+    };
+  }
+
+  for (const key of ['events', 'admin', 'requestId']) {
     config[key] = {
       ...DEFAULTS[key],
       ...(options[key] || {}),
@@ -174,7 +235,7 @@ async function checkRouteRateLimit(context) {
     if (!rateLimit.limited) return { blocked: false, rateLimit };
 
     const event = createRouteRateLimitEvent({ policy, requestData, keyTypes: [key.type] });
-    emitPolicyEvent({ config, logger, event, req, res });
+    emitPolicyEvent({ eventBus: context.eventBus, logger, event, req, res });
 
     return {
       blocked: true,
@@ -216,21 +277,18 @@ function createRouteRateLimitEvent({ policy, requestData, keyTypes }) {
     severity: 'medium',
     reason: 'route_rate_limit_exceeded',
     timestamp: new Date().toISOString(),
-    requestId: requestData.headers?.['x-request-id'],
-    userAgent: requestData.headers?.['user-agent'],
+    requestId: requestData.requestId,
+    userAgent: requestData.userAgent,
   };
 }
 
-function emitPolicyEvent({ config, logger, event, req, res }) {
-  if (logger && typeof logger.log === 'function') logger.log(event);
-
-  if (config.onThreat) {
-    try {
-      config.onThreat(event, req, res);
-    } catch (error) {
-      if (logger && typeof logger.logHookError === 'function') logger.logHookError(error, event);
-    }
+function emitPolicyEvent({ eventBus, logger, event, req, res }) {
+  if (eventBus && typeof eventBus.emitThreat === 'function') {
+    eventBus.emitThreat(event, { req, res });
+    return;
   }
+
+  if (logger && typeof logger.log === 'function') logger.log(event);
 }
 
 function setHeaders(res, headers) {
@@ -245,4 +303,65 @@ function stripQuery(value) {
   return index === -1 ? path : path.slice(0, index);
 }
 
-module.exports = { Parry_DDoS };
+function createEventReporter(eventBus) {
+  return {
+    log(event, context = {}) {
+      return eventBus.emitThreat(event, context);
+    },
+    logStoreError(error, event = {}) {
+      return eventBus.emitThreat(
+        {
+          ...event,
+          type: 'STORE_ERROR',
+          severity: event.severity || 'medium',
+          action: 'error',
+          reason: error && error.message ? error.message : String(error),
+        },
+        {}
+      );
+    },
+    logHookError(error, event = {}) {
+      return eventBus.emitThreat(
+        {
+          type: 'HOOK_ERROR',
+          module: 'hook',
+          severity: 'low',
+          action: 'error',
+          reason: error && error.message ? error.message : String(error),
+          ip: event.ip,
+          method: event.method,
+          path: event.path,
+          requestId: event.requestId,
+          metadata: { sourceEventId: event.id, sourceType: event.type },
+        },
+        {}
+      );
+    },
+  };
+}
+
+function resolveRequestId(req, res, config) {
+  if (!config || config.enabled === false) return undefined;
+
+  const headerName = config.header || 'x-request-id';
+  const requestId = getHeader(req.headers || {}, headerName) || createRequestId();
+
+  if (config.responseHeader) {
+    res.setHeader(config.responseHeader, requestId);
+  }
+
+  return requestId;
+}
+
+function createRequestId() {
+  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getHeader(headers, name) {
+  if (!headers || !name) return undefined;
+  const lower = String(name).toLowerCase();
+  const match = Object.keys(headers).find((key) => key.toLowerCase() === lower);
+  return match ? headers[match] : undefined;
+}
+
+module.exports = { Parry_DDoS, createParry, mergeConfig };
