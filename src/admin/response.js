@@ -9,11 +9,19 @@ function ok(res, body) {
 }
 
 function unauthorized(res) {
-  return json(res, 401, { error: true, message: 'Unauthorized' });
+  return json(res, 401, {
+    error: 'Unauthorized',
+    code: 'ADMIN_UNAUTHORIZED',
+    message: 'Unauthorized',
+  });
 }
 
 function notFound(res) {
-  return json(res, 404, { error: true, message: 'Not found' });
+  return json(res, 404, {
+    error: 'Not found',
+    code: 'ADMIN_NOT_FOUND',
+    message: 'Not found',
+  });
 }
 
 module.exports = { json, ok, unauthorized, notFound };
