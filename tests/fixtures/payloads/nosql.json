@@ -1,0 +1,202 @@
+[
+  {
+    "id": "nosql-operator-001",
+    "category": "nosql",
+    "name": "Mongo $ne operator object",
+    "payload": { "$ne": null },
+    "target": "body.username",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "mongodb"]
+  },
+  {
+    "id": "nosql-operator-002",
+    "category": "nosql",
+    "name": "Mongo $gt operator object",
+    "payload": { "$gt": "" },
+    "target": "body.login",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "mongodb"]
+  },
+  {
+    "id": "nosql-operator-003",
+    "category": "nosql",
+    "name": "Mongo $lt operator object",
+    "payload": { "$lt": "z" },
+    "target": "body.username",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "mongodb"]
+  },
+  {
+    "id": "nosql-operator-004",
+    "category": "nosql",
+    "name": "Mongo $regex operator object",
+    "payload": { "$regex": ".*" },
+    "target": "body.username",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "regex"]
+  },
+  {
+    "id": "nosql-operator-005",
+    "category": "nosql",
+    "name": "Mongo $where dangerous operator",
+    "payload": { "$where": "function(){ return true; }" },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "dangerous"]
+  },
+  {
+    "id": "nosql-operator-006",
+    "category": "nosql",
+    "name": "Mongo $expr dangerous operator",
+    "payload": { "$expr": { "$gt": ["$balance", 0] } },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "dangerous"]
+  },
+  {
+    "id": "nosql-operator-007",
+    "category": "nosql",
+    "name": "Mongo $function dangerous operator",
+    "payload": { "$function": { "body": "function(){return true;}", "args": [], "lang": "js" } },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "dangerous"]
+  },
+  {
+    "id": "nosql-operator-008",
+    "category": "nosql",
+    "name": "Mongo $or object",
+    "payload": { "$or": [{ "role": "admin" }, { "active": true }] },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "logical"]
+  },
+  {
+    "id": "nosql-operator-009",
+    "category": "nosql",
+    "name": "Mongo $and object",
+    "payload": { "$and": [{ "role": "admin" }, { "active": true }] },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator", "logical"]
+  },
+  {
+    "id": "nosql-operator-010",
+    "category": "nosql",
+    "name": "Mongo $exists operator",
+    "payload": { "$exists": true },
+    "target": "body.flag",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator"]
+  },
+  {
+    "id": "nosql-operator-011",
+    "category": "nosql",
+    "name": "Mongo $in operator",
+    "payload": { "$in": ["admin", "root"] },
+    "target": "body.role",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["operator"]
+  },
+  {
+    "id": "nosql-nested-001",
+    "category": "nosql",
+    "name": "Nested $ne operator",
+    "payload": { "username": { "$ne": null } },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["nested", "operator"]
+  },
+  {
+    "id": "nosql-nested-002",
+    "category": "nosql",
+    "name": "Nested $regex operator",
+    "payload": { "profile": { "email": { "$regex": ".*@example.com" } } },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["nested", "regex"]
+  },
+  {
+    "id": "nosql-nested-003",
+    "category": "nosql",
+    "name": "Nested $gt operator",
+    "payload": { "age": { "$gt": 0 } },
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["nested", "operator"]
+  },
+  {
+    "id": "nosql-string-001",
+    "category": "nosql",
+    "name": "JSON string with $gt operator",
+    "payload": "{\"$gt\":\"\"}",
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["json-string", "operator"]
+  },
+  {
+    "id": "nosql-string-002",
+    "category": "nosql",
+    "name": "JSON string with nested $regex operator",
+    "payload": "{\"username\":{\"$regex\":\".*\"}}",
+    "target": "body.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["json-string", "regex"]
+  },
+  {
+    "id": "nosql-string-003",
+    "category": "nosql",
+    "name": "$where function string",
+    "payload": "$where: function(){ return true; }",
+    "target": "query.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["string", "dangerous"]
+  },
+  {
+    "id": "nosql-string-004",
+    "category": "nosql",
+    "name": "Mongo mapReduce string",
+    "payload": "mapReduce(function(){emit(1,1)}, function(){return 1})",
+    "target": "query.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["string", "map-reduce"]
+  },
+  {
+    "id": "nosql-string-005",
+    "category": "nosql",
+    "name": "Mongo runCommand string",
+    "payload": "db.runCommand({ping:1})",
+    "target": "query.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["string", "command"]
+  },
+  {
+    "id": "nosql-string-006",
+    "category": "nosql",
+    "name": "Mongo collection find string",
+    "payload": "db.getCollection('users').find({})",
+    "target": "query.filter",
+    "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "tags": ["string", "command"]
+  }
+]
