@@ -30,6 +30,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [Admin API](#admin-api)
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
   - [AWS Reference Infrastructure](#aws-reference-infrastructure)
+  - [CI/CD](#cicd)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
   - [Payload Regression Testing](#payload-regression-testing)
@@ -592,6 +593,22 @@ The stack is intentionally demonstrative. It does not create secrets, Route 53 r
 
 The AWS reference shows how Parry fits behind edge protection. It does not change Parry into a volumetric DDoS protection product.
 
+### CI/CD
+
+This repository includes GitHub Actions for Node.js CI, fixture validation, payload regression, Docker demo image builds, optional Amazon ECR pushes through GitHub OIDC, and Terraform fmt/validate/plan.
+
+`terraform apply` is not automated. Infrastructure changes should be applied manually after reviewing a plan from a trusted environment.
+
+Start with:
+
+- `docs/ci-cd.md`
+- `docs/github-oidc-aws.md`
+- `.github/workflows/ci.yml`
+- `.github/workflows/docker.yml`
+- `.github/workflows/terraform-plan.yml`
+
+The CI/CD reference supports deployment operations around Parry, but Parry remains application-layer middleware and does not replace CloudFront, AWS WAF, Shield, ALB, or equivalent edge protection for volumetric DDoS.
+
 ---
 
 ## Project Structure
@@ -658,11 +675,19 @@ Parry_DDoS/
 ├── examples/
 │   └── express-basic.js      ← Full integration example
 │
+├── docker/
+│   └── demo-api/             ← Containerized Parry demo API for AWS/ECR workflows
+│
+├── .github/
+│   └── workflows/            ← CI, Docker, and Terraform plan workflows
+│
 ├── infra/
 │   └── terraform/            ← AWS reference infrastructure modules and dev env
 │
 ├── docs/
 │   ├── architecture.md       ← Documented design decisions
+│   ├── ci-cd.md
+│   ├── github-oidc-aws.md
 │   ├── aws-infra.md
 │   ├── aws-security-notes.md
 │   ├── aws-cost-notes.md
