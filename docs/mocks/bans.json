@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "key": "203.0.113.25",
+      "banExpiresAt": 1782734520000,
+      "metadata": {
+        "reason": "temporary application-layer ban"
+      }
+    },
+    {
+      "key": "198.51.100.44",
+      "banExpiresAt": 1782734820000,
+      "metadata": {
+        "reason": "repeated suspicious requests"
+      }
+    }
+  ],
+  "pagination": {
+    "limit": 50,
+    "offset": 0,
+    "total": 2
+  }
+}
