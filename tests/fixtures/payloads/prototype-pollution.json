@@ -1,0 +1,125 @@
+[
+  {
+    "id": "prototype-proto-001",
+    "category": "prototype-pollution",
+    "name": "Root __proto__ key",
+    "payload": { "__proto__": { "admin": true } },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["__proto__"]
+  },
+  {
+    "id": "prototype-proto-002",
+    "category": "prototype-pollution",
+    "name": "Nested __proto__ key",
+    "payload": { "profile": { "__proto__": { "polluted": true } } },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["__proto__", "nested"]
+  },
+  {
+    "id": "prototype-constructor-001",
+    "category": "prototype-pollution",
+    "name": "Root constructor key",
+    "payload": { "constructor": { "prototype": { "admin": true } } },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["constructor", "prototype"]
+  },
+  {
+    "id": "prototype-constructor-002",
+    "category": "prototype-pollution",
+    "name": "Nested constructor prototype path",
+    "payload": { "settings": { "constructor": { "prototype": { "debug": true } } } },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["constructor", "prototype", "nested"]
+  },
+  {
+    "id": "prototype-key-001",
+    "category": "prototype-pollution",
+    "name": "Root prototype key",
+    "payload": { "prototype": { "enabled": true } },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["prototype"]
+  },
+  {
+    "id": "prototype-key-002",
+    "category": "prototype-pollution",
+    "name": "Nested prototype key",
+    "payload": { "data": { "items": { "prototype": { "enabled": true } } } },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["prototype", "nested"]
+  },
+  {
+    "id": "prototype-query-001",
+    "category": "prototype-pollution",
+    "name": "Query __proto__ key",
+    "payload": { "__proto__": "polluted" },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["__proto__", "query"]
+  },
+  {
+    "id": "prototype-query-002",
+    "category": "prototype-pollution",
+    "name": "Query constructor key",
+    "payload": { "constructor": { "prototype": "polluted" } },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["constructor", "query"]
+  },
+  {
+    "id": "prototype-params-001",
+    "category": "prototype-pollution",
+    "name": "Params prototype key",
+    "payload": { "prototype": "polluted" },
+    "target": "params",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["prototype", "params"]
+  },
+  {
+    "id": "prototype-array-001",
+    "category": "prototype-pollution",
+    "name": "Array item with __proto__ key",
+    "payload": { "items": [{ "__proto__": { "enabled": true } }] },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["__proto__", "array"]
+  },
+  {
+    "id": "prototype-encoded-001",
+    "category": "prototype-pollution",
+    "name": "Encoded __proto__ string marker",
+    "payload": { "%5F%5Fproto%5F%5F": { "polluted": true } },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["encoded"],
+    "encoded": true,
+    "notes": "Regression fixture for encoded dangerous key handling."
+  },
+  {
+    "id": "prototype-encoded-002",
+    "category": "prototype-pollution",
+    "name": "Dotted constructor prototype marker",
+    "payload": { "constructor.prototype.admin": true },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "prototype-pollution", "severity": "high", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Prototype Pollution", "usedAsReferenceOnly": true },
+    "tags": ["constructor", "dotted-key"],
+    "notes": "If unsupported by the current detector, tune carefully or mark as future strict coverage."
+  }
+]
