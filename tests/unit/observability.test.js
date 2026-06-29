@@ -95,13 +95,23 @@ async function runAll() {
   console.log('\n── Observability — MemoryEventStore ────────────────────────');
 
   const store = new MemoryEventStore({ maxEvents: 2 });
-  const low = store.add(createThreatEvent({ type: 'XSS_BLOCKED', severity: 'low', ip: '10.0.0.1' }));
-  const high = store.add(createThreatEvent({ type: 'SQL_INJECTION_BLOCKED', severity: 'high', ip: '10.0.0.2' }));
+  const low = store.add(
+    createThreatEvent({ type: 'XSS_BLOCKED', severity: 'low', ip: '10.0.0.1' })
+  );
+  const high = store.add(
+    createThreatEvent({ type: 'SQL_INJECTION_BLOCKED', severity: 'high', ip: '10.0.0.2' })
+  );
   store.add(createThreatEvent({ type: 'RATE_LIMIT_EXCEEDED', severity: 'medium', ip: '10.0.0.3' }));
 
-  assert('MemoryEventStore keeps maxEvents', store.getRecentEvents({ limit: 10 }).data.length === 2);
+  assert(
+    'MemoryEventStore keeps maxEvents',
+    store.getRecentEvents({ limit: 10 }).data.length === 2
+  );
   assert('MemoryEventStore drops oldest event', !store.getById(low.id) && store.getById(high.id));
-  assert('MemoryEventStore filters by severity', store.getRecentEvents({ severity: 'high' }).pagination.total === 1);
+  assert(
+    'MemoryEventStore filters by severity',
+    store.getRecentEvents({ severity: 'high' }).pagination.total === 1
+  );
   assert(
     'MemoryEventStore paginates results',
     store.getRecentEvents({ limit: 1, offset: 1 }).data.length === 1 &&
@@ -124,17 +134,38 @@ async function runAll() {
   });
   bus.emitThreat({ type: 'NOSQL_INJECTION_BLOCKED', severity: 'high', ip: '10.0.0.5' });
   assert('EventBus listener error does not break emit', true);
-  assert('EventBus stores HOOK_ERROR on listener failure', bus.getRecentEvents({ type: 'HOOK_ERROR' }).pagination.total === 1);
-  assert('EventBus filters events', bus.getRecentEvents({ severity: 'high' }).pagination.total === 1);
+  assert(
+    'EventBus stores HOOK_ERROR on listener failure',
+    bus.getRecentEvents({ type: 'HOOK_ERROR' }).pagination.total === 1
+  );
+  assert(
+    'EventBus filters events',
+    bus.getRecentEvents({ severity: 'high' }).pagination.total === 1
+  );
 
   console.log('\n── Observability — Metrics ─────────────────────────────────');
 
   const metrics = new Metrics();
   metrics.recordRequest('started');
   metrics.recordRequest('allowed');
-  metrics.recordEvent({ type: 'SQL_INJECTION_BLOCKED', severity: 'high', detector: 'SQL_INJECTION', action: 'blocked' });
-  metrics.recordEvent({ type: 'RATE_LIMIT_EXCEEDED', severity: 'medium', detector: 'RATE_LIMIT', action: 'blocked' });
-  metrics.recordEvent({ type: 'BRUTE_FORCE_BLOCKED', severity: 'high', detector: 'BRUTE_FORCE', action: 'blocked' });
+  metrics.recordEvent({
+    type: 'SQL_INJECTION_BLOCKED',
+    severity: 'high',
+    detector: 'SQL_INJECTION',
+    action: 'blocked',
+  });
+  metrics.recordEvent({
+    type: 'RATE_LIMIT_EXCEEDED',
+    severity: 'medium',
+    detector: 'RATE_LIMIT',
+    action: 'blocked',
+  });
+  metrics.recordEvent({
+    type: 'BRUTE_FORCE_BLOCKED',
+    severity: 'high',
+    detector: 'BRUTE_FORCE',
+    action: 'blocked',
+  });
   const snapshot = metrics.snapshot();
 
   assert('Metrics increments totalRequests once per started request', snapshot.totalRequests === 1);
@@ -155,17 +186,30 @@ async function runAll() {
 
   const resNotFound = mockRes();
   notFound(resNotFound);
-  assert('Admin notFound helper returns 404', resNotFound._status === 404);
+  assert(
+    'Admin notFound helper returns stable 404 error shape',
+    resNotFound._status === 404 &&
+      resNotFound._body.error === 'Not found' &&
+      resNotFound._body.code === 'ADMIN_NOT_FOUND'
+  );
 
   const resUnauthorized = mockRes();
   unauthorized(resUnauthorized);
-  assert('Admin unauthorized helper returns 401', resUnauthorized._status === 401);
+  assert(
+    'Admin unauthorized helper returns stable 401 error shape',
+    resUnauthorized._status === 401 &&
+      resUnauthorized._body.error === 'Unauthorized' &&
+      resUnauthorized._body.code === 'ADMIN_UNAUTHORIZED'
+  );
 
   const openAuth = await runAuth(requireAdminAuth({}));
   assert('Admin auth allows when no auth is required', openAuth.nextCalled);
 
   const requiredWithoutCallback = await runAuth(requireAdminAuth({ requireAuth: true }));
-  assert('Admin auth blocks when required callback is missing', requiredWithoutCallback.res._status === 401);
+  assert(
+    'Admin auth blocks when required callback is missing',
+    requiredWithoutCallback.res._status === 401
+  );
 
   const failedCallback = await runAuth(requireAdminAuth({ auth: () => false }));
   assert('Admin auth callback blocks when it returns false', failedCallback.res._status === 401);
