@@ -5,6 +5,7 @@ const pkg = require('../../package.json');
 const { requireAdminAuth } = require('./auth');
 const { ok, notFound } = require('./response');
 const { describeStore, sanitizePolicies, countActiveBans } = require('../observability');
+const { sanitizeEvent } = require('../events/sanitize-event');
 
 function createParryAdminRouter(parry, options = {}) {
   const context = resolveParryContext(parry);
@@ -50,14 +51,17 @@ function createParryAdminRouter(parry, options = {}) {
     return ok(res, event);
   });
 
-  router.get('/bans', (_req, res) => {
-    const data = context.store && typeof context.store.listBans === 'function'
-      ? context.store.listBans()
-      : [];
-    return ok(res, { data });
+  router.get('/bans', (req, res) => {
+    const data =
+      context.store && typeof context.store.listBans === 'function'
+        ? context.store.listBans().map((entry) => sanitizeEvent(entry))
+        : [];
+    return ok(res, paginateList(data, req.query));
   });
 
-  router.get('/policies', (_req, res) => ok(res, { data: sanitizePolicies(context.policies || []) }));
+  router.get('/policies', (req, res) =>
+    ok(res, paginateList(sanitizePolicies(context.policies || []), req.query))
+  );
 
   return router;
 }
@@ -67,6 +71,26 @@ function resolveParryContext(parry) {
   if (typeof parry.getContext === 'function') return parry.getContext();
   if (parry.__parryContext) return parry.__parryContext;
   return null;
+}
+
+function paginateList(data, query = {}) {
+  const limit = clampNumber(query.limit, 50, 1, 500);
+  const offset = clampNumber(query.offset, 0, 0, data.length);
+
+  return {
+    data: data.slice(offset, offset + limit),
+    pagination: {
+      limit,
+      offset,
+      total: data.length,
+    },
+  };
+}
+
+function clampNumber(value, fallback, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(parsed)));
 }
 
 module.exports = { createParryAdminRouter, resolveParryContext };
