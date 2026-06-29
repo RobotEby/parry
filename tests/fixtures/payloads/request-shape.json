@@ -1,0 +1,123 @@
+[
+  {
+    "id": "request-shape-depth-001",
+    "category": "request-shape",
+    "name": "Object depth just above default limit",
+    "payload": { "kind": "deep-object", "depth": 9 },
+    "target": "body.shape",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["depth"],
+    "notes": "Synthetic bounded structure; no memory stress."
+  },
+  {
+    "id": "request-shape-depth-002",
+    "category": "request-shape",
+    "name": "Nested array depth above default limit",
+    "payload": { "kind": "deep-array", "depth": 9 },
+    "target": "body.shape",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["depth", "array"]
+  },
+  {
+    "id": "request-shape-keys-001",
+    "category": "request-shape",
+    "name": "Object with 501 keys",
+    "payload": { "kind": "wide-object", "keys": 501 },
+    "target": "body.shape",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-keys"]
+  },
+  {
+    "id": "request-shape-keys-002",
+    "category": "request-shape",
+    "name": "Nested object with total keys above limit",
+    "payload": { "kind": "nested-wide-object", "parents": 6, "keysPerParent": 90 },
+    "target": "body.shape",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-keys", "nested"]
+  },
+  {
+    "id": "request-shape-array-001",
+    "category": "request-shape",
+    "name": "Array with 101 entries",
+    "payload": { "kind": "large-array", "length": 101 },
+    "target": "body.items",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-array-length"]
+  },
+  {
+    "id": "request-shape-array-002",
+    "category": "request-shape",
+    "name": "Nested array with 101 entries",
+    "payload": { "kind": "nested-large-array", "length": 101 },
+    "target": "body.wrapper",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-array-length", "nested"]
+  },
+  {
+    "id": "request-shape-string-001",
+    "category": "request-shape",
+    "name": "String with 10001 characters",
+    "payload": { "kind": "long-string", "length": 10001 },
+    "target": "body.text",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-string-length"]
+  },
+  {
+    "id": "request-shape-string-002",
+    "category": "request-shape",
+    "name": "Nested long string",
+    "payload": { "kind": "nested-long-string", "length": 10001 },
+    "target": "body.profile",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-string-length", "nested"]
+  },
+  {
+    "id": "request-shape-depth-003",
+    "category": "request-shape",
+    "name": "Mixed object and array depth above limit",
+    "payload": { "kind": "mixed-depth", "depth": 9 },
+    "target": "body.shape",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["depth", "array", "object"]
+  },
+  {
+    "id": "request-shape-keys-003",
+    "category": "request-shape",
+    "name": "Object key burst at root",
+    "payload": { "kind": "wide-object", "keys": 550 },
+    "target": "body",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-keys"]
+  },
+  {
+    "id": "request-shape-array-003",
+    "category": "request-shape",
+    "name": "Large array inside object",
+    "payload": { "kind": "object-with-large-array", "length": 101 },
+    "target": "body.payload",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-array-length", "nested"]
+  },
+  {
+    "id": "request-shape-string-003",
+    "category": "request-shape",
+    "name": "Long string inside array",
+    "payload": { "kind": "array-with-long-string", "length": 10001 },
+    "target": "body.items",
+    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
+    "tags": ["max-string-length", "array"]
+  }
+]
