@@ -1,7 +1,7 @@
 {
   "name": "@roboteby/parry",
   "version": "1.0.0",
-  "description": "Application-layer security middleware for Express.js with injection detection, abuse mitigation and distributed rate limiting.",
+  "description": "Application-layer security middleware for Express.js with injection detection, abuse mitigation, brute-force protection and distributed rate limiting.",
   "main": "./src/index.js",
   "types": "./types/index.d.ts",
   "scripts": {
@@ -50,25 +50,28 @@
     "express",
     "middleware",
     "security",
-    "waf",
+    "application-security",
+    "appsec",
     "rate-limit",
     "brute-force",
     "xss",
     "sql-injection",
-    "nosql",
     "nosql-injection",
     "redis",
     "nodejs"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/RobotEby/Parry_InjectionAttacks.git"
+    "url": "git+ssh://git@github.com/RobotEby/parry-express-security-middleware.git"
   },
   "bugs": {
-    "url": "https://github.com/RobotEby/Parry_InjectionAttacks/issues"
+    "url": "https://github.com/RobotEby/parry-express-security-middleware/issues"
   },
-  "homepage": "https://github.com/RobotEby/Parry_InjectionAttacks#readme",
+  "homepage": "https://github.com/RobotEby/parry-express-security-middleware#readme",
   "peerDependencies": {
     "express": "^5.2.1"
   },
