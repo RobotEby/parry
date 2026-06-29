@@ -1,33 +1,33 @@
 'use strict';
 
 const express = require('express');
-const { Parry_DDoS } = require('../src/middleware');
+const { createParry } = require('../src/middleware');
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  Parry_DDoS({
-    sql: true,
-    xss: true,
-    nosql: true,
-    rateLimit: true,
+const parry = createParry({
+  sql: true,
+  xss: true,
+  nosql: true,
+  rateLimit: true,
 
-    maxRequests: 60,
-    windowMs: 60_000,
+  maxRequests: 60,
+  windowMs: 60_000,
 
-    suspiciousThreshold: 3,
-    banDurationMs: 5 * 60_000,
+  suspiciousThreshold: 3,
+  banDurationMs: 5 * 60_000,
 
-    logThreats: true,
+  logThreats: true,
 
-    onThreat(entry) {
-      // Note to remind myself to include this in the future: SIEM, Slack webhook, PagerDuty, DataDog, etc.
-    },
-  })
-);
+  onThreat(entry) {
+    // Note to remind myself to include this in the future: SIEM, Slack webhook, PagerDuty, DataDog, etc.
+  },
+});
+
+app.use(parry.middleware());
 
 app.post('/login', (req, res) => {
   res.json({ ok: true, message: `Welcome, ${req.body.username}!` });
@@ -43,7 +43,7 @@ app.post('/comment', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`\n  Parry_DDoS running on http://localhost:${PORT}\n`);
+  console.log(`\n  Parry running on http://localhost:${PORT}\n`);
   console.log('Examples of attacks to test:\n');
 
   console.log(`SQL Injection:
