@@ -107,7 +107,7 @@ const PARRY_DOMAINS = [
       filePath.toLowerCase().includes('ddos'),
     label: 'rate limiter',
     area: 'abuse throttling',
-    capability: 'reduce brute-force, request flooding, and DDoS-like pressure at application level',
+    capability: 'reduce brute-force, request flooding, and application-layer abuse pressure',
   },
   {
     test: (filePath) => filePath.startsWith('src/middleware/'),
@@ -1162,7 +1162,7 @@ function buildEnglishBody({ filePath, statusKind, domain, role, type, lowerDiff,
     'Impact:',
     `- Makes future reviews easier because this commit only stages ${filePath}.`,
     '- Reduces the risk of mixing unrelated middleware, detector, configuration, or test changes.',
-    '- Preserves a clean Git history for security-focused evolution of Parry_InjectionAttacks.',
+    '- Preserves a clean Git history for security-focused evolution of Parry.',
   ].join('\n');
 }
 
@@ -1188,7 +1188,7 @@ function buildPortugueseBody({ filePath, statusKind, domain, role, type, lowerDi
     'Impacto:',
     `- Facilita revisões futuras porque este commit versiona apenas ${filePath}.`,
     '- Reduz o risco de misturar alterações não relacionadas de middleware, detectores, configuração ou testes.',
-    '- Preserva um histórico limpo para a evolução de segurança do Parry_InjectionAttacks.',
+    '- Preserva um histórico limpo para a evolução de segurança do Parry.',
   ].join('\n');
 }
 
@@ -1200,7 +1200,7 @@ function inferHighlights({ lowerDiff, type, domain, role }) {
   }
 
   if (lowerDiff.includes('ddos') || lowerDiff.includes('flood')) {
-    highlights.push('Adds context for DDoS-oriented mitigation at the application layer.');
+    highlights.push('Adds context for application-layer abuse mitigation.');
   }
 
   if (lowerDiff.includes('brute') || lowerDiff.includes('login')) {
@@ -1258,8 +1258,8 @@ function translateHighlight(highlight) {
       'Melhora o controle de requisições abusivas e limitação de tráfego.',
     ],
     [
-      'Adds context for DDoS-oriented mitigation at the application layer.',
-      'Adiciona suporte contextual para mitigação de DDoS na camada de aplicação.',
+      'Adds context for application-layer abuse mitigation.',
+      'Adiciona suporte contextual para mitigação de abuso na camada de aplicação.',
     ],
     [
       'Strengthens brute-force mitigation and repeated-attempt handling.',
@@ -1315,7 +1315,7 @@ function getParryDomain(filePath) {
     label: 'project file',
     area: 'project maintenance',
     capability:
-      'keep the Parry_InjectionAttacks codebase organized, reviewable, and production-oriented',
+      'keep the Parry codebase organized, reviewable, and production-oriented',
   };
 }
 
