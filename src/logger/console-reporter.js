@@ -30,7 +30,7 @@ class ThreatLogger {
     if (!this.enabled) return;
 
     const color = TYPE_COLOR[entry.type] || COLORS.cyan;
-    const prefix = `${color}[Parry_DDoS][${entry.type}]${COLORS.reset}`;
+    const prefix = `${color}[Parry][${entry.type}]${COLORS.reset}`;
     const meta = `${COLORS.gray}${entry.timestamp} — IP: ${entry.ip}${COLORS.reset}`;
 
     if (entry.type === 'THREAT') {
@@ -52,7 +52,7 @@ class ThreatLogger {
     const timestamp = entry?.timestamp || new Date().toISOString();
     const ip = entry?.ip || 'unknown';
     const message = error && error.message ? error.message : String(error);
-    const prefix = `${COLORS.yellow}[Parry_DDoS][HOOK_ERROR]${COLORS.reset}`;
+    const prefix = `${COLORS.yellow}[Parry][HOOK_ERROR]${COLORS.reset}`;
     const meta = `${COLORS.gray}${timestamp} — IP: ${ip}${COLORS.reset}`;
 
     console.warn(`${prefix} ${meta} — onThreat callback failed: ${message}`);
@@ -65,7 +65,7 @@ class ThreatLogger {
     const ip = entry?.ip || 'unknown';
     const mode = entry?.mode || 'fail-open';
     const message = error && error.message ? error.message : String(error);
-    const prefix = `${COLORS.yellow}[Parry_DDoS][STORE_FAILURE]${COLORS.reset}`;
+    const prefix = `${COLORS.yellow}[Parry][STORE_FAILURE]${COLORS.reset}`;
     const meta = `${COLORS.gray}${timestamp} — IP: ${ip}${COLORS.reset}`;
 
     console.warn(`${prefix} ${meta} — ${mode}: ${message}`);
