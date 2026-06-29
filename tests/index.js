@@ -2,7 +2,7 @@
 
 async function main() {
   console.log('═'.repeat(55));
-  console.log('  Parry_DDoS — Test Suite');
+  console.log('  Parry — Test Suite');
   console.log('═'.repeat(55));
 
   console.log('\n▶ Unit — Detectors');
