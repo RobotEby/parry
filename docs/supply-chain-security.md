@@ -9,7 +9,7 @@ Configure the package on npmjs.com with a Trusted Publisher:
 
 - package: `@roboteby/parry`
 - repository owner: `RobotEby`
-- repository name: `Parry_InjectionAttacks`
+- repository name: `parry-express-security-middleware`
 - workflow filename: `npm-publish.yml`
 - environment: leave empty unless a GitHub Environment is added later
 
