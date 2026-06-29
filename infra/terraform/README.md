@@ -89,3 +89,27 @@ state with a remote encrypted backend and locking, such as S3 with DynamoDB or
 Terraform Cloud.
 
 See `docs/aws-security-notes.md` for the full security model.
+
+## GitHub Actions
+
+Terraform validation and plan run through `.github/workflows/terraform-plan.yml`.
+
+The workflow always runs:
+
+```bash
+terraform fmt -check -recursive infra/terraform
+terraform -chdir=infra/terraform/environments/dev init -backend=false
+terraform -chdir=infra/terraform/environments/dev validate
+```
+
+When GitHub OIDC variables are configured, the workflow can also run
+`terraform plan` and upload the plan text as an artifact. It never runs
+`terraform apply`.
+
+Required GitHub variables for AWS-authenticated jobs:
+
+- `AWS_REGION`
+- `AWS_ROLE_TO_ASSUME`
+- `ECR_REPOSITORY`
+
+See `docs/ci-cd.md` and `docs/github-oidc-aws.md` for the CI/CD and IAM setup.
