@@ -6,7 +6,7 @@
 Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, optional HTTP Parameter Pollution, and route-scoped authentication abuse before route handling.
 
 ```
-63 real HTTP tests available  ·  247/247 local tests passed  ·  zero production dependencies
+63 real HTTP tests available  ·  1049/1049 local tests passed  ·  zero production dependencies
 ```
 
 ---
@@ -31,6 +31,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
+  - [Payload Regression Testing](#payload-regression-testing)
 - [Response Headers](#response-headers)
 - [SIEM and Alert Integration](#siem-and-alert-integration)
 - [TypeScript](#typescript)
@@ -630,10 +631,13 @@ Parry_DDoS/
 │   │   └── observability.test.js    ← Events, metrics, Admin API
 │   ├── fixtures/
 │   │   ├── payloads.js              ← Reusable attack payloads
-│   │   └── application-layer.js     ← Curated guard fixtures
+│   │   ├── application-layer.js     ← Curated guard fixtures
+│   │   └── payloads/                ← JSON payload regression fixtures
+│   ├── regression/                  ← Defensive payload regression suite
 │   └── index.js                 ← Aggregated test runner
 │
 ├── scripts/
+│   ├── payloads/             ← Fixture validation and report generation
 │   ├── test-server.js        ← Express server for real HTTP tests
 │   └── run-tests.js          ← 63 HTTP test suite against the server
 │
@@ -641,7 +645,9 @@ Parry_DDoS/
 │   └── express-basic.js      ← Full integration example
 │
 ├── docs/
-│   └── architecture.md       ← Documented design decisions
+│   ├── architecture.md       ← Documented design decisions
+│   ├── testing-payloads.md
+│   └── payload-regression-report.md
 │
 └── package.json
 ```
@@ -650,15 +656,15 @@ Parry_DDoS/
 
 ## Tests
 
-Parry_DDoS has two independent test suites: **247 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
+Parry_DDoS has two independent test suites: **1049 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
 
-### Local suite (247 tests) — no network, no server
+### Local suite (1049 tests) — no network, no server
 
 ```bash
 npm test
 ```
 
-Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, policy matching, brute force behavior, the core engine, observability modules, Admin API helpers, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
+Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, policy matching, brute force behavior, the core engine, observability modules, Admin API helpers, defensive payload fixtures, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
 
 ```
 ▶ Unit — Detectors                         30 tests
@@ -671,9 +677,24 @@ Covers isolated detectors, application-layer guards, the `RateLimiter`, MemorySt
 ▶ Unit — Observability                     33 tests
 ▶ Integration — Middleware                 56 tests
 ▶ Integration — Observability/Admin API    33 tests
+▶ Regression — Payload Suite              802 tests
 ────────────────────────────────────────────────────
-Total                                     247 tests  |  0 failures
+Total                                    1049 tests  |  0 failures
 ```
+
+### Payload Regression Testing
+
+Parry includes a curated defensive payload regression suite under `tests/fixtures/payloads`. The fixtures are small local JSON files inspired by known web security categories, including SQLi, XSS, NoSQLi, HPP, Prototype Pollution, Path Traversal, Request Shape, BruteForceGuard scenarios, monitor-only Command Injection and SSRF categories, and benign false-positive controls.
+
+PayloadsAllTheThings may be used as a read-only local reference when `external/PayloadsAllTheThings` exists, but the external repository is not required, not imported, not copied into runtime code, and not vendored into the package.
+
+```bash
+npm run test:fixtures
+npm run test:payload-regression
+npm run test:payload-report
+```
+
+The payload suite never executes payloads, never passes them to a shell, never uses them in real database queries, and never performs SSRF/network requests. Command Injection and SSRF fixtures are monitor/pending coverage until dedicated detectors exist.
 
 ### Real HTTP suite (63 tests) — fires real requests against Express
 
@@ -874,5 +895,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 247 application-layer cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 1049 application-layer cases</sub>
 </div>
