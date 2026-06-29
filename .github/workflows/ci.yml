@@ -91,27 +91,7 @@ jobs:
           fi
 
       - name: Check npm package contents
-        run: |
-          npm pack --dry-run --json > npm-pack-dry-run.json
-          node <<'NODE'
-          const fs = require('fs');
-          const report = JSON.parse(fs.readFileSync('npm-pack-dry-run.json', 'utf8'));
-          const files = (report[0] && report[0].files ? report[0].files : []).map((file) => file.path);
-          const forbidden = [
-            /^external\//,
-            /^node_modules\//,
-            /^coverage\//,
-            /(^|\/)\.env($|\.)/,
-            /(^|\/)terraform\.tfvars$/,
-            /\.tfstate(\.|$)/,
-          ];
-          const matches = files.filter((file) => forbidden.some((pattern) => pattern.test(file)));
-          if (matches.length > 0) {
-            console.error('Forbidden files would be packed:\n' + matches.join('\n'));
-            process.exit(1);
-          }
-          console.log(`npm pack dry-run includes ${files.length} files and no forbidden runtime artifacts.`);
-          NODE
+        run: npm run package:check
 
       - name: Security sanity checks
         run: |
