@@ -6,7 +6,7 @@
 Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, optional HTTP Parameter Pollution, and route-scoped authentication abuse before route handling.
 
 ```
-63 real HTTP tests available  ·  1049/1049 local tests passed  ·  zero production dependencies
+63 real HTTP tests available  ·  1075/1075 local tests passed  ·  zero production dependencies
 ```
 
 ---
@@ -31,6 +31,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
   - [AWS Reference Infrastructure](#aws-reference-infrastructure)
   - [CI/CD](#cicd)
+  - [Package & Releases](#package--releases)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
   - [Payload Regression Testing](#payload-regression-testing)
@@ -61,16 +62,16 @@ Most Node.js applications rely on validation at the route or ORM layer, which me
 | **SQL Injection**        | 13 patterns — UNION, OR/AND bypass, comments, SLEEP/BENCHMARK, DROP/ALTER, xp_cmdshell, information_schema, hex encoding, LOAD FILE                                                  |
 | **XSS**                  | 15 patterns — `<script>`, inline event handlers, `javascript:`, `vbscript:`, `data:` URI, SVG injection, template injection (Angular/Vue/Handlebars), null-byte, `autofocus+onfocus` |
 | **NoSQL Injection**      | Dangerous MongoDB operators (`$where`, `$expr`, `$function`) and suspicious ones (`$gt`, `$ne`, `$or`, `$regex` etc.) in objects and JSON strings                                    |
-| **Prototype Pollution**  | Dangerous keys such as `__proto__`, `constructor`, and `prototype` in query, params, and body                                                                                         |
-| **Path Traversal**       | Raw, URL-encoded, and double-encoded traversal segments in request values                                                                                                             |
+| **Prototype Pollution**  | Dangerous keys such as `__proto__`, `constructor`, and `prototype` in query, params, and body                                                                                        |
+| **Path Traversal**       | Raw, URL-encoded, and double-encoded traversal segments in request values                                                                                                            |
 | **Request Shape Guard**  | Conservative limits for object depth, total keys, array length, and string length                                                                                                    |
-| **Optional HPP Guard**   | Opt-in duplicate query parameter detection with per-field allowlist                                                                                                                   |
-| **Rate Limiting**        | Store-backed rate limiting per observed IP with `X-RateLimit-*` headers                                                                                                             |
+| **Optional HPP Guard**   | Opt-in duplicate query parameter detection with per-field allowlist                                                                                                                  |
+| **Rate Limiting**        | Store-backed rate limiting per observed IP with `X-RateLimit-*` headers                                                                                                              |
 | **Route Policies**       | Per-route matchers for exact paths, wildcards, arrays, methods, and RegExp                                                                                                           |
-| **Brute Force Guard**    | Optional login/auth abuse protection with `res.on('finish')`, manual failure/success hooks, and Store-backed counters                                                               |
+| **Brute Force Guard**    | Optional login/auth abuse protection with `res.on('finish')`, manual failure/success hooks, and Store-backed counters                                                                |
 | **Threat Events**        | Central structured events with id, severity, action, request id, detector/module, and sanitized metadata                                                                             |
 | **Metrics**              | Lightweight in-process counters for requests, blocked requests, rate limits, brute force blocks, and events by type/severity/detector/action                                         |
-| **Admin API**            | Optional read-only Express router for health, metrics, recent events, active MemoryStore bans, and configured policies                                                              |
+| **Admin API**            | Optional read-only Express router for health, metrics, recent events, active MemoryStore bans, and configured policies                                                               |
 | **Intelligent Ban**      | Suspicious activity counter separate from request volume, backed by MemoryStore by default or RedisStore in distributed deployments                                                  |
 | **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
 | **`onThreat` Callback**  | Hook for integration with SIEM, Slack, PagerDuty, DataDog, etc.                                                                                                                      |
@@ -81,7 +82,7 @@ Most Node.js applications rely on validation at the route or ORM layer, which me
 ## Installation
 
 ```bash
-npm install express   # only peer dependency
+npm install @roboteby/parry express
 ```
 
 > **Parry_DDoS has zero production dependencies.**  
@@ -94,7 +95,7 @@ npm install express   # only peer dependency
 
 ```js
 const express = require('express');
-const { Parry_DDoS } = require('./src/middleware');
+const { Parry_DDoS } = require('@roboteby/parry');
 
 const app = express();
 app.use(express.json());
@@ -225,40 +226,40 @@ app.use(
 
 ### Default Values
 
-| Option                | Default          |
-| --------------------- | ---------------- |
-| `sql`                 | `true`           |
-| `xss`                 | `true`           |
-| `nosql`               | `true`           |
-| `hpp.enabled`         | `false`          |
-| `hpp.allowDuplicateParamsFor` | `[]`     |
-| `prototypePollution.enabled` | `true`    |
-| `pathTraversal.enabled` | `true`         |
-| `requestShape.enabled` | `true`         |
-| `requestShape.maxDepth` | `8`           |
-| `requestShape.maxKeys` | `500`          |
-| `requestShape.maxArrayLength` | `100`    |
-| `requestShape.maxStringLength` | `10000` |
-| `rateLimit` / `rateLimit.enabled` | `true` |
-| `rateLimit.max` / `maxRequests` | `100`  |
-| `rateLimit.windowMs` / `windowMs` | `60000` (1 min) |
-| `rateLimit.headers`   | `true`           |
-| `store`               | `MemoryStore`    |
-| `storeFailureMode`    | `'fail-open'`    |
-| `preset`              | `'off'`          |
-| `bruteForce.enabled`  | `false`          |
-| `policies`            | `[]`             |
-| `events.maxEvents`    | `500`            |
-| `admin.enabled`       | `false`          |
-| `admin.allowMutations` | `false`         |
-| `requestId.enabled`   | `true`           |
-| `requestId.header`    | `'x-request-id'` |
-| `requestId.responseHeader` | `false`     |
-| `debug`               | `false`          |
-| `suspiciousThreshold` | `5`              |
-| `banDurationMs`       | `300000` (5 min) |
-| `logThreats`          | `true`           |
-| `maxObjectDepth`      | `5`              |
+| Option                            | Default          |
+| --------------------------------- | ---------------- |
+| `sql`                             | `true`           |
+| `xss`                             | `true`           |
+| `nosql`                           | `true`           |
+| `hpp.enabled`                     | `false`          |
+| `hpp.allowDuplicateParamsFor`     | `[]`             |
+| `prototypePollution.enabled`      | `true`           |
+| `pathTraversal.enabled`           | `true`           |
+| `requestShape.enabled`            | `true`           |
+| `requestShape.maxDepth`           | `8`              |
+| `requestShape.maxKeys`            | `500`            |
+| `requestShape.maxArrayLength`     | `100`            |
+| `requestShape.maxStringLength`    | `10000`          |
+| `rateLimit` / `rateLimit.enabled` | `true`           |
+| `rateLimit.max` / `maxRequests`   | `100`            |
+| `rateLimit.windowMs` / `windowMs` | `60000` (1 min)  |
+| `rateLimit.headers`               | `true`           |
+| `store`                           | `MemoryStore`    |
+| `storeFailureMode`                | `'fail-open'`    |
+| `preset`                          | `'off'`          |
+| `bruteForce.enabled`              | `false`          |
+| `policies`                        | `[]`             |
+| `events.maxEvents`                | `500`            |
+| `admin.enabled`                   | `false`          |
+| `admin.allowMutations`            | `false`          |
+| `requestId.enabled`               | `true`           |
+| `requestId.header`                | `'x-request-id'` |
+| `requestId.responseHeader`        | `false`          |
+| `debug`                           | `false`          |
+| `suspiciousThreshold`             | `5`              |
+| `banDurationMs`                   | `300000` (5 min) |
+| `logThreats`                      | `true`           |
+| `maxObjectDepth`                  | `5`              |
 
 ---
 
@@ -359,7 +360,7 @@ Parry_DDoS does not install Redis for you. Create and connect the Redis client i
 ```js
 const express = require('express');
 const { createClient } = require('redis');
-const { Parry_DDoS, RedisStore } = require('parry');
+const { Parry_DDoS, RedisStore } = require('@roboteby/parry');
 
 async function main() {
   const redis = createClient({ url: process.env.REDIS_URL });
@@ -402,7 +403,7 @@ RedisStore helps coordinate HTTP flood and application-layer abuse controls acro
 Brute force protection is route-scoped and disabled by default. Enable it with explicit policies or `preset: 'recommended'`/`'strict'`.
 
 ```js
-const { Parry_DDoS, RedisStore } = require('parry');
+const { Parry_DDoS, RedisStore } = require('@roboteby/parry');
 
 app.use(
   Parry_DDoS({
@@ -498,7 +499,7 @@ Sensitive values are not stored in events: passwords, tokens, cookies, authoriza
 Use `createParry()` when you need access to metrics, the event bus, or the recent event store:
 
 ```js
-const { createParry } = require('parry');
+const { createParry } = require('@roboteby/parry');
 
 const parry = createParry({
   logThreats: false,
@@ -532,7 +533,7 @@ The Admin API is an optional read-only Express router. It is **never mounted aut
 
 ```js
 const express = require('express');
-const { createParry, createParryAdminRouter } = require('parry');
+const { createParry, createParryAdminRouter } = require('@roboteby/parry');
 
 const app = express();
 const parry = createParry({
@@ -563,14 +564,14 @@ app.use(
 
 Available endpoints:
 
-| Endpoint | Description |
-| -------- | ----------- |
-| `GET /health` | Basic status, package version, uptime, and store type |
-| `GET /metrics` | Metrics snapshot |
-| `GET /events` | Recent events with filters and `limit`/`offset` pagination |
-| `GET /events/:id` | Single event lookup |
-| `GET /bans` | Active MemoryStore bans when available; empty list for stores without snapshots |
-| `GET /policies` | Normalized route policies without sensitive request data |
+| Endpoint          | Description                                                                     |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `GET /health`     | Basic status, package version, uptime, and store type                           |
+| `GET /metrics`    | Metrics snapshot                                                                |
+| `GET /events`     | Recent events with filters and `limit`/`offset` pagination                      |
+| `GET /events/:id` | Single event lookup                                                             |
+| `GET /bans`       | Active MemoryStore bans when available; empty list for stores without snapshots |
+| `GET /policies`   | Normalized route policies without sensitive request data                        |
 
 Never expose the Parry Admin API publicly without authentication and network restrictions. It is a foundation for internal operations and a future dashboard, not a public management interface.
 
@@ -608,6 +609,22 @@ Start with:
 - `.github/workflows/terraform-plan.yml`
 
 The CI/CD reference supports deployment operations around Parry, but Parry remains application-layer middleware and does not replace CloudFront, AWS WAF, Shield, ALB, or equivalent edge protection for volumetric DDoS.
+
+### Package & Releases
+
+The npm package is prepared as `@roboteby/parry` and follows Semantic Versioning. Releases are manual and tag-driven: a Git tag such as `v1.2.3` triggers the npm publish workflow after tests and package validation pass.
+
+The publish workflow is designed for npm Trusted Publishing/OIDC and does not require long-lived npm tokens. `terraform apply` and infrastructure deployment remain separate from package publishing.
+
+Start with:
+
+- `CHANGELOG.md`
+- `docs/release.md`
+- `docs/npm-package.md`
+- `docs/supply-chain-security.md`
+- `.github/workflows/npm-publish.yml`
+
+Use `npm run package:check` and `npm pack --dry-run` before creating release tags. The package tarball is intentionally limited to runtime source, typings, package metadata, README, license, and changelog.
 
 ---
 
@@ -665,9 +682,11 @@ Parry_DDoS/
 │   │   ├── application-layer.js     ← Curated guard fixtures
 │   │   └── payloads/                ← JSON payload regression fixtures
 │   ├── regression/                  ← Defensive payload regression suite
+│   ├── package/                     ← Public package export tests
 │   └── index.js                 ← Aggregated test runner
 │
 ├── scripts/
+│   ├── package/              ← npm package and release validation
 │   ├── payloads/             ← Fixture validation and report generation
 │   ├── test-server.js        ← Express server for real HTTP tests
 │   └── run-tests.js          ← 63 HTTP test suite against the server
@@ -688,6 +707,9 @@ Parry_DDoS/
 │   ├── architecture.md       ← Documented design decisions
 │   ├── ci-cd.md
 │   ├── github-oidc-aws.md
+│   ├── release.md
+│   ├── npm-package.md
+│   ├── supply-chain-security.md
 │   ├── aws-infra.md
 │   ├── aws-security-notes.md
 │   ├── aws-cost-notes.md
@@ -701,15 +723,15 @@ Parry_DDoS/
 
 ## Tests
 
-Parry_DDoS has two independent test suites: **1049 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
+Parry_DDoS has two independent test suites: **1075 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
 
-### Local suite (1049 tests) — no network, no server
+### Local suite (1075 tests) — no network, no server
 
 ```bash
 npm test
 ```
 
-Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, policy matching, brute force behavior, the core engine, observability modules, Admin API helpers, defensive payload fixtures, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
+Covers isolated detectors, application-layer guards, the `RateLimiter`, MemoryStore, RedisStore with a fake client, policy matching, brute force behavior, the core engine, observability modules, Admin API helpers, package exports, defensive payload fixtures, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
 
 ```
 ▶ Unit — Detectors                         30 tests
@@ -722,9 +744,10 @@ Covers isolated detectors, application-layer guards, the `RateLimiter`, MemorySt
 ▶ Unit — Observability                     33 tests
 ▶ Integration — Middleware                 56 tests
 ▶ Integration — Observability/Admin API    33 tests
+▶ Package — Public Exports                 26 tests
 ▶ Regression — Payload Suite              802 tests
 ────────────────────────────────────────────────────
-Total                                    1049 tests  |  0 failures
+Total                                    1075 tests  |  0 failures
 ```
 
 ### Payload Regression Testing
@@ -853,7 +876,7 @@ Parry_DDoS({
 Parry_DDoS includes full typings with no `@types/*` required:
 
 ```ts
-import { Parry_DDoS, Parry_DDoSOptions, ThreatEvent } from 'parry';
+import { Parry_DDoS, Parry_DDoSOptions, ThreatEvent } from '@roboteby/parry';
 
 const options: Parry_DDoSOptions = {
   suspiciousThreshold: 3,
@@ -941,5 +964,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 1049 application-layer cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 1075 application-layer cases</sub>
 </div>
