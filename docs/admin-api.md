@@ -1,6 +1,6 @@
 # Parry Admin API
 
-The Parry Admin API is an optional, read-only Express router for operational dashboards such as `parry-console`. It exposes health, metrics, recent security events, active MemoryStore bans, and normalized route policies.
+The Parry Admin API is an optional, read-only Express router for operational dashboards such as `parry-security-console`. It exposes health, metrics, recent security events, active MemoryStore bans, and normalized route policies.
 
 The router is never mounted automatically:
 
@@ -21,7 +21,7 @@ app.use(
 ## Security
 
 - Never expose `/_parry` publicly without authentication and network restrictions.
-- Parry does not enable CORS automatically. If `parry-console` runs on a separate origin, configure CORS explicitly in the host application.
+- Parry does not enable CORS automatically. If `parry-security-console` runs on a separate origin, configure CORS explicitly in the host application.
 - A token stored directly in a browser frontend is suitable only for demos or local development. Production deployments should put the Admin API behind a backend-for-frontend, VPN, private network, identity-aware proxy, or equivalent control.
 - Do not forward cookies, Authorization headers, application secrets, or raw request bodies into events or Admin API metadata.
 - The examples use `x-parry-admin-token` as the recommended admin header, but authentication is controlled by your own middleware or the router `auth(req)` callback.
