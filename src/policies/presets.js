@@ -7,7 +7,7 @@ function getPresetPolicies(name) {
   if (name === 'recommended') return createAuthPolicies('recommended', 10, 10 * 60_000, 20);
   if (name === 'strict') return createAuthPolicies('strict', 5, 15 * 60_000, 10);
 
-  throw new Error(`Unknown Parry_DDoS preset: ${name}`);
+  throw new Error(`Unknown Parry preset: ${name}`);
 }
 
 function createAuthPolicies(prefix, maxAttempts, blockDurationMs, routeMax) {
