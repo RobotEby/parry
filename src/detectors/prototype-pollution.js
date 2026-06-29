@@ -1,5 +1,7 @@
 'use strict';
 
+const { decodeUrlValue } = require('../utils/decode');
+
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 const PrototypePollutionDetector = {
@@ -31,17 +33,34 @@ function scanValue(value, path, seen) {
     if (typeof key !== 'string') continue;
 
     const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
-    if (DANGEROUS_KEYS.has(key)) {
+    const dangerousKey = findDangerousKey(key);
+    if (dangerousKey) {
       return {
         detector: 'PROTOTYPE_POLLUTION',
         field: childPath,
-        pattern: key,
-        reason: `Dangerous object key: ${key}`,
+        pattern: dangerousKey,
+        reason: `Dangerous object key: ${dangerousKey}`,
       };
     }
 
     const nested = scanValue(value[key], childPath, seen);
     if (nested) return nested;
+  }
+
+  return null;
+}
+
+function findDangerousKey(key) {
+  const candidates = new Set([key]);
+  const decoded = decodeUrlValue(key, 2);
+  candidates.add(decoded);
+
+  for (const candidate of [...candidates]) {
+    for (const part of String(candidate).split('.')) candidates.add(part);
+  }
+
+  for (const candidate of candidates) {
+    if (DANGEROUS_KEYS.has(candidate)) return candidate;
   }
 
   return null;
