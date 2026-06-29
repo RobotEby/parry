@@ -6,7 +6,7 @@
 Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, optional HTTP Parameter Pollution, and route-scoped authentication abuse before route handling.
 
 ```
-63 real HTTP tests available  ·  1075/1075 local tests passed  ·  zero production dependencies
+63 real HTTP tests available  ·  1080/1080 local tests passed  ·  zero production dependencies
 ```
 
 ---
@@ -573,7 +573,17 @@ Available endpoints:
 | `GET /bans`       | Active MemoryStore bans when available; empty list for stores without snapshots |
 | `GET /policies`   | Normalized route policies without sensitive request data                        |
 
+For frontend integration work, start with:
+
+- `docs/admin-api.md`
+- `docs/openapi/parry-admin-api.yaml`
+- `docs/mocks/`
+
+These files define the backend contract for a separate `parry-console` frontend. This repository does not include a React app, Vite setup, Tailwind setup, frontend build, or dashboard assets.
+
 Never expose the Parry Admin API publicly without authentication and network restrictions. It is a foundation for internal operations and a future dashboard, not a public management interface.
+
+If a separate frontend consumes the Admin API from another origin, configure CORS deliberately in the host Express application. Parry does not enable CORS automatically. A browser-visible admin token is acceptable only for demo or development use; production deployments should prefer a protected backend/admin proxy, VPN, identity-aware proxy, private network, or equivalent control.
 
 ### DDoS Scope and Edge Protection
 
@@ -723,9 +733,9 @@ Parry_DDoS/
 
 ## Tests
 
-Parry_DDoS has two independent test suites: **1075 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
+Parry_DDoS has two independent test suites: **1080 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
 
-### Local suite (1075 tests) — no network, no server
+### Local suite (1080 tests) — no network, no server
 
 ```bash
 npm test
@@ -743,11 +753,11 @@ Covers isolated detectors, application-layer guards, the `RateLimiter`, MemorySt
 ▶ Unit — App Guards                        19 tests
 ▶ Unit — Observability                     33 tests
 ▶ Integration — Middleware                 56 tests
-▶ Integration — Observability/Admin API    33 tests
+▶ Integration — Observability/Admin API    38 tests
 ▶ Package — Public Exports                 26 tests
 ▶ Regression — Payload Suite              802 tests
 ────────────────────────────────────────────────────
-Total                                    1075 tests  |  0 failures
+Total                                    1080 tests  |  0 failures
 ```
 
 ### Payload Regression Testing
@@ -964,5 +974,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 1075 application-layer cases</sub>
+  <sub>Built with native Node.js · Zero production dependencies · Tested with 1080 application-layer cases</sub>
 </div>
