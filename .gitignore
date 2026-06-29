@@ -22,6 +22,19 @@ pids/
 *.pid.lock
 external/
 
+# Terraform local state and secrets
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
 # Environment secrets
 .env
 .env.local
