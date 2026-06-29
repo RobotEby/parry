@@ -3,7 +3,7 @@
 const SQL_PATTERNS = [
   /\b(union)\b.{0,30}\b(select)\b/i,
   /\b(or|and)\b\s+[\w'"]{1,20}\s*=\s*[\w'"]{1,20}/i,
-  /(--|#|\/\*|\*\/)/,
+  /(['"`]\s*(--|#|\/\*)|(--|#|\/\*)\s*$)/,
   /;\s*(drop|alter|truncate|delete|insert|update|create|exec|execute)\b/i,
   /\b(sleep|benchmark|pg_sleep|waitfor\s+delay)\s*\(/i,
   /\b(select|insert|update|delete|drop|alter)\b.{0,80}\b(from|into|table|where)\b/i,
