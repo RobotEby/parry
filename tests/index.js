@@ -37,6 +37,9 @@ async function main() {
   console.log('\n▶ Integration — Observability and Admin API');
   const observabilityInteg = await require('./integration/observability.test');
 
+  console.log('\n▶ Regression — Defensive Payload Suite');
+  const payloadRegression = await require('./regression');
+
   const totalPassed =
     det.passed +
     rl.passed +
@@ -49,7 +52,8 @@ async function main() {
     appGuards.passed +
     observability.passed +
     integ.passed +
-    observabilityInteg.passed;
+    observabilityInteg.passed +
+    payloadRegression.passed;
   const totalFailed =
     det.failed +
     rl.failed +
@@ -62,7 +66,8 @@ async function main() {
     appGuards.failed +
     observability.failed +
     integ.failed +
-    observabilityInteg.failed;
+    observabilityInteg.failed +
+    payloadRegression.failed;
 
   console.log('\n' + '═'.repeat(55));
   console.log(`  Result: ${totalPassed} passed  |  ${totalFailed} failed`);
