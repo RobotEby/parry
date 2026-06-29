@@ -29,6 +29,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [Observability](#observability)
   - [Admin API](#admin-api)
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
+  - [AWS Reference Infrastructure](#aws-reference-infrastructure)
 - [Project Structure](#project-structure)
 - [Tests](#tests)
   - [Payload Regression Testing](#payload-regression-testing)
@@ -578,6 +579,19 @@ Parry_DDoS runs inside Express after traffic has already reached your Node.js pr
 
 For volumetric DDoS protection, use edge and infrastructure controls such as CloudFront, AWS WAF, AWS Shield, ALB rate-based rules, or an equivalent CDN, WAF, load balancer, or provider-level protection. Treat Parry_DDoS as one application-layer control behind those services.
 
+### AWS Reference Infrastructure
+
+This repository includes a Terraform reference under `infra/terraform` for a realistic AWS deployment shape: CloudFront, AWS WAF, public ALB, private ECS Fargate tasks, private ElastiCache Redis, and CloudWatch logs.
+
+The stack is intentionally demonstrative. It does not create secrets, Route 53 records, ACM certificates, or production multi-account foundations. Start with:
+
+- `infra/terraform/README.md`
+- `docs/aws-infra.md`
+- `docs/aws-security-notes.md`
+- `docs/aws-cost-notes.md`
+
+The AWS reference shows how Parry fits behind edge protection. It does not change Parry into a volumetric DDoS protection product.
+
 ---
 
 ## Project Structure
@@ -644,8 +658,14 @@ Parry_DDoS/
 ├── examples/
 │   └── express-basic.js      ← Full integration example
 │
+├── infra/
+│   └── terraform/            ← AWS reference infrastructure modules and dev env
+│
 ├── docs/
 │   ├── architecture.md       ← Documented design decisions
+│   ├── aws-infra.md
+│   ├── aws-security-notes.md
+│   ├── aws-cost-notes.md
 │   ├── testing-payloads.md
 │   └── payload-regression-report.md
 │
@@ -851,7 +871,8 @@ Parry_DDoS is under active development. Upcoming versions focus on stronger appl
 ### `v1.4` — Operations and Observability
 
 - [ ] Docker and Kubernetes deployment examples for applications using the middleware
-- [ ] Reference architectures behind CloudFront, AWS WAF, Shield, ALB, or equivalent edge protection
+- [x] Terraform reference architecture behind CloudFront, AWS WAF, ALB, ECS Fargate, and ElastiCache Redis
+- [ ] Production CI/CD, multi-account, and advanced deployment examples
 - [ ] Web monitoring dashboard with real-time threat map, ban history, and per-detector metrics
 - [ ] Metrics export in Prometheus/OpenTelemetry format
 
