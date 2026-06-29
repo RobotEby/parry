@@ -20,6 +20,7 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+external/
 
 # Environment secrets
 .env
