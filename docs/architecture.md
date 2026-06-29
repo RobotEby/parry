@@ -1,9 +1,9 @@
-# Parry_DDoS — Decisões de Arquitetura
+# Parry — Decisões de Arquitetura
 
 ## Estrutura de diretórios
 
 ```
-ParryWAF/
+parry-express-security-middleware/
 ├── src/
 │   ├── detectors/          Detectores de ameaça (SQL, XSS, NoSQL)
 │   ├── express/            Adapter Express: req/res/next, IP, targets
