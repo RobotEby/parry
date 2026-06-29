@@ -59,6 +59,33 @@ const REQUIRED_PACKAGE_FIELDS = [
   'files',
 ];
 
+const EXPECTED_DESCRIPTION =
+  'Application-layer security middleware for Express.js with injection detection, abuse mitigation, brute-force protection and distributed rate limiting.';
+
+const EXPECTED_REPOSITORY_URL =
+  'git+ssh://git@github.com/RobotEby/parry-express-security-middleware.git';
+
+const EXPECTED_BUGS_URL =
+  'https://github.com/RobotEby/parry-express-security-middleware/issues';
+
+const EXPECTED_HOMEPAGE =
+  'https://github.com/RobotEby/parry-express-security-middleware#readme';
+
+const REQUIRED_KEYWORDS = [
+  'express',
+  'middleware',
+  'security',
+  'application-security',
+  'appsec',
+  'rate-limit',
+  'brute-force',
+  'xss',
+  'sql-injection',
+  'nosql-injection',
+  'redis',
+  'nodejs',
+];
+
 function main() {
   const failures = [];
 
@@ -89,8 +116,31 @@ function validatePackageMetadata(failures) {
     failures.push(`package name must be @roboteby/parry, got ${pkg.name}`);
   }
 
-  if (!Array.isArray(pkg.keywords) || pkg.keywords.length < 8) {
-    failures.push('package.json keywords must include useful npm search terms');
+  if (pkg.description !== EXPECTED_DESCRIPTION) {
+    failures.push('package.json description must use the official Parry package description');
+  }
+
+  if (pkg.publishConfig?.access !== 'public') {
+    failures.push('package.json publishConfig.access must be public');
+  }
+
+  if (pkg.repository?.url !== EXPECTED_REPOSITORY_URL) {
+    failures.push('package.json repository.url must point to parry-express-security-middleware');
+  }
+
+  if (pkg.bugs?.url !== EXPECTED_BUGS_URL) {
+    failures.push('package.json bugs.url must point to parry-express-security-middleware issues');
+  }
+
+  if (pkg.homepage !== EXPECTED_HOMEPAGE) {
+    failures.push('package.json homepage must point to parry-express-security-middleware#readme');
+  }
+
+  const keywords = Array.isArray(pkg.keywords) ? pkg.keywords : [];
+  for (const keyword of REQUIRED_KEYWORDS) {
+    if (!keywords.includes(keyword)) {
+      failures.push(`package.json keywords must include ${keyword}`);
+    }
   }
 
   if (pkg.dependencies && Object.prototype.hasOwnProperty.call(pkg.dependencies, 'redis')) {
