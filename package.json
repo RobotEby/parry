@@ -14,6 +14,7 @@
     "example": "node examples/express-basic.js",
     "test:http": "node scripts/run-tests.js",
     "start:test": "node scripts/test-server.js",
+    "docker:build:demo": "docker build -f docker/demo-api/Dockerfile -t parry-demo-api .",
     "format": "prettier --write \"src/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\""
   },
