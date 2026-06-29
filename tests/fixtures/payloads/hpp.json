@@ -1,0 +1,122 @@
+[
+  {
+    "id": "hpp-id-001",
+    "category": "hpp",
+    "name": "Duplicated id query parameter",
+    "payload": { "id": ["100", "200"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "id"]
+  },
+  {
+    "id": "hpp-role-001",
+    "category": "hpp",
+    "name": "Duplicated role query parameter",
+    "payload": { "role": ["user", "admin"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "role"]
+  },
+  {
+    "id": "hpp-user-001",
+    "category": "hpp",
+    "name": "Duplicated user query parameter",
+    "payload": { "user": ["alice", "bob"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "user"]
+  },
+  {
+    "id": "hpp-redirect-001",
+    "category": "hpp",
+    "name": "Duplicated redirect query parameter",
+    "payload": { "redirect": ["/home", "https://example.com"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "redirect"]
+  },
+  {
+    "id": "hpp-next-001",
+    "category": "hpp",
+    "name": "Duplicated next query parameter",
+    "payload": { "next": ["/profile", "/admin"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "redirect"]
+  },
+  {
+    "id": "hpp-email-001",
+    "category": "hpp",
+    "name": "Duplicated email query parameter",
+    "payload": { "email": ["user@example.com", "admin@example.com"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "email"]
+  },
+  {
+    "id": "hpp-page-001",
+    "category": "hpp",
+    "name": "Duplicated page query parameter",
+    "payload": { "page": ["1", "999"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "pagination"]
+  },
+  {
+    "id": "hpp-sort-001",
+    "category": "hpp",
+    "name": "Duplicated sort query parameter without allowlist",
+    "payload": { "sort": ["name", "role"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "sort"]
+  },
+  {
+    "id": "hpp-filter-001",
+    "category": "hpp",
+    "name": "Duplicated filter query parameter without allowlist",
+    "payload": { "filter": ["active", "admin"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "filter"]
+  },
+  {
+    "id": "hpp-session-001",
+    "category": "hpp",
+    "name": "Duplicated session query parameter",
+    "payload": { "session": ["one", "two"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "session"]
+  },
+  {
+    "id": "hpp-return-001",
+    "category": "hpp",
+    "name": "Duplicated returnUrl query parameter",
+    "payload": { "returnUrl": ["/account", "/admin"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "redirect"]
+  },
+  {
+    "id": "hpp-permission-001",
+    "category": "hpp",
+    "name": "Duplicated permission query parameter",
+    "payload": { "permission": ["read", "write"] },
+    "target": "query",
+    "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
+    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "tags": ["duplicate-param", "permission"]
+  }
+]
