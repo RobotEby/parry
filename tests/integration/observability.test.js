@@ -1,11 +1,7 @@
 'use strict';
 
 const { EventEmitter } = require('events');
-const {
-  Parry_DDoS,
-  createParry,
-  createParryAdminRouter,
-} = require('../../src');
+const { Parry_DDoS, createParry, createParryAdminRouter } = require('../../src');
 
 let passed = 0,
   failed = 0;
@@ -193,11 +189,20 @@ async function runAll() {
   const threatEvents = threatParry.eventBus.getRecentEvents({ type: 'SQL_INJECTION_BLOCKED' });
   const threatText = JSON.stringify(threatEvents.data[0] || {});
 
-  assert('Blocked request returns current response', threatRun.res._status === 400 && !threatRun.next);
+  assert(
+    'Blocked request returns current response',
+    threatRun.res._status === 400 && !threatRun.next
+  );
   assert('Blocked request generates structured event', threatEvents.pagination.total === 1);
   assert('onThreat receives structured event', structuredThreat?.type === 'SQL_INJECTION_BLOCKED');
-  assert('Structured event includes request id', structuredThreat?.requestId === 'req-integration-1');
-  assert('Request id response header is optional and configurable', threatRun.res._headers['X-Parry-Request-Id'] === 'req-integration-1');
+  assert(
+    'Structured event includes request id',
+    structuredThreat?.requestId === 'req-integration-1'
+  );
+  assert(
+    'Request id response header is optional and configurable',
+    threatRun.res._headers['X-Parry-Request-Id'] === 'req-integration-1'
+  );
   assert(
     'Events do not leak password, token, cookie, or authorization',
     !threatText.includes('should-not-leak') && !threatText.includes('Bearer')
@@ -210,9 +215,15 @@ async function runAll() {
       throw new Error('hook failed');
     },
   });
-  const hookRun = await run(hookParry.middleware(), mockReq({ body: { q: '<script>alert(1)</script>' } }));
+  const hookRun = await run(
+    hookParry.middleware(),
+    mockReq({ body: { q: '<script>alert(1)</script>' } })
+  );
   assert('onThreat error does not break request', hookRun.res._status === 400 && !hookRun.next);
-  assert('onThreat error generates HOOK_ERROR', hookParry.eventBus.getRecentEvents({ type: 'HOOK_ERROR' }).pagination.total === 1);
+  assert(
+    'onThreat error generates HOOK_ERROR',
+    hookParry.eventBus.getRecentEvents({ type: 'HOOK_ERROR' }).pagination.total === 1
+  );
 
   const rateParry = createParry({
     rateLimit: { enabled: true, max: 1, windowMs: 60_000 },
@@ -221,7 +232,10 @@ async function runAll() {
   await run(rateParry.middleware(), mockReq({ ip: '10.50.0.3' }));
   const rateRun = await run(rateParry.middleware(), mockReq({ ip: '10.50.0.3' }));
   assert('Rate limit still blocks with 429', rateRun.res._status === 429);
-  assert('Rate limit generates RATE_LIMIT_EXCEEDED', rateParry.eventBus.getRecentEvents({ type: 'RATE_LIMIT_EXCEEDED' }).pagination.total === 1);
+  assert(
+    'Rate limit generates RATE_LIMIT_EXCEEDED',
+    rateParry.eventBus.getRecentEvents({ type: 'RATE_LIMIT_EXCEEDED' }).pagination.total === 1
+  );
 
   const banParry = createParry({
     rateLimit: true,
@@ -257,13 +271,16 @@ async function runAll() {
   await runWithRoute(routeRateParry.middleware(), loginReq('10.50.0.4'), (_req, res) =>
     res.status(200).json({ ok: true })
   );
-  const routeRateRun = await runWithRoute(routeRateParry.middleware(), loginReq('10.50.0.4'), (_req, res) =>
-    res.status(200).json({ ok: true })
+  const routeRateRun = await runWithRoute(
+    routeRateParry.middleware(),
+    loginReq('10.50.0.4'),
+    (_req, res) => res.status(200).json({ ok: true })
   );
   assert('Route rate limit blocks separately from global limit', routeRateRun.res._status === 429);
   assert(
     'Route rate limit generates ROUTE_RATE_LIMIT_EXCEEDED',
-    routeRateParry.eventBus.getRecentEvents({ type: 'ROUTE_RATE_LIMIT_EXCEEDED' }).pagination.total === 1
+    routeRateParry.eventBus.getRecentEvents({ type: 'ROUTE_RATE_LIMIT_EXCEEDED' }).pagination
+      .total === 1
   );
 
   const bruteParry = createParry({
@@ -276,16 +293,28 @@ async function runAll() {
   await runWithRoute(bruteParry.middleware(), loginReq('10.50.0.5'), invalidLogin);
   const bruteRun = await runWithRoute(bruteParry.middleware(), loginReq('10.50.0.5'), invalidLogin);
   assert('Brute force block still returns 429', bruteRun.res._status === 429);
-  assert('Brute force block generates BRUTE_FORCE_BLOCKED', bruteParry.eventBus.getRecentEvents({ type: 'BRUTE_FORCE_BLOCKED' }).pagination.total >= 1);
+  assert(
+    'Brute force block generates BRUTE_FORCE_BLOCKED',
+    bruteParry.eventBus.getRecentEvents({ type: 'BRUTE_FORCE_BLOCKED' }).pagination.total >= 1
+  );
 
   const wrapperMiddleware = Parry_DDoS({ rateLimit: false, logThreats: false });
   const wrapperRouter = createParryAdminRouter(wrapperMiddleware);
   const wrapperHealth = await runRouter(wrapperRouter, '/health');
-  assert('Admin router can resolve context from Parry_DDoS middleware wrapper', wrapperHealth.res._status === 200);
+  assert(
+    'Admin router can resolve context from Parry_DDoS middleware wrapper',
+    wrapperHealth.res._status === 200
+  );
 
   const notMountedParry = createParry({ rateLimit: false, logThreats: false });
-  const notMounted = await run(notMountedParry.middleware(), mockReq({ method: 'GET', url: '/_parry/health', originalUrl: '/_parry/health' }));
-  assert('Admin API is not mounted automatically', notMounted.next && notMounted.res._status === 200);
+  const notMounted = await run(
+    notMountedParry.middleware(),
+    mockReq({ method: 'GET', url: '/_parry/health', originalUrl: '/_parry/health' })
+  );
+  assert(
+    'Admin API is not mounted automatically',
+    notMounted.next && notMounted.res._status === 200
+  );
 
   console.log('\n── Observability Integration — Admin API ───────────────────');
 
@@ -294,8 +323,33 @@ async function runAll() {
     logThreats: false,
     policies: [loginPolicy()],
   });
-  await run(adminParry.middleware(), mockReq({ ip: '10.50.0.6', body: { q: "' UNION SELECT password FROM users" } }));
+  await run(
+    adminParry.middleware(),
+    mockReq({ ip: '10.50.0.6', body: { q: "' UNION SELECT password FROM users" } })
+  );
   adminParry.store.ban('10.50.0.7', 60_000, { reason: 'admin-test' });
+  const routeEvent = adminParry.eventBus.emitThreat({
+    type: 'ROUTE_RATE_LIMIT_EXCEEDED',
+    detector: 'ROUTE_RATE_LIMIT',
+    module: 'route-policy',
+    severity: 'medium',
+    action: 'blocked',
+    reason: 'Route policy rate limit exceeded',
+    ip: '10.50.0.8',
+    method: 'POST',
+    path: '/login',
+    statusCode: 429,
+    policyName: 'auth-login',
+    metadata: {
+      password: 'admin-event-secret',
+      token: 'admin-event-secret',
+      rawBody: { password: 'admin-event-secret' },
+      headers: {
+        authorization: 'Bearer admin-event-secret',
+        cookie: 'sid=admin-event-secret',
+      },
+    },
+  });
 
   const adminRouter = createParryAdminRouter(adminParry);
   const health = await runRouter(adminRouter, '/health');
@@ -303,32 +357,93 @@ async function runAll() {
   assert('GET /health includes store metadata', health.res._body.store === 'memory');
 
   const metrics = await runRouter(adminRouter, '/metrics');
-  assert('GET /metrics returns snapshot', metrics.res._body.totalRequests >= 1 && metrics.res._body.blockedRequests >= 1);
+  assert(
+    'GET /metrics returns snapshot',
+    metrics.res._body.totalRequests >= 1 && metrics.res._body.blockedRequests >= 1
+  );
 
   const events = await runRouter(adminRouter, '/events', { query: { limit: '10' } });
   const firstEvent = events.res._body.data[0];
-  assert('GET /events returns paginated list', Array.isArray(events.res._body.data) && events.res._body.pagination.total >= 1);
+  assert(
+    'GET /events returns paginated list',
+    Array.isArray(events.res._body.data) && events.res._body.pagination.total >= 1
+  );
+  assert(
+    'GET /events exposes dashboard-safe event fields',
+    typeof firstEvent.id === 'string' &&
+      typeof firstEvent.type === 'string' &&
+      typeof firstEvent.severity === 'string' &&
+      typeof firstEvent.action === 'string' &&
+      typeof firstEvent.timestamp === 'string' &&
+      typeof firstEvent.ip === 'string' &&
+      typeof firstEvent.path === 'string' &&
+      typeof firstEvent.method === 'string' &&
+      (typeof firstEvent.detector === 'string' || typeof firstEvent.module === 'string')
+  );
+  assert(
+    'GET /events does not expose sensitive metadata values',
+    !JSON.stringify(events.res._body).includes('admin-event-secret')
+  );
 
   const filtered = await runRouter(adminRouter, '/events', { query: { severity: 'high' } });
-  assert('GET /events filters by severity', filtered.res._body.data.every((event) => event.severity === 'high'));
+  assert(
+    'GET /events filters by severity',
+    filtered.res._body.data.every((event) => event.severity === 'high')
+  );
+
+  const filteredByContract = await runRouter(adminRouter, '/events', {
+    query: {
+      limit: '5',
+      offset: '0',
+      type: 'ROUTE_RATE_LIMIT_EXCEEDED',
+      severity: 'medium',
+      action: 'blocked',
+      detector: 'ROUTE_RATE_LIMIT',
+      ip: '10.50.0.8',
+      path: '/login',
+      policyName: 'auth-login',
+    },
+  });
+  assert(
+    'GET /events accepts documented filters',
+    filteredByContract.res._body.pagination.total === 1 &&
+      filteredByContract.res._body.data[0].id === routeEvent.id
+  );
 
   const byId = await runRouter(adminRouter, `/events/${firstEvent.id}`);
-  assert('GET /events/:id returns event by id', byId.res._status === 200 && byId.res._body.id === firstEvent.id);
+  assert(
+    'GET /events/:id returns event by id',
+    byId.res._status === 200 && byId.res._body.id === firstEvent.id
+  );
 
   const missing = await runRouter(adminRouter, '/events/missing-event');
-  assert('GET /events/:id returns 404 for missing event', missing.res._status === 404);
+  assert(
+    'GET /events/:id returns stable 404 for missing event',
+    missing.res._status === 404 && missing.res._body.code === 'ADMIN_NOT_FOUND'
+  );
 
   const bans = await runRouter(adminRouter, '/bans');
-  assert('GET /bans returns active bans for MemoryStore', bans.res._body.data.some((ban) => ban.key === '10.50.0.7'));
+  assert(
+    'GET /bans returns active bans for MemoryStore',
+    bans.res._body.data.some((ban) => ban.key === '10.50.0.7')
+  );
+  assert('GET /bans returns pagination metadata', bans.res._body.pagination.total >= 1);
 
   const policies = await runRouter(adminRouter, '/policies');
-  assert('GET /policies returns configured policies', policies.res._body.data.some((policy) => policy.name === 'auth-login'));
+  assert(
+    'GET /policies returns configured policies',
+    policies.res._body.data.some((policy) => policy.name === 'auth-login')
+  );
+  assert('GET /policies returns pagination metadata', policies.res._body.pagination.total >= 1);
 
   const protectedRouter = createParryAdminRouter(adminParry, {
     auth: (req) => req.headers['x-admin-token'] === 'secret',
   });
   const denied = await runRouter(protectedRouter, '/health');
-  assert('Admin auth callback blocks when it fails', denied.res._status === 401);
+  assert(
+    'Admin auth callback blocks with stable 401 error shape',
+    denied.res._status === 401 && denied.res._body.code === 'ADMIN_UNAUTHORIZED'
+  );
 
   const allowed = await runRouter(protectedRouter, '/health', {
     headers: { 'x-admin-token': 'secret' },
