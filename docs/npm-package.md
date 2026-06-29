@@ -60,7 +60,7 @@ npm pack
 mkdir /tmp/parry-install-test
 cd /tmp/parry-install-test
 npm init -y
-npm install /path/to/Parry_InjectionAttacks/roboteby-parry-*.tgz express
+npm install /path/to/parry-express-security-middleware/roboteby-parry-*.tgz express
 node -e "const { Parry_DDoS, MemoryStore } = require('@roboteby/parry'); console.log(typeof Parry_DDoS, typeof MemoryStore)"
 ```
 
