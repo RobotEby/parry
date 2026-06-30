@@ -45,6 +45,8 @@ const DEFAULTS = {
     header: 'x-request-id',
     responseHeader: false,
   },
+  trustProxyHeaders: false,
+  trustedProxies: [],
   debug: false,
 
   suspiciousThreshold: 5,
