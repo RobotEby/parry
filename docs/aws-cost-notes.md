@@ -7,6 +7,9 @@ costs before running it in any account.
 
 - NAT Gateway can generate meaningful hourly and data processing cost. The dev
   example sets `enable_nat_gateway = false` by default.
+- VPC endpoints also generate hourly and data processing cost. The dev example
+  sets `enable_vpc_endpoints = false` by default; enable them only when private
+  ECS tasks need AWS API access without NAT.
 - Application Load Balancer charges hourly and by LCU usage.
 - CloudFront charges for data transfer and requests.
 - AWS WAF charges for Web ACLs, rules, and inspected requests.
@@ -25,6 +28,7 @@ The dev environment is intentionally small:
 - `redis_node_type = "cache.t4g.micro"`
 - `redis_num_cache_clusters = 1`
 - `enable_nat_gateway = false`
+- `enable_vpc_endpoints = false`
 - optional alarms disabled
 
 These defaults reduce cost, but they are still paid AWS resources after
