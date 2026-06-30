@@ -22,6 +22,8 @@ services:
       PORT: "3000"
       REDIS_URL: redis://redis:6379
       PARRY_STORE: redis
+      PARRY_ADMIN_ENABLED: "true"
+      PARRY_ADMIN_AUTH_MODE: token
       PARRY_ADMIN_TOKEN: change-me
       DEMO_USER_EMAIL: demo@example.com
       DEMO_USER_PASSWORD: password123
