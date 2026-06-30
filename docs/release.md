@@ -121,7 +121,7 @@ Example:
 npm deprecate @roboteby/parry@1.2.3 "Deprecated due to release issue. Upgrade to 1.2.4."
 ```
 
-## Never Do This
+## Release Safety Rules
 
 - Do not commit npm tokens, AWS credentials, `.env`, or real `tfvars`.
 - Do not publish without `npm run package:check`.
@@ -131,5 +131,6 @@ npm deprecate @roboteby/parry@1.2.3 "Deprecated due to release issue. Upgrade to
 
 ## Future Automation
 
-The project can migrate to `semantic-release` later after the public API is more
-stable. This task intentionally keeps releases manual and transparent.
+The project can migrate to `semantic-release` after the public API is more
+stable. Releases are currently manual so versioning, changelog updates, and
+package contents remain explicit and reviewable.
