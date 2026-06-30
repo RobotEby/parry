@@ -51,6 +51,12 @@ variable "enable_nat_gateway" {
   default     = false
 }
 
+variable "enable_vpc_endpoints" {
+  description = "Create VPC endpoints for private ECS access to ECR, logs, secrets, SSM, and S3."
+  type        = bool
+  default     = false
+}
+
 variable "enable_cloudfront" {
   description = "Create CloudFront and CloudFront-scoped WAF."
   type        = bool
