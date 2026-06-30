@@ -99,7 +99,8 @@ dependem de `method`, `path`, `req`, `res` e do status final da resposta.
 - Chaves de brute force não devem incluir senha, tokens, cookies ou headers de
   autorização. O key builder padrão bloqueia caminhos sensíveis como
   `body.password`.
-- O `x-forwarded-for` não é verificado contra uma lista de proxies confiáveis.
-  Em produção, adicione verificação de CIDR antes de confiar nesse header.
+- O `x-forwarded-for` é ignorado por padrão. Se a aplicação roda atrás de ALB,
+  CloudFront ou proxy, habilite `trustProxyHeaders` e configure `trustedProxies`
+  com IPs exatos confiáveis. CIDR matching pode ser adicionado no futuro.
 - Os padrões regex cobrem os vetores mais comuns mas não são exaustivos.
   Considere complementar com uma WAF dedicada em camadas de alta criticidade.
