@@ -38,7 +38,10 @@ const DEFAULTS = {
   },
   admin: {
     enabled: false,
+    path: '/_parry',
     allowMutations: false,
+    allowInsecureAdminApi: false,
+    auth: null,
   },
   requestId: {
     enabled: true,
