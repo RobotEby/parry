@@ -3,7 +3,16 @@
 const { buildBruteForceKeys } = require('./key-builder');
 const { createAllowedResult, createBlockedResult } = require('./result');
 
-function createBruteForceContext({ policy, requestData, req, res, store, config, logger, eventBus }) {
+function createBruteForceContext({
+  policy,
+  requestData,
+  req,
+  res,
+  store,
+  config,
+  logger,
+  eventBus,
+}) {
   const enabled = Boolean(policy?.bruteForce?.enabled);
   const keys = enabled ? buildBruteForceKeys(policy, requestData) : [];
   const state = {
@@ -60,7 +69,12 @@ async function checkBruteForceBlock(context) {
 }
 
 function observeAuthenticationResult(context) {
-  if (!context.enabled || context.keys.length === 0 || !context.res || typeof context.res.on !== 'function') {
+  if (
+    !context.enabled ||
+    context.keys.length === 0 ||
+    !context.res ||
+    typeof context.res.on !== 'function'
+  ) {
     return;
   }
 
@@ -98,11 +112,15 @@ function resolveAction(context) {
 async function recordFailure(context, reason) {
   const attempts = [];
   for (const key of context.keys) {
-    const attempt = await context.store.incrementCounter(key.key, context.policy.bruteForce.windowMs, {
-      policyName: context.policy.name,
-      keyType: key.type,
-      reason,
-    });
+    const attempt = await context.store.incrementCounter(
+      key.key,
+      context.policy.bruteForce.windowMs,
+      {
+        policyName: context.policy.name,
+        keyType: key.type,
+        reason,
+      }
+    );
     attempts.push({ key, attempt });
   }
 
@@ -115,7 +133,9 @@ async function recordFailure(context, reason) {
     })
   );
 
-  const shouldBlock = attempts.some(({ attempt }) => attempt.count >= context.policy.bruteForce.maxAttempts);
+  const shouldBlock = attempts.some(
+    ({ attempt }) => attempt.count >= context.policy.bruteForce.maxAttempts
+  );
   if (!shouldBlock) return;
 
   for (const key of context.keys) {
@@ -180,8 +200,10 @@ function createBruteForceEvent(context, type, details = {}) {
     severity: details.severity || 'medium',
     reason: details.reason,
     timestamp: new Date().toISOString(),
-    requestId: context.requestData.requestId || getHeader(context.requestData.headers, 'x-request-id'),
-    userAgent: context.requestData.userAgent || getHeader(context.requestData.headers, 'user-agent'),
+    requestId:
+      context.requestData.requestId || getHeader(context.requestData.headers, 'x-request-id'),
+    userAgent:
+      context.requestData.userAgent || getHeader(context.requestData.headers, 'user-agent'),
   };
 }
 
@@ -196,8 +218,10 @@ function createStoreFailureEvent(context, error, mode) {
     timestamp: new Date().toISOString(),
     reason: error && error.message ? error.message : String(error),
     mode: mode || context.config.storeFailureMode || 'fail-open',
-    requestId: context.requestData.requestId || getHeader(context.requestData.headers, 'x-request-id'),
-    userAgent: context.requestData.userAgent || getHeader(context.requestData.headers, 'user-agent'),
+    requestId:
+      context.requestData.requestId || getHeader(context.requestData.headers, 'x-request-id'),
+    userAgent:
+      context.requestData.userAgent || getHeader(context.requestData.headers, 'user-agent'),
   };
 }
 
@@ -227,7 +251,11 @@ function getResponseStatus(res) {
 function getHeader(headers, name) {
   if (!headers) return undefined;
   const lower = name.toLowerCase();
-  return headers[lower] || headers[name] || headers[Object.keys(headers).find((key) => key.toLowerCase() === lower)];
+  return (
+    headers[lower] ||
+    headers[name] ||
+    headers[Object.keys(headers).find((key) => key.toLowerCase() === lower)]
+  );
 }
 
 module.exports = {
