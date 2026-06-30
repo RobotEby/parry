@@ -178,6 +178,26 @@ function buildAdminAuthConfig(env) {
     };
   }
 
+  if (mode === 'cloudflare-access') {
+    return {
+      mode,
+      ...buildExternalAdminAuthConfig(env),
+      emailHeader: env.PARRY_CLOUDFLARE_EMAIL_HEADER || 'cf-access-authenticated-user-email',
+      jwtHeader: env.PARRY_CLOUDFLARE_JWT_HEADER || 'cf-access-jwt-assertion',
+      verifyJwt: env.PARRY_CLOUDFLARE_VERIFY_JWT === 'true',
+    };
+  }
+
+  if (mode === 'alb-auth' || mode === 'cognito-alb') {
+    return {
+      mode,
+      ...buildExternalAdminAuthConfig(env),
+      userHeader: env.PARRY_ALB_USER_HEADER || 'x-amzn-oidc-identity',
+      dataHeader: env.PARRY_ALB_DATA_HEADER || 'x-amzn-oidc-data',
+      verifyJwt: env.PARRY_ALB_VERIFY_JWT === 'true',
+    };
+  }
+
   if (mode === 'none') {
     return {
       mode,
@@ -186,6 +206,17 @@ function buildAdminAuthConfig(env) {
   }
 
   throw new Error(`Unsupported PARRY_ADMIN_AUTH_MODE: ${mode}`);
+}
+
+function buildExternalAdminAuthConfig(env) {
+  return {
+    trustedProxies: parseCsv(env.PARRY_ADMIN_TRUSTED_PROXIES),
+    proxySharedSecretHeader: env.PARRY_PROXY_SHARED_SECRET_HEADER || 'x-parry-proxy-secret',
+    proxySharedSecret: env.PARRY_PROXY_SHARED_SECRET || undefined,
+    allowedEmails: parseCsv(env.PARRY_ADMIN_ALLOWED_EMAILS),
+    allowedDomains: parseCsv(env.PARRY_ADMIN_ALLOWED_DOMAINS),
+    allowedSubjects: parseCsv(env.PARRY_ADMIN_ALLOWED_SUBJECTS),
+  };
 }
 
 function parseRequiredHeader(value) {
