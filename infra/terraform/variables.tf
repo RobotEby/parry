@@ -48,6 +48,12 @@ variable "enable_nat_gateway" {
   default     = false
 }
 
+variable "enable_vpc_endpoints" {
+  description = "Whether to create private VPC endpoints for ECR, CloudWatch Logs, Secrets Manager, SSM, and S3. Disabled by default to avoid surprise cost."
+  type        = bool
+  default     = false
+}
+
 variable "enable_cloudfront" {
   description = "Whether to create CloudFront and CloudFront-scoped WAF."
   type        = bool
