@@ -11,12 +11,16 @@ function createSnapshot(context) {
 
 function describeStore(store) {
   if (!store) return 'unknown';
-  if (store.constructor && store.constructor.name) return store.constructor.name.replace(/Store$/, '').toLowerCase();
+  if (store.constructor && store.constructor.name)
+    return store.constructor.name.replace(/Store$/, '').toLowerCase();
   return 'custom';
 }
 
 function countActiveBans(store) {
-  if (store && typeof store.listBans === 'function') return store.listBans().length;
+  if (store && typeof store.listBans === 'function') {
+    const result = store.listBans();
+    return Array.isArray(result) ? result.length : 0;
+  }
   return 0;
 }
 
@@ -32,7 +36,9 @@ function sanitizePolicies(policies) {
           maxAttempts: policy.bruteForce.maxAttempts,
           windowMs: policy.bruteForce.windowMs,
           blockDurationMs: policy.bruteForce.blockDurationMs,
-          keyTypes: (policy.bruteForce.keys || []).map((key) => (typeof key === 'function' ? 'custom' : key)),
+          keyTypes: (policy.bruteForce.keys || []).map((key) =>
+            typeof key === 'function' ? 'custom' : key
+          ),
           resetOnSuccess: policy.bruteForce.resetOnSuccess,
         }
       : undefined,
