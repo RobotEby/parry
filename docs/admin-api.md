@@ -18,15 +18,15 @@ app.use(
 );
 ```
 
-For built-in token, IP allowlist, trusted proxy, and combined auth strategies, see [Admin API Authentication](./admin-api-auth.md).
+For built-in token, IP allowlist, trusted proxy, Cloudflare Access, AWS ALB/Cognito, and combined auth strategies, see [Admin API Authentication](./admin-api-auth.md). For AWS-specific ALB/Cognito deployment guidance, see [AWS Admin API Authentication](./aws-admin-auth.md).
 
 ## Security
 
 - Never expose `/_parry` publicly without authentication and network restrictions.
 - Parry does not enable CORS automatically. If `parry-security-console` runs on a separate origin, configure CORS explicitly in the host application.
-- A token stored directly in a browser frontend is suitable only for demos or local development. Production deployments should put the Admin API behind a backend-for-frontend, VPN, private network, identity-aware proxy, or equivalent control.
+- A token stored directly in a browser frontend is suitable only for demos or local development. Production deployments should put the Admin API behind a backend-for-frontend, VPN, private network, Cloudflare Access, AWS ALB/Cognito auth, identity-aware proxy, or equivalent control.
 - Do not forward cookies, Authorization headers, application secrets, or raw request bodies into events or Admin API metadata.
-- The examples use `x-parry-admin-token` as the recommended local/demo admin header. For production, prefer VPN, private networking, IP allowlists, trusted reverse proxy auth, or external authentication. See [Admin API Authentication](./admin-api-auth.md).
+- The examples use `x-parry-admin-token` as the recommended local/demo admin header. For production, prefer VPN, private networking, IP allowlists, trusted reverse proxy auth, Cloudflare Access, AWS ALB/Cognito, or external authentication. See [Admin API Authentication](./admin-api-auth.md).
 
 ## Common Response Shapes
 
