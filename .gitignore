@@ -21,6 +21,12 @@ pids/
 *.seed
 *.pid.lock
 external/
+.codex/
+.agents/
+*.dump
+*.dmp
+tmp/
+temp/
 
 # Terraform local state and secrets
 **/.terraform/
