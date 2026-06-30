@@ -36,7 +36,17 @@ function createRateLimitEvent({ ip, timestamp, method, path, requestId, userAgen
   return { type: 'RATE_LIMIT', ip, timestamp, method, path, requestId, userAgent };
 }
 
-function createStoreFailureEvent({ ip, timestamp, error, mode, method, path, requestId, userAgent, module }) {
+function createStoreFailureEvent({
+  ip,
+  timestamp,
+  error,
+  mode,
+  method,
+  path,
+  requestId,
+  userAgent,
+  module,
+}) {
   return {
     type: 'STORE_FAILURE',
     module,
@@ -51,4 +61,9 @@ function createStoreFailureEvent({ ip, timestamp, error, mode, method, path, req
   };
 }
 
-module.exports = { createThreatEvent, createBanEvent, createRateLimitEvent, createStoreFailureEvent };
+module.exports = {
+  createThreatEvent,
+  createBanEvent,
+  createRateLimitEvent,
+  createStoreFailureEvent,
+};
