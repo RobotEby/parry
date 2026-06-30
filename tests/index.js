@@ -31,6 +31,9 @@ async function main() {
   console.log('\n▶ Unit — Observability');
   const observability = await require('./unit/observability.test');
 
+  console.log('\n▶ Unit — Admin Auth');
+  const adminAuth = await require('./unit/adminAuth.test');
+
   console.log('\n▶ Integration — Middleware end-to-end');
   const integ = await require('./integration/middleware.test');
 
@@ -57,6 +60,7 @@ async function main() {
     engine.passed +
     appGuards.passed +
     observability.passed +
+    adminAuth.passed +
     integ.passed +
     observabilityInteg.passed +
     demoApi.passed +
@@ -73,6 +77,7 @@ async function main() {
     engine.failed +
     appGuards.failed +
     observability.failed +
+    adminAuth.failed +
     integ.failed +
     observabilityInteg.failed +
     demoApi.failed +
