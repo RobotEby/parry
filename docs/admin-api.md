@@ -90,11 +90,11 @@ None.
 
 ### Status Codes
 
-| Status | Meaning                                                                  |
-| ------ | ------------------------------------------------------------------------ |
-| `200`  | Health status returned.                                                  |
-| `401`  | Admin auth is required and credentials are missing.                      |
-| `403`  | Admin auth credentials are present but invalid or not authorized.        |
+| Status | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `200`  | Health status returned.                                           |
+| `401`  | Admin auth is required and credentials are missing.               |
+| `403`  | Admin auth credentials are present but invalid or not authorized. |
 
 ### Security Notes
 
@@ -143,8 +143,8 @@ None.
 | Status | Meaning                                                           |
 | ------ | ----------------------------------------------------------------- |
 | `200`  | Metrics returned.                                                 |
-| `401`  | Admin auth is required and credentials are missing.                |
-| `403`  | Admin auth credentials are present but invalid or not authorized.  |
+| `401`  | Admin auth is required and credentials are missing.               |
+| `403`  | Admin auth credentials are present but invalid or not authorized. |
 
 ### Security Notes
 
@@ -156,17 +156,17 @@ Returns recent sanitized threat events.
 
 ### Query Params
 
-| Param        | Type    | Notes                                                            |
-| ------------ | ------- | ---------------------------------------------------------------- |
-| `limit`      | integer | Default `50`, min `1`, max depends on event store configuration. |
-| `offset`     | integer | Default `0`.                                                     |
-| `type`       | string  | Example: `SQL_INJECTION_BLOCKED`.                                |
-| `severity`   | string  | `low`, `medium`, `high`, or `critical`.                          |
-| `action`     | string  | Example: `blocked`, `observed`, `error`.                         |
+| Param        | Type    | Notes                                                                                               |
+| ------------ | ------- | --------------------------------------------------------------------------------------------------- |
+| `limit`      | integer | Default `50`, min `1`, max depends on event store configuration.                                    |
+| `offset`     | integer | Default `0`.                                                                                        |
+| `type`       | string  | Example: `SQL_INJECTION_BLOCKED`.                                                                   |
+| `severity`   | string  | `low`, `medium`, `high`, or `critical`.                                                             |
+| `action`     | string  | Example: `blocked`, `observed`, `error`.                                                            |
 | `detector`   | string  | Public detector slug, for example `sql`. Legacy detector types are also accepted for compatibility. |
-| `ip`         | string  | Exact IP filter.                                                 |
-| `path`       | string  | Exact path filter, for example `/login`.                         |
-| `policyName` | string  | Exact policy name filter.                                        |
+| `ip`         | string  | Exact IP filter.                                                                                    |
+| `path`       | string  | Exact path filter, for example `/login`.                                                            |
+| `policyName` | string  | Exact policy name filter.                                                                           |
 
 ### Example Response
 
@@ -207,8 +207,8 @@ Returns recent sanitized threat events.
 | Status | Meaning                                                           |
 | ------ | ----------------------------------------------------------------- |
 | `200`  | Event list returned.                                              |
-| `401`  | Admin auth is required and credentials are missing.                |
-| `403`  | Admin auth credentials are present but invalid or not authorized.  |
+| `401`  | Admin auth is required and credentials are missing.               |
+| `403`  | Admin auth credentials are present but invalid or not authorized. |
 
 ### Security Notes
 
@@ -253,8 +253,8 @@ Returns one sanitized threat event by id.
 | Status | Meaning                                                           |
 | ------ | ----------------------------------------------------------------- |
 | `200`  | Event returned.                                                   |
-| `401`  | Admin auth is required and credentials are missing.                |
-| `403`  | Admin auth credentials are present but invalid or not authorized.  |
+| `401`  | Admin auth is required and credentials are missing.               |
+| `403`  | Admin auth credentials are present but invalid or not authorized. |
 | `404`  | Event id was not found.                                           |
 
 ## GET /\_parry/bans
@@ -296,8 +296,8 @@ Returns active temporary bans and brute force blocks when the configured store e
 | Status | Meaning                                                           |
 | ------ | ----------------------------------------------------------------- |
 | `200`  | Ban list returned.                                                |
-| `401`  | Admin auth is required and credentials are missing.                |
-| `403`  | Admin auth credentials are present but invalid or not authorized.  |
+| `401`  | Admin auth is required and credentials are missing.               |
+| `403`  | Admin auth credentials are present but invalid or not authorized. |
 
 ### Security Notes
 
@@ -355,8 +355,8 @@ Returns normalized route policies without functions or raw request data.
 | Status | Meaning                                                           |
 | ------ | ----------------------------------------------------------------- |
 | `200`  | Policy list returned.                                             |
-| `401`  | Admin auth is required and credentials are missing.                |
-| `403`  | Admin auth credentials are present but invalid or not authorized.  |
+| `401`  | Admin auth is required and credentials are missing.               |
+| `403`  | Admin auth credentials are present but invalid or not authorized. |
 
 ### Security Notes
 
