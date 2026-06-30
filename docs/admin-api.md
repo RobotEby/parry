@@ -18,13 +18,15 @@ app.use(
 );
 ```
 
+For built-in token, IP allowlist, trusted proxy, and combined auth strategies, see [Admin API Authentication](./admin-api-auth.md).
+
 ## Security
 
 - Never expose `/_parry` publicly without authentication and network restrictions.
 - Parry does not enable CORS automatically. If `parry-security-console` runs on a separate origin, configure CORS explicitly in the host application.
 - A token stored directly in a browser frontend is suitable only for demos or local development. Production deployments should put the Admin API behind a backend-for-frontend, VPN, private network, identity-aware proxy, or equivalent control.
 - Do not forward cookies, Authorization headers, application secrets, or raw request bodies into events or Admin API metadata.
-- The examples use `x-parry-admin-token` as the recommended admin header, but authentication is controlled by your own middleware or the router `auth(req)` callback.
+- The examples use `x-parry-admin-token` as the recommended local/demo admin header. For production, prefer VPN, private networking, IP allowlists, trusted reverse proxy auth, or external authentication. See [Admin API Authentication](./admin-api-auth.md).
 
 ## Common Response Shapes
 
@@ -45,13 +47,16 @@ Errors use:
 
 ```json
 {
-  "error": "Unauthorized",
+  "error": {
+    "code": "ADMIN_UNAUTHORIZED",
+    "message": "Admin API authentication required"
+  },
   "code": "ADMIN_UNAUTHORIZED",
-  "message": "Unauthorized"
+  "message": "Admin API authentication required"
 }
 ```
 
-The `message` field is retained for compatibility. New consumers should key on `error` and `code`.
+The top-level `code` and `message` fields are retained for compatibility. New consumers should key on `error.code` and `error.message`.
 
 ## Authentication Header
 
@@ -88,7 +93,8 @@ None.
 | Status | Meaning                                                                  |
 | ------ | ------------------------------------------------------------------------ |
 | `200`  | Health status returned.                                                  |
-| `401`  | Admin auth failed or `requireAuth` was enabled without a valid callback. |
+| `401`  | Admin auth is required and credentials are missing.                      |
+| `403`  | Admin auth credentials are present but invalid or not authorized.        |
 
 ### Security Notes
 
@@ -134,10 +140,11 @@ None.
 
 ### Status Codes
 
-| Status | Meaning            |
-| ------ | ------------------ |
-| `200`  | Metrics returned.  |
-| `401`  | Admin auth failed. |
+| Status | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `200`  | Metrics returned.                                                 |
+| `401`  | Admin auth is required and credentials are missing.                |
+| `403`  | Admin auth credentials are present but invalid or not authorized.  |
 
 ### Security Notes
 
@@ -197,10 +204,11 @@ Returns recent sanitized threat events.
 
 ### Status Codes
 
-| Status | Meaning              |
-| ------ | -------------------- |
-| `200`  | Event list returned. |
-| `401`  | Admin auth failed.   |
+| Status | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `200`  | Event list returned.                                              |
+| `401`  | Admin auth is required and credentials are missing.                |
+| `403`  | Admin auth credentials are present but invalid or not authorized.  |
 
 ### Security Notes
 
@@ -242,11 +250,12 @@ Returns one sanitized threat event by id.
 
 ### Status Codes
 
-| Status | Meaning                 |
-| ------ | ----------------------- |
-| `200`  | Event returned.         |
-| `401`  | Admin auth failed.      |
-| `404`  | Event id was not found. |
+| Status | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `200`  | Event returned.                                                   |
+| `401`  | Admin auth is required and credentials are missing.                |
+| `403`  | Admin auth credentials are present but invalid or not authorized.  |
+| `404`  | Event id was not found.                                           |
 
 ## GET /\_parry/bans
 
@@ -284,10 +293,11 @@ Returns active temporary bans and brute force blocks when the configured store e
 
 ### Status Codes
 
-| Status | Meaning            |
-| ------ | ------------------ |
-| `200`  | Ban list returned. |
-| `401`  | Admin auth failed. |
+| Status | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `200`  | Ban list returned.                                                |
+| `401`  | Admin auth is required and credentials are missing.                |
+| `403`  | Admin auth credentials are present but invalid or not authorized.  |
 
 ### Security Notes
 
@@ -342,10 +352,11 @@ Returns normalized route policies without functions or raw request data.
 
 ### Status Codes
 
-| Status | Meaning               |
-| ------ | --------------------- |
-| `200`  | Policy list returned. |
-| `401`  | Admin auth failed.    |
+| Status | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `200`  | Policy list returned.                                             |
+| `401`  | Admin auth is required and credentials are missing.                |
+| `403`  | Admin auth credentials are present but invalid or not authorized.  |
 
 ### Security Notes
 
