@@ -31,6 +31,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
   - [Admin API](#admin-api)
   - [DDoS Scope and Edge Protection](#ddos-scope-and-edge-protection)
   - [AWS Reference Infrastructure](#aws-reference-infrastructure)
+  - [Docker Demo](#docker-demo)
   - [CI/CD](#cicd)
   - [Package & Releases](#package--releases)
 - [Project Structure](#project-structure)
@@ -282,6 +283,8 @@ app.use(parry.middleware());
 | `requestId.enabled`               | `true`           |
 | `requestId.header`                | `'x-request-id'` |
 | `requestId.responseHeader`        | `false`          |
+| `trustProxyHeaders`               | `false`          |
+| `trustedProxies`                  | `[]`             |
 | `debug`                           | `false`          |
 | `suspiciousThreshold`             | `5`              |
 | `banDurationMs`                   | `300000` (5 min) |
@@ -309,7 +312,7 @@ Request
     │       ├── query params
     │       ├── body (recursive flatten up to maxObjectDepth)
     │       ├── route params
-    │       └── sensitive headers (user-agent, referer, cookie, x-forwarded-for)
+    │       └── selected headers (user-agent, referer, cookie)
     │
     ├─► [4] Application-layer guards
     │       ├── Request shape limits
@@ -365,9 +368,13 @@ POST /api/users?search=<payload>
 ├── params.id              ← route params
 ├── header.user-agent      ← sensitive headers
 ├── header.referer
-├── header.cookie
-└── header.x-forwarded-for
+└── header.cookie
 ```
+
+Parry ignores `x-forwarded-for` by default for client identity, rate limiting,
+and brute force keys. If your app runs behind ALB, CloudFront, or another trusted
+proxy, enable `trustProxyHeaders` and set exact proxy IPs in `trustedProxies`.
+CIDR matching is intentionally not added in this release.
 
 ### Application-Layer Guards
 
@@ -501,8 +508,8 @@ Parry normalizes security activity into structured threat events. Events are san
   "id": "evt_lx000001_1",
   "type": "SQL_INJECTION_BLOCKED",
   "module": "detector",
-  "detector": "SQL_INJECTION",
-  "detectorSlug": "sql",
+  "detector": "sql",
+  "detectorType": "SQL_INJECTION",
   "severity": "high",
   "action": "blocked",
   "reason": "SQL injection pattern detected",
@@ -629,7 +636,25 @@ The stack is intentionally demonstrative. It does not create secrets, Route 53 r
 - `docs/aws-security-notes.md`
 - `docs/aws-cost-notes.md`
 
-The AWS reference shows how Parry fits behind edge protection. It does not change Parry into a volumetric DDoS protection product.
+The AWS reference shows how Parry fits behind edge protection. It does not change Parry into a volumetric DDoS protection product. With private ECS tasks, keep `enable_nat_gateway = false` for low-cost demos or set `enable_vpc_endpoints = true` when tasks need ECR, CloudWatch Logs, Secrets Manager, SSM, and S3 access without NAT.
+
+### Docker Demo
+
+Run the local Redis-backed demo API with:
+
+```bash
+docker compose up --build
+```
+
+Then test:
+
+```bash
+curl http://localhost:3000/health
+curl http://localhost:3000/_parry/health -H "x-parry-admin-token: change-me"
+curl -X POST http://localhost:3000/echo -H "Content-Type: application/json" -d '{"message":"hello"}'
+```
+
+Start with `docs/docker-demo.md` for the complete local flow and `parry-security-console` proxy setup. The `change-me` token is local demo data only.
 
 ### CI/CD
 
