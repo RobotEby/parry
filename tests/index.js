@@ -37,6 +37,9 @@ async function main() {
   console.log('\n▶ Integration — Observability and Admin API');
   const observabilityInteg = await require('./integration/observability.test');
 
+  console.log('\n▶ Integration — Docker Demo API');
+  const demoApi = await require('./integration/demo-api.test');
+
   console.log('\n▶ Package — Public Exports');
   const packageExports = await require('./package/exports.test');
 
@@ -56,6 +59,7 @@ async function main() {
     observability.passed +
     integ.passed +
     observabilityInteg.passed +
+    demoApi.passed +
     packageExports.passed +
     payloadRegression.passed;
   const totalFailed =
@@ -71,6 +75,7 @@ async function main() {
     observability.failed +
     integ.failed +
     observabilityInteg.failed +
+    demoApi.failed +
     packageExports.failed +
     payloadRegression.failed;
 
