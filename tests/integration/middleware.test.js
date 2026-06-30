@@ -125,6 +125,66 @@ async function runAll() {
   );
   assert('Clean request reaches next()', cleanNext);
 
+  console.log('\n── Middleware — Trusted Proxy IP Resolver ──────────────────');
+  let spoofEvent = null;
+  const mwNoTrustProxy = Parry_DDoS({
+    rateLimit: false,
+    logThreats: false,
+    onThreat: (event) => {
+      spoofEvent = event;
+    },
+  });
+  await run(
+    mwNoTrustProxy,
+    mockReq({
+      ip: '10.0.0.20',
+      socket: { remoteAddress: '10.0.0.10' },
+      headers: { 'x-forwarded-for': '198.51.100.10' },
+      body: { username: "' OR 1=1 --" },
+    })
+  );
+  assert('Ignores x-forwarded-for by default', spoofEvent?.ip === '10.0.0.10');
+
+  let trustedProxyEvent = null;
+  const mwTrustedProxy = Parry_DDoS({
+    rateLimit: false,
+    logThreats: false,
+    trustProxyHeaders: true,
+    trustedProxies: ['10.0.0.10'],
+    onThreat: (event) => {
+      trustedProxyEvent = event;
+    },
+  });
+  await run(
+    mwTrustedProxy,
+    mockReq({
+      socket: { remoteAddress: '10.0.0.10' },
+      headers: { 'x-forwarded-for': '198.51.100.11, 10.0.0.10' },
+      body: { username: "' OR 1=1 --" },
+    })
+  );
+  assert('Uses x-forwarded-for only from trusted proxy', trustedProxyEvent?.ip === '198.51.100.11');
+
+  let untrustedProxyEvent = null;
+  const mwUntrustedProxy = Parry_DDoS({
+    rateLimit: false,
+    logThreats: false,
+    trustProxyHeaders: true,
+    trustedProxies: ['10.0.0.99'],
+    onThreat: (event) => {
+      untrustedProxyEvent = event;
+    },
+  });
+  await run(
+    mwUntrustedProxy,
+    mockReq({
+      socket: { remoteAddress: '10.0.0.10' },
+      headers: { 'x-forwarded-for': '198.51.100.12' },
+      body: { username: "' OR 1=1 --" },
+    })
+  );
+  assert('Ignores x-forwarded-for from untrusted proxy', untrustedProxyEvent?.ip === '10.0.0.10');
+
   console.log('\n── Middleware — SQL Injection ───────────────────────────────');
   const mwSql = Parry_DDoS({ sql: true, rateLimit: false, logThreats: false });
   for (let i = 0; i < 3; i++) {
@@ -456,7 +516,8 @@ async function runAll() {
   );
   assert(
     'Threat event includes structured top-level fields',
-    structuredEvent?.detector === 'HTTP_PARAMETER_POLLUTION' &&
+    structuredEvent?.detector === 'hpp' &&
+      structuredEvent.detectorType === 'HTTP_PARAMETER_POLLUTION' &&
       structuredEvent.severity === 'medium' &&
       structuredEvent.reason &&
       structuredEvent.target === 'query.id' &&
