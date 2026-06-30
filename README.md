@@ -85,7 +85,7 @@ This package is application-layer Express security middleware. It is not a compl
 | **Brute Force Guard**    | Optional login/auth abuse protection with `res.on('finish')`, manual failure/success hooks, and Store-backed counters                                                                |
 | **Threat Events**        | Central structured events with id, severity, action, request id, detector/module, and sanitized metadata                                                                             |
 | **Metrics**              | Lightweight in-process counters for requests, blocked requests, rate limits, brute force blocks, and events by type/severity/detector/action                                         |
-| **Admin API**            | Optional read-only Express router for health, metrics, recent events, active MemoryStore bans, and configured policies                                                               |
+| **Admin API**            | Optional read-only Express router for health, metrics, recent events, active store bans/blocks, and configured policies                                                              |
 | **Intelligent Ban**      | Suspicious activity counter separate from request volume, backed by MemoryStore by default or RedisStore in distributed deployments                                                  |
 | **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
 | **`onThreat` Callback**  | Hook for integration with SIEM, Slack, PagerDuty, DataDog, etc.                                                                                                                      |
@@ -102,6 +102,8 @@ npm install @roboteby/parry express
 > **Parry has zero production dependencies.**
 > `express` is a `peerDependency` — if it's already in your project, nothing else to install.
 > For Redis-backed distributed rate limiting, install and configure a Redis client in your application, for example `npm install redis`.
+
+Compatibility note: the current package peer dependency targets Express 5. Express 4 compatibility should be validated with a dedicated test matrix before widening `peerDependencies`.
 
 ---
 
@@ -656,6 +658,31 @@ curl -X POST http://localhost:3000/echo -H "Content-Type: application/json" -d '
 
 Start with `docs/docker-demo.md` for the complete local flow and `parry-security-console` proxy setup. The `change-me` token is local demo data only.
 
+### Clean Repository Archives
+
+For release handoff or review archives, prefer Git-tracked content only:
+
+```bash
+git archive --format=tar.gz -o ../parry-express-security-middleware.clean.tar.gz HEAD
+```
+
+If you must archive the working directory manually, exclude local state, dependencies, secrets, generated files, and external references:
+
+```bash
+tar \
+  --exclude='.git' \
+  --exclude='node_modules' \
+  --exclude='external' \
+  --exclude='.codex' \
+  --exclude='.agents' \
+  --exclude='**/.terraform' \
+  --exclude='dist' \
+  --exclude='coverage' \
+  --exclude='.env' \
+  --exclude='.env.local' \
+  -czf parry-express-security-middleware.clean.tar.gz .
+```
+
 ### CI/CD
 
 This repository includes GitHub Actions for Node.js CI, fixture validation, payload regression, Docker demo image builds, optional Amazon ECR pushes through GitHub OIDC, and Terraform fmt/validate/plan.
@@ -785,9 +812,9 @@ parry-express-security-middleware/
 
 ## Tests
 
-Parry has two independent test suites: **1080 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
+Parry has two independent test suites: **1101 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
 
-### Local suite (1080 tests) — no network, no server
+### Local suite (1101 tests) — no network, no server
 
 ```bash
 npm test
