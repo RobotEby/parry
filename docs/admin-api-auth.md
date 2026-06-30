@@ -115,7 +115,7 @@ createParry({
 });
 ```
 
-If `verifyJwt: false`, use at least one trusted boundary: `trustedProxies`, a shared proxy secret, or private network controls that prevent direct public access. The current version does not perform cryptographic JWT/JWKS verification. Setting `verifyJwt: true` fails configuration intentionally instead of pretending to validate Cloudflare JWTs.
+If `verifyJwt: false`, use at least one trusted boundary: `trustedProxies`, a shared proxy secret, or private network controls that prevent direct public access. The current version does not perform cryptographic JWT/JWKS verification. Setting `verifyJwt: true` fails closed instead of pretending to validate Cloudflare JWTs.
 
 Never accept `cf-access-authenticated-user-email` from public clients directly. If `allowedEmails` or `allowedDomains` is set, Parry denies users outside those allowlists.
 
@@ -157,7 +157,7 @@ createParry({
 
 `x-amzn-oidc-identity` provides the subject. `x-amzn-oidc-data` may be decoded only as unverified claims to extract an email for allowlist checks. Parry does not log or return the raw OIDC data header. If an email/domain allowlist is configured and no email can be extracted, access is denied.
 
-The current version does not perform cryptographic ALB JWT/JWKS verification. Setting `verifyJwt: true` fails configuration intentionally. Use HTTPS ALB listeners, ALB auth actions, security groups, and private ECS networking so clients cannot bypass the ALB and send `x-amzn-oidc-*` headers directly.
+The current version does not perform cryptographic ALB JWT/JWKS verification. Setting `verifyJwt: true` fails closed. Use HTTPS ALB listeners, ALB auth actions, security groups, and private ECS networking so clients cannot bypass the ALB and send `x-amzn-oidc-*` headers directly.
 
 ## VPN / Network-Only Access
 
