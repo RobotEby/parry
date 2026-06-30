@@ -120,19 +120,22 @@ parry_admin_token_secret_arn = "arn:aws:secretsmanager:..."
 redis_auth_token_secret_arn  = "arn:aws:secretsmanager:..."
 ```
 
-Redis AUTH is disabled by default. If you set `redis_auth_token`, Terraform must
-send the value to ElastiCache and the value will be stored in Terraform state.
-Use a remote encrypted backend with locking before doing that.
+Redis AUTH is disabled by default for the small dev example because Redis is
+private. In production, use TLS/in-transit encryption, AUTH, and a remote
+encrypted Terraform backend with locking. If you set `redis_auth_token`,
+Terraform must send the value to ElastiCache and the value will be stored in
+Terraform state. Do not put real tokens in committed tfvars.
 
 ## Networking Notes
 
 ECS tasks and Redis are placed in private subnets. The ALB is placed in public
 subnets. Redis accepts traffic only from the ECS security group.
 
-The dev example defaults to `enable_nat_gateway = false`. With no NAT and no VPC
-endpoints, private tasks may not be able to pull images, read secrets, or publish
-logs. Enable NAT or add VPC endpoints before expecting a fully private runtime to
-start reliably.
+The dev example defaults to `enable_nat_gateway = false` and
+`enable_vpc_endpoints = false`. With no NAT and no VPC endpoints, private tasks
+may not be able to pull images, read secrets, or publish logs. For private ECS
+without NAT, set `enable_vpc_endpoints = true` to create endpoints for ECR,
+CloudWatch Logs, Secrets Manager, SSM, and S3.
 
 ## Cleanup
 
