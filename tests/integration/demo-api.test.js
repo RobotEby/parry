@@ -51,6 +51,60 @@ async function runAll() {
     await close(server);
   }
 
+  const { app: defaultTokenApp } = createDemoApp({
+    env: {
+      PARRY_RATE_LIMIT_ENABLED: 'false',
+      PARRY_LOG_THREATS: 'false',
+    },
+  });
+  const defaultTokenServer = await listen(defaultTokenApp);
+  try {
+    const defaultTokenAdmin = await request(defaultTokenServer, 'GET', '/_parry/health', null, {
+      'x-parry-admin-token': 'change-me',
+    });
+    assert('Demo Admin API defaults to change-me token locally', defaultTokenAdmin.status === 200);
+  } finally {
+    await close(defaultTokenServer);
+  }
+
+  const { app: allowlistApp } = createDemoApp({
+    env: {
+      PARRY_ADMIN_AUTH_MODE: 'ip-allowlist',
+      PARRY_ADMIN_ALLOWED_IPS: '127.0.0.1',
+      PARRY_RATE_LIMIT_ENABLED: 'false',
+      PARRY_LOG_THREATS: 'false',
+    },
+  });
+  const allowlistServer = await listen(allowlistApp);
+  try {
+    const allowlistAdmin = await request(allowlistServer, 'GET', '/_parry/health');
+    assert('Demo Admin API supports ip-allowlist mode', allowlistAdmin.status === 200);
+  } finally {
+    await close(allowlistServer);
+  }
+
+  const { app: trustedProxyApp } = createDemoApp({
+    env: {
+      PARRY_ADMIN_AUTH_MODE: 'trusted-proxy',
+      PARRY_ADMIN_TRUSTED_PROXIES: '127.0.0.1',
+      PARRY_ADMIN_REQUIRED_HEADER: 'x-parry-admin-authenticated:true',
+      PARRY_RATE_LIMIT_ENABLED: 'false',
+      PARRY_LOG_THREATS: 'false',
+    },
+  });
+  const trustedProxyServer = await listen(trustedProxyApp);
+  try {
+    const missingProxyHeader = await request(trustedProxyServer, 'GET', '/_parry/health');
+    assert('Demo trusted-proxy mode requires configured header', missingProxyHeader.status === 401);
+
+    const trustedProxyAdmin = await request(trustedProxyServer, 'GET', '/_parry/health', null, {
+      'x-parry-admin-authenticated': 'true',
+    });
+    assert('Demo Admin API supports trusted-proxy mode', trustedProxyAdmin.status === 200);
+  } finally {
+    await close(trustedProxyServer);
+  }
+
   return { passed, failed };
 }
 
