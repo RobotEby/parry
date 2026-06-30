@@ -27,4 +27,9 @@ function createBlockedResult(context) {
   return { allowed: false, blocked: true, ...context };
 }
 
-module.exports = { createBlockedResponse, createAllowedResult, createBlockedResult, retryAfterSeconds };
+module.exports = {
+  createBlockedResponse,
+  createAllowedResult,
+  createBlockedResult,
+  retryAfterSeconds,
+};
