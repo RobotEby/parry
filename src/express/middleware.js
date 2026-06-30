@@ -87,7 +87,7 @@ function createParry(options = {}) {
 async function handleRequest(req, res, next, context) {
   const { config, rateLimiter, logger, store, eventBus, metrics } = context;
   metrics.recordRequest('started');
-  const ip = resolveClientIP(req);
+  const ip = resolveClientIP(req, config);
   const timestamp = new Date().toISOString();
   const url = req.originalUrl || req.url;
   const requestId = resolveRequestId(req, res, config.requestId);
@@ -132,7 +132,16 @@ async function handleRequest(req, res, next, context) {
     return res.status(response.statusCode).json(response.body);
   }
 
-  const routeRateLimit = await checkRouteRateLimit({ policy, requestData, store, config, logger, eventBus, req, res });
+  const routeRateLimit = await checkRouteRateLimit({
+    policy,
+    requestData,
+    store,
+    config,
+    logger,
+    eventBus,
+    req,
+    res,
+  });
   if (routeRateLimit?.blocked) {
     if (routeRateLimit.storeFailure) {
       return respond(res, routeRateLimit.statusCode, 'Rate limit store unavailable.');
@@ -145,7 +154,8 @@ async function handleRequest(req, res, next, context) {
 
   observeAuthenticationResult(bruteForceContext);
 
-  const engineConfig = policy && policy.inheritGlobalRateLimit === false ? { ...config, rateLimit: false } : config;
+  const engineConfig =
+    policy && policy.inheritGlobalRateLimit === false ? { ...config, rateLimit: false } : config;
   const decision = await analyzeRequest(requestData, { config: engineConfig, rateLimiter, logger });
 
   if (engineConfig.rateLimit && engineConfig.rateLimitConfig.headers && decision.rateLimit) {
@@ -157,7 +167,8 @@ async function handleRequest(req, res, next, context) {
     return next();
   }
 
-  if (decision.event) eventBus.emitThreat({ ...decision.event, statusCode: decision.statusCode }, { req, res });
+  if (decision.event)
+    eventBus.emitThreat({ ...decision.event, statusCode: decision.statusCode }, { req, res });
   metrics.recordRequest('blocked');
 
   return respond(res, decision.statusCode, decision.message, decision.responseExtra);
@@ -184,7 +195,8 @@ function mergeConfig(options) {
   config.rateLimit = config.rateLimitConfig.enabled;
   config.maxRequests = config.rateLimitConfig.maxRequests;
   config.windowMs = config.rateLimitConfig.windowMs;
-  config.storeFailureMode = options.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
+  config.storeFailureMode =
+    options.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
   config.policies = buildPolicies(options);
   config.bruteForce =
     options.bruteForce === false
