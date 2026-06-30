@@ -34,7 +34,12 @@ function scanTarget(target) {
 }
 
 function isRequestValueTarget(label) {
-  return label === 'body' || label.startsWith('body.') || label.startsWith('query.') || label.startsWith('params.');
+  return (
+    label === 'body' ||
+    label.startsWith('body.') ||
+    label.startsWith('query.') ||
+    label.startsWith('params.')
+  );
 }
 
 function collectStrings(value, label, seen = new WeakSet()) {
