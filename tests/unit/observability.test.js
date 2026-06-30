@@ -79,6 +79,8 @@ async function runAll() {
   assert('ThreatEvent creates id', typeof event.id === 'string' && event.id.startsWith('evt_'));
   assert('ThreatEvent creates timestamp', !Number.isNaN(Date.parse(event.timestamp)));
   assert('ThreatEvent applies canonical type', event.type === 'SQL_INJECTION_BLOCKED');
+  assert('ThreatEvent exposes detector slug', event.detector === 'sql');
+  assert('ThreatEvent preserves detectorType', event.detectorType === 'SQL_INJECTION');
   assert('ThreatEvent applies severity default', event.severity === 'high');
   assert('ThreatEvent applies action default', event.action === 'blocked');
   assert('ThreatEvent derives path from url', event.path === '/login');
@@ -151,7 +153,7 @@ async function runAll() {
   metrics.recordEvent({
     type: 'SQL_INJECTION_BLOCKED',
     severity: 'high',
-    detector: 'SQL_INJECTION',
+    detector: 'sql',
     action: 'blocked',
   });
   metrics.recordEvent({
@@ -172,7 +174,7 @@ async function runAll() {
   assert('Metrics increments allowedRequests', snapshot.allowedRequests === 1);
   assert('Metrics records events by type', snapshot.eventsByType.SQL_INJECTION_BLOCKED === 1);
   assert('Metrics records events by severity', snapshot.eventsBySeverity.high === 2);
-  assert('Metrics records events by detector', snapshot.eventsByDetector.SQL_INJECTION === 1);
+  assert('Metrics records events by detector slug', snapshot.eventsByDetector.sql === 1);
   assert('Metrics records events by action', snapshot.eventsByAction.blocked === 3);
   assert('Metrics tracks rate limited requests', snapshot.rateLimitedRequests === 1);
   assert('Metrics tracks brute force blocks', snapshot.bruteForceBlocks === 1);
