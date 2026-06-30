@@ -32,6 +32,8 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /metrics:
     get:
       tags:
@@ -46,6 +48,8 @@ paths:
                 $ref: '#/components/schemas/MetricsResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /events:
     get:
       tags:
@@ -98,6 +102,8 @@ paths:
                 $ref: '#/components/schemas/EventsListResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /events/{id}:
     get:
       tags:
@@ -119,6 +125,8 @@ paths:
                 $ref: '#/components/schemas/ThreatEvent'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
   /bans:
@@ -138,6 +146,8 @@ paths:
                 $ref: '#/components/schemas/BansListResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /policies:
     get:
       tags:
@@ -155,6 +165,8 @@ paths:
                 $ref: '#/components/schemas/PoliciesListResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     ParryAdminToken:
@@ -181,15 +193,29 @@ components:
       description: Number of matching items to skip.
   responses:
     Unauthorized:
-      description: Admin authentication failed
+      description: Admin authentication is required and credentials are missing
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: Unauthorized
+            error:
+              code: ADMIN_UNAUTHORIZED
+              message: Admin API authentication required
             code: ADMIN_UNAUTHORIZED
-            message: Unauthorized
+            message: Admin API authentication required
+    Forbidden:
+      description: Admin authentication credentials are invalid or not authorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: ADMIN_FORBIDDEN
+              message: Admin API access denied
+            code: ADMIN_FORBIDDEN
+            message: Admin API access denied
     NotFound:
       description: Resource was not found
       content:
@@ -414,14 +440,21 @@ components:
       required: [error, code]
       properties:
         error:
-          type: string
-          example: Unauthorized
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: ADMIN_UNAUTHORIZED
+            message:
+              type: string
+              example: Admin API authentication required
         code:
           type: string
           example: ADMIN_UNAUTHORIZED
         message:
           type: string
-          example: Unauthorized
+          example: Admin API authentication required
     Pagination:
       type: object
       required: [limit, offset, total]
