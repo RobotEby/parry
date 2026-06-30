@@ -15,6 +15,7 @@ module "parry" {
   cpu                          = var.cpu
   memory                       = var.memory
   enable_nat_gateway           = var.enable_nat_gateway
+  enable_vpc_endpoints         = var.enable_vpc_endpoints
   enable_cloudfront            = var.enable_cloudfront
   enable_https                 = var.enable_https
   acm_certificate_arn          = var.acm_certificate_arn
