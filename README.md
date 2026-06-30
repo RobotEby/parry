@@ -1,483 +1,292 @@
-# Parry_DDoS
+<p align="center">
+  <img
+    src="./assets/924f0e98-4990-4f1f-8d82-97919378d1f4.png"
+    alt="Parry"
+    width="100%"
+  />
+</p>
 
-![alt text](assets/image.png)
+# Parry
 
-**Real-time security middleware for Node.js.**  
-Detects and blocks SQL Injection, XSS, and NoSQL Injection before they reach the database, with intelligent Rate Limiting and automatic suspicious IP banning.
+Application-layer security middleware for Express.js.
 
-```
-63/63 real HTTP tests passed  ·  66/66 unit tests passed  ·  zero production dependencies
-```
+## Overview
 
----
+Parry is a CommonJS security middleware for Express applications. It helps block common application-layer abuse before requests reach route handlers, while keeping the public API small and compatible with standard Express middleware usage.
 
-## Table of Contents
+Parry detects and blocks patterns associated with SQL injection, XSS, NoSQL injection, HTTP parameter pollution, prototype pollution, path traversal, rate abuse, and brute-force authentication attempts. It also emits structured Threat Events and metrics that can be inspected through an optional read-only Admin API.
 
-- [Why Parry_DDoS?](#why-parry_ddos)
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Full Configuration](#full-configuration)
-- [How It Works](#how-it-works)
-  - [Detection Pipeline](#detection-pipeline)
-  - [Intelligent Rate Limiting](#intelligent-rate-limiting)
-  - [Inspected Surfaces](#inspected-surfaces)
-- [Project Structure](#project-structure)
-- [Tests](#tests)
-- [Response Headers](#response-headers)
-- [SIEM and Alert Integration](#siem-and-alert-integration)
-- [TypeScript](#typescript)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+Parry is not a complete volumetric DDoS protection product. Network floods, L3/L4 abuse, TLS exhaustion, CDN filtering, and edge rate controls should be handled by CloudFront, AWS WAF, Shield, a CDN, an ALB/load balancer, or equivalent infrastructure controls.
 
----
+## Why Parry
 
-## Why Parry_DDoS?
+Parry centralizes application-layer security policy in one Express middleware. That gives backend teams a consistent place to tune detector behavior, route-based limits, brute-force protection, event logging, and distributed rate limiting.
 
-Most Node.js applications rely on validation at the route or ORM layer — which means malicious payloads reach application logic before hitting any barrier. Parry_DDoS acts **before** any route, like a gatekeeper at the request entry point.
+It is designed for development and production-like deployments:
 
-- No malicious payload ever reaches the database.
-- No extra production dependencies — pure Node.js native.
-- Every threat is logged with IP, method, route, and affected field.
-- IPs that repeatedly attempt attacks are automatically banned.
-
----
+- use `MemoryStore` for local development and single-process services;
+- use `RedisStore` for multiple instances, containers, ECS, Kubernetes, PM2 cluster, or load-balanced services;
+- expose the Admin API only behind authentication, private networking, VPN, or a trusted reverse proxy.
 
 ## Features
 
-| Feature                  | Detail                                                                                                                                                                               |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **SQL Injection**        | 13 patterns — UNION, OR/AND bypass, comments, SLEEP/BENCHMARK, DROP/ALTER, xp_cmdshell, information_schema, hex encoding, LOAD FILE                                                  |
-| **XSS**                  | 15 patterns — `<script>`, inline event handlers, `javascript:`, `vbscript:`, `data:` URI, SVG injection, template injection (Angular/Vue/Handlebars), null-byte, `autofocus+onfocus` |
-| **NoSQL Injection**      | Dangerous MongoDB operators (`$where`, `$expr`, `$function`) and suspicious ones (`$gt`, `$ne`, `$or`, `$regex` etc.) in objects and JSON strings                                    |
-| **Rate Limiting**        | Sliding window per IP with `X-RateLimit-*` headers                                                                                                                                   |
-| **Intelligent Ban**      | Suspicious activity counter separate from volume — attacking IPs are banned before hitting the request limit                                                                         |
-| **Multi-layer Decoding** | URL decode (up to 3 passes), HTML entities, Unicode zero-width strip, before any scan                                                                                                |
-| **`onThreat` Callback**  | Hook for integration with SIEM, Slack, PagerDuty, DataDog, etc.                                                                                                                      |
-| **TypeScript**           | Full typings included in `types/index.d.ts`                                                                                                                                          |
-
----
+- SQL injection detection
+- XSS detection
+- NoSQL injection detection
+- HTTP parameter pollution checks
+- Prototype pollution checks
+- Path traversal checks
+- Request shape guard
+- Global and route-based rate limiting
+- BruteForceGuard for authentication routes
+- `MemoryStore` and optional `RedisStore`
+- Structured Threat Events
+- Metrics and observability helpers
+- Optional read-only Admin API
+- Route-based policies and presets
+- Docker demo API
+- AWS reference infrastructure
 
 ## Installation
 
 ```bash
-npm install express   # only peer dependency
+npm install @roboteby/parry
 ```
 
-> **Parry_DDoS has zero production dependencies.**  
-> `express` is a `peerDependency` — if it's already in your project, nothing else to install.
-
----
+Parry expects Express to be installed by your application.
 
 ## Quick Start
 
 ```js
 const express = require('express');
-const { Parry_DDoS } = require('./src/middleware');
+const { createParry } = require('@roboteby/parry');
 
 const app = express();
+
+const parry = createParry({
+  preset: 'recommended',
+});
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(parry.middleware());
 
-// Apply before any route
-app.use(Parry_DDoS());
-
-app.post('/login', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
 app.listen(3000);
 ```
 
-With default settings, the middleware is fully operational. All detectors and rate limiting are enabled out of the box.
+Parse JSON and URL-encoded bodies before Parry when you want Parry to inspect request bodies. Keep Parry before routes that should be protected.
 
----
-
-## Full Configuration
+The legacy `Parry_DDoS(options)` export remains available for existing CommonJS integrations:
 
 ```js
-app.use(
-  Parry_DDoS({
-    // ── Detectors ───────────────────────────────────────────────
-    sql: true, // Enable SQL Injection detection
-    xss: true, // Enable XSS detection
-    nosql: true, // Enable NoSQL Injection detection
+const { Parry_DDoS } = require('@roboteby/parry');
 
-    // ── Rate Limiting ───────────────────────────────────────────
-    rateLimit: true,
-    maxRequests: 100, // Max requests per window per IP
-    windowMs: 60_000, // Window duration in ms (default: 1 min)
+app.use(express.json());
+app.use(Parry_DDoS({ preset: 'recommended' }));
+```
 
-    // ── Intelligent Ban ─────────────────────────────────────────
-    suspiciousThreshold: 5, // Detected attacks before ban
-    banDurationMs: 300_000, // Ban duration in ms (default: 5 min)
+## Presets
 
-    // ── Logging ─────────────────────────────────────────────────
-    logThreats: true, // Display colored logs in the console
+Parry supports conservative presets for common application-layer protection:
 
-    // ── Integration Hook ────────────────────────────────────────
-    onThreat(entry, req, res) {
-      // entry.type      → 'THREAT' | 'BAN' | 'RATE_LIMIT'
-      // entry.ip        → client IP
-      // entry.threats[] → [{ detector, field, pattern }]
-      // entry.method    → 'POST', 'GET', etc.
-      // entry.url       → affected route
+- `off`: no route-policy preset is added.
+- `recommended`: enables practical defaults for common auth routes and low-noise application-layer checks.
+- `strict`: uses more restrictive brute-force and route rate-limit defaults for sensitive environments.
+
+Every option can still be configured explicitly. Prefer starting with `recommended`, reviewing logs and events, then tightening route policies where needed.
+
+## Stores
+
+`MemoryStore` is the default store. It is suitable for tests, demos, local development, and single-process deployments.
+
+For distributed deployments, use `RedisStore` with a Redis client created by your application:
+
+```js
+const { createClient } = require('redis');
+const { createParry, RedisStore } = require('@roboteby/parry');
+
+const redis = createClient({ url: process.env.REDIS_URL });
+await redis.connect();
+
+const parry = createParry({
+  store: new RedisStore({ client: redis, prefix: 'parry' }),
+  rateLimit: {
+    enabled: true,
+    max: 100,
+    windowMs: 60_000,
+    headers: true,
+  },
+});
+```
+
+If your service runs behind multiple instances, containers, or load balancers, use a shared store. `MemoryStore` protects only the current Node.js process.
+
+## Brute-Force Protection
+
+Route policies can protect sensitive authentication endpoints without making the global rate limit too aggressive:
+
+```js
+const parry = createParry({
+  policies: [
+    {
+      name: 'auth-login',
+      match: { method: 'POST', path: '/login' },
+      rateLimit: {
+        enabled: true,
+        max: 20,
+        windowMs: 60_000,
+        key: 'ip',
+      },
+      bruteForce: {
+        enabled: true,
+        maxAttempts: 5,
+        windowMs: 15 * 60_000,
+        blockDurationMs: 10 * 60_000,
+        keys: ['ip', 'body.email', 'ip+body.email'],
+        failureStatusCodes: [400, 401, 403],
+        resetOnSuccess: true,
+      },
     },
-  })
-);
+  ],
+});
 ```
 
-### Default Values
-
-| Option                | Default          |
-| --------------------- | ---------------- |
-| `sql`                 | `true`           |
-| `xss`                 | `true`           |
-| `nosql`               | `true`           |
-| `rateLimit`           | `true`           |
-| `maxRequests`         | `100`            |
-| `windowMs`            | `60000` (1 min)  |
-| `suspiciousThreshold` | `5`              |
-| `banDurationMs`       | `300000` (5 min) |
-| `logThreats`          | `true`           |
-| `maxObjectDepth`      | `5`              |
-
----
-
-## How It Works
-
-### Detection Pipeline
-
-Every request goes through the following pipeline before reaching any route:
-
-```
-Request
-    │
-    ├─► [1] Rate Limit check  ──────── 429 if exceeded or banned
-    │
-    ├─► [2] Target collection
-    │       ├── query params
-    │       ├── body (recursive flatten up to maxObjectDepth)
-    │       ├── route params
-    │       └── sensitive headers (user-agent, referer, cookie, x-forwarded-for)
-    │
-    ├─► [3] Multi-layer decoding per value
-    │       ├── URL decode (up to 3 passes — anti double-encoding)
-    │       ├── HTML entities (&lt; &amp; &#x27; etc.)
-    │       └── Unicode zero-width strip
-    │
-    ├─► [4] Parallel scan per detector
-    │       ├── SQLInjectionDetector.scan(value)
-    │       ├── XSSDetector.scan(value)
-    │       └── NoSQLDetector.scan(rawValue)  ← receives object or string
-    │
-    ├─► [5] Threat detected?
-    │       ├── YES → recordSuspicious(ip) · log · onThreat() · 400
-    │       └── NO  → next()
-    │
-    └─► Application route
-```
-
-### Intelligent Rate Limiting
-
-Parry_DDoS maintains **two independent counters** per IP:
-
-```
-IP: 203.0.113.42
-├── timestamps[]   → sliding window of normal requests
-│                    (blocked when > maxRequests)
-└── suspicious     → incremented on every detected attack
-                     (banned when >= suspiciousThreshold)
-```
-
-This means a high-volume legitimate IP is **not** banned, while an IP making only 3 requests — all malicious — is banned immediately upon reaching the threshold.
-
-The `RateLimiter` runs automatic cleanup every 10 minutes to prevent unbounded memory growth.
-
-### Inspected Surfaces
-
-```
-POST /api/users?search=<payload>
-│
-├── query.search           ← query string
-├── body                   ← root object (NoSQL top-level operators)
-├── body.username          ← direct fields
-├── body.address.street    ← nested fields (up to maxObjectDepth)
-├── params.id              ← route params
-├── header.user-agent      ← sensitive headers
-├── header.referer
-├── header.cookie
-└── header.x-forwarded-for
-```
-
----
-
-## Project Structure
-
-```
-Parry_DDoS/
-│
-├── src/
-│   ├── middleware/
-│   │   ├── parry_ddos.js     ← Main orchestrator
-│   │   └── index.js          ← Barrel export
-│   │
-│   ├── detectors/
-│   │   ├── sql.js            ← SQL Injection detector
-│   │   ├── xss.js            ← XSS detector
-│   │   ├── nosql.js          ← NoSQL Injection detector
-│   │   └── index.js          ← Barrel export
-│   │
-│   └── core/
-│       ├── rateLimiter.js    ← Sliding-window rate limiter + ban
-│       ├── logger.js         ← Colored logger with timestamps
-│       └── index.js          ← Barrel export
-│
-├── config/
-│   └── defaults.js           ← Centralized default values
-│
-├── constants/
-│   └── patterns.js           ← All regex patterns in one place
-│
-├── types/
-│   └── index.d.ts            ← Public TypeScript typings
-│
-├── tests/
-│   ├── unit/
-│   │   ├── detectors.test.js    ← Isolated tests per detector
-│   │   └── rateLimiter.test.js  ← RateLimiter tests
-│   ├── integration/
-│   │   └── middleware.test.js   ← Middleware end-to-end with req/res mock
-│   ├── fixtures/
-│   │   └── payloads.js          ← Reusable attack payloads across suites
-│   └── index.js                 ← Aggregated test runner
-│
-├── scripts/
-│   ├── test-server.js        ← Express server for real HTTP tests
-│   └── run-tests.js          ← 63 HTTP test suite against the server
-│
-├── examples/
-│   └── express-basic.js      ← Full integration example
-│
-├── docs/
-│   └── architecture.md       ← Documented design decisions
-│
-└── package.json
-```
-
----
-
-## Tests
-
-Parry_DDoS has two independent test suites totalling **129 tests**.
-
-### Unit suite (66 tests) — no network, no server
-
-```bash
-npm test
-```
-
-Covers isolated detectors (SQL, XSS, NoSQL), the `RateLimiter`, and the middleware with `req`/`res` mocks. Runs in any environment, including CI.
-
-```
-▶ Unit — Detectors          32 tests
-▶ Unit — RateLimiter         9 tests
-▶ Integration — Middleware  25 tests
-─────────────────────────────────────
-Total                       66 tests  |  0 failures
-```
-
-### Real HTTP suite (63 tests) — fires real requests against Express
-
-```bash
-# Terminal 1 — start the test server
-npm run start:test
-
-# Terminal 2 — run the HTTP tests
-npm run test:http
-```
-
-Covers clean requests, all attack vectors in body/query/params/headers, `X-RateLimit-*` headers, window exhaustion, intelligent ban, and simultaneous multiple threats.
-
-```
-  Sanity checks                  2 tests
-  Clean requests                 6 tests
-  SQL Injection                 16 tests
-  XSS                           12 tests
-  NoSQL Injection               12 tests
-  X-RateLimit Headers            5 tests
-  Volume Rate Limiting           3 tests
-  Intelligent Ban                3 tests
-  Multiple Threats               4 tests
-─────────────────────────────────────────
-Total                           63 tests  |  0 failures
-```
-
----
-
-## Response Headers
-
-Parry_DDoS injects the following headers into **every** response:
-
-| Header                  | Description                              |
-| ----------------------- | ---------------------------------------- |
-| `X-RateLimit-Limit`     | Configured maximum requests              |
-| `X-RateLimit-Remaining` | Requests remaining in the current window |
-| `X-RateLimit-Reset`     | Window reset timestamp (ms)              |
-
-When a request is blocked, the response follows this format:
-
-```json
-// 400 — threat detected
-{
-  "error": true,
-  "message": "Request blocked: malicious pattern detected.",
-  "threats": [
-    { "detector": "SQL_INJECTION", "field": "body.username" },
-    { "detector": "XSS",           "field": "body.comment"  }
-  ]
-}
-
-// 429 — rate limit or ban
-{
-  "error": true,
-  "message": "Too many suspicious requests. IP temporarily banned.",
-  "banExpiresAt": 1712700000000
-}
-```
-
----
-
-## SIEM and Alert Integration
-
-Use the `onThreat` callback to forward events to any external system:
+Routes can also report authentication outcomes manually:
 
 ```js
-// Slack
-Parry_DDoS({
-  onThreat(entry) {
-    fetch('https://hooks.slack.com/services/...', {
-      method: 'POST',
-      body: JSON.stringify({
-        text: `🚨 *${entry.threats[0].detector}* detected\nIP: ${entry.ip}\nRoute: ${entry.method} ${entry.url}`,
-      }),
-    });
-  },
-});
+app.post('/login', async (req, res) => {
+  const user = await authService.validate(req.body.email, req.body.password);
 
-// DataDog
-Parry_DDoS({
-  onThreat(entry) {
-    dogstatsd.increment('parry_ddos.threat', 1, [`detector:${entry.threats[0].detector}`]);
-  },
-});
+  if (!user) {
+    req.parry?.recordAuthFailure('invalid_credentials');
+    return res.status(200).json({ success: false });
+  }
 
-// Structured log file (NDJSON)
-const fs = require('fs');
-Parry_DDoS({
-  logThreats: false, // disable console output, use callback only
-  onThreat(entry) {
-    fs.appendFileSync('threats.ndjson', JSON.stringify(entry) + '\n');
-  },
+  req.parry?.recordAuthSuccess();
+  return res.json({ success: true });
 });
 ```
 
----
+## Threat Events and Admin API
 
-## TypeScript
+Parry emits structured Threat Events for blocked requests, rate limits, brute-force blocks, store errors, and hook errors. Events are sanitized before reaching logs, hooks, metrics, or the Admin API.
 
-Parry_DDoS includes full typings with no `@types/*` required:
+The optional Admin API is read-only and is never mounted automatically:
 
-```ts
-import { Parry_DDoS, Parry_DDoSOptions, ThreatLogEntry } from './src/middleware';
+```js
+const { createParry, createParryAdminRouter } = require('@roboteby/parry');
 
-const options: Parry_DDoSOptions = {
-  suspiciousThreshold: 3,
-  onThreat: (entry: ThreatLogEntry) => {
-    console.log(entry.threats);
+const parry = createParry({
+  admin: {
+    enabled: true,
+    auth: {
+      mode: 'token',
+      token: process.env.PARRY_ADMIN_TOKEN,
+    },
   },
-};
+});
 
-app.use(Parry_DDoS(options));
+app.use(parry.middleware());
+app.use('/_parry', createParryAdminRouter(parry));
 ```
 
-Exported types: `Parry_DDoSOptions`, `ThreatLogEntry`, `ThreatMatch`, `RateLimitResult`, `IPSnapshot`, `DetectorType`, `LogEntryType`, `RateLimiter`, `SQLInjectionDetector`, `XSSDetector`, `NoSQLDetector`.
+Main endpoints:
 
----
+- `GET /_parry/health`
+- `GET /_parry/metrics`
+- `GET /_parry/events`
+- `GET /_parry/events/:id`
+- `GET /_parry/bans`
+- `GET /_parry/policies`
+
+Protect the Admin API with token auth for local demos, or with VPN, private networking, Cloudflare Access, AWS ALB/Cognito auth, trusted proxy auth, or IP allowlists in production.
+
+## Parry Security Console
+
+The separate `parry-security-console` repository provides a read-only dashboard for the Parry Admin API. It displays health, metrics, Threat Events, bans/blocks, and route policies. It does not contain middleware logic, does not execute payloads, and is not a scanner.
+
+For local development, the console can use Vite proxying with `VITE_PARRY_API_URL=/api/parry`.
+
+## Docker Demo
+
+The repository includes a demo Express API with Redis:
+
+```bash
+docker compose up --build
+```
+
+Useful local checks:
+
+```bash
+curl http://localhost:3000/health
+
+curl http://localhost:3000/_parry/health \
+  -H "x-parry-admin-token: change-me"
+
+curl -X POST http://localhost:3000/echo \
+  -H "Content-Type: application/json" \
+  -d '{"message":"hello"}'
+```
+
+The `change-me` token is for local demos only.
+
+## Security Model
+
+Parry operates inside the Express application. It helps identify and block suspicious application-layer requests, but it does not replace edge and infrastructure controls.
+
+Production deployments should account for:
+
+- CloudFront, AWS WAF, Shield, CDN, ALB, or equivalent edge protection for volumetric DDoS and network-layer abuse.
+- RedisStore or another shared store for distributed rate limits and brute-force counters.
+- Admin API authentication and network restrictions.
+- Trusted proxy configuration before accepting `x-forwarded-for`, Cloudflare Access, ALB/Cognito, or reverse-proxy identity headers.
+- Generic authentication responses that do not reveal whether a username or email exists.
+
+Browser-visible Admin API tokens are appropriate only for local development and demos. Production consoles should be protected by VPN, private networking, Cloudflare Access, ALB/Cognito, reverse proxy auth, or a backend/admin gateway.
+
+## Documentation
+
+Additional documentation is available in the repository:
+
+- [Admin API](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/admin-api.md)
+- [Admin API authentication](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/admin-api-auth.md)
+- [AWS Admin API authentication](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/aws-admin-auth.md)
+- [Docker demo](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/docker-demo.md)
+- [AWS infrastructure notes](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/aws-infra.md)
+- [CI/CD](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/ci-cd.md)
+- [Release process](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/release.md)
+- [Payload regression testing](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/testing-payloads.md)
+- [Architecture](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/architecture.md)
+
+The npm package keeps `docs/`, infrastructure, Docker demo files, and tests out of the published runtime package.
+
+## Development
+
+```bash
+npm ci
+npm test
+npm run test:fixtures
+npm run test:payload-regression
+npm run package:check
+npm pack --dry-run
+```
+
+`npm test` uses local mocks and fake stores. It does not require Redis, AWS, Cloudflare, or external services.
 
 ## Roadmap
 
-Parry_DDoS is under active development. Upcoming versions will bring robust additions that expand protection beyond the middleware layer:
+Planned areas for future work:
 
-### `v1.1` — Production Hardening
-
-- [ ] CIDR verification for trusted proxies before accepting `X-Forwarded-For`
-- [ ] Protection against Header Injection and HTTP Response Splitting
-- [ ] Path Traversal detection (`../`, `%2e%2e%2f`) in params and query
-- [ ] IP and route allowlist support for excluding specific paths from inspection
-
-### `v1.2` — Distributed Persistence
-
-- [ ] Redis adapter for `RateLimiter` — multi-instance and Kubernetes cluster support without state loss
-- [ ] `StorageAdapter` interface to plug in any backend (Memcached, DynamoDB, etc.)
-- [ ] Real-time ban synchronization across instances via Pub/Sub
-
-### `v1.3` — DDoS Defense
-
-- [ ] Token Bucket with per-route burst control
-- [ ] Simultaneous connection flood detection per IP
-- [ ] Request fingerprinting to identify bots even with rotating IPs
-- [ ] Slowloris detection — blocking connections that deliberately delay data transmission
-- [ ] Challenge-response (headless CAPTCHA) for IPs in the grey zone
-
-### `v1.4` — Self-hosting on Any Infrastructure
-
-- [ ] Official Docker image with built-in configuration server
-- [ ] Helm chart for Kubernetes deployment as a sidecar or centralized gateway
-- [ ] Standalone mode: Parry_DDoS as an independent reverse proxy, requiring no code-level integration in the application
-- [ ] Web monitoring dashboard with real-time threat map, ban history, and per-detector metrics
-- [ ] Metrics export in Prometheus/OpenTelemetry format
-
-### `v2.0` — Adaptive Intelligence
-
-- [ ] Session-level behavioral analysis — detects attack patterns distributed over time (slow attacks)
-- [ ] IP reputation model with automatic decay
-- [ ] Integration with external threat intelligence feeds (AbuseIPDB, Spamhaus)
-- [ ] Learning mode: collects legitimate traffic to automatically calibrate thresholds
-
----
-
-## Contributing
-
-Contributions are welcome. To get started:
-
-```bash
-git clone <repo>
-cd Parry_DDoS
-npm install express
-
-# Run the tests before any changes
-npm test
-
-# For new detectors: add patterns to constants/patterns.js
-# For new tests: add fixtures to tests/fixtures/payloads.js
-```
-
-When opening a PR, please include:
-
-- Unit tests for the altered detector or module
-- Updates to `types/index.d.ts` if the public API changes
-- A `CHANGELOG.md` entry (if present)
-
----
+- Redis-backed event persistence
+- OpenTelemetry and Prometheus export
+- Express 4 compatibility matrix
+- Optional hashing/redaction for store keys
+- Additional detector tuning with benign counterexamples
+- Admin API hardening and deployment guides
 
 ## License
 
-MIT — see `LICENSE` for details.
-
----
-
-<div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 129 real cases</sub>
-</div>
+MIT

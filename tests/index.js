@@ -2,20 +2,87 @@
 
 async function main() {
   console.log('═'.repeat(55));
-  console.log('  Parry_DDoS — Test Suite');
+  console.log('  Parry — Test Suite');
   console.log('═'.repeat(55));
 
   console.log('\n▶ Unit — Detectors');
-  const det = require('./unit/detectors.test');
+  const det = await require('./unit/detectors.test');
 
   console.log('\n▶ Unit — RateLimiter');
-  const rl = require('./unit/rateLimiter.test');
+  const rl = await require('./unit/rateLimiter.test');
+
+  console.log('\n▶ Unit — Stores');
+  const memoryStore = await require('./unit/memoryStore.test');
+  const redisStore = await require('./unit/redisStore.test');
+
+  console.log('\n▶ Unit — Policies');
+  const policies = await require('./unit/policyMatcher.test');
+
+  console.log('\n▶ Unit — Brute Force');
+  const keyBuilder = await require('./unit/keyBuilder.test');
+  const bruteForce = await require('./unit/bruteForceGuard.test');
+
+  console.log('\n▶ Unit — Core Engine');
+  const engine = await require('./unit/engine.test');
+
+  console.log('\n▶ Unit — Application-Layer Guards');
+  const appGuards = await require('./unit/applicationGuards.test');
+
+  console.log('\n▶ Unit — Observability');
+  const observability = await require('./unit/observability.test');
+
+  console.log('\n▶ Unit — Admin Auth');
+  const adminAuth = await require('./unit/adminAuth.test');
 
   console.log('\n▶ Integration — Middleware end-to-end');
   const integ = await require('./integration/middleware.test');
 
-  const totalPassed = det.passed + rl.passed + integ.passed;
-  const totalFailed = det.failed + rl.failed + integ.failed;
+  console.log('\n▶ Integration — Observability and Admin API');
+  const observabilityInteg = await require('./integration/observability.test');
+
+  console.log('\n▶ Integration — Docker Demo API');
+  const demoApi = await require('./integration/demo-api.test');
+
+  console.log('\n▶ Package — Public Exports');
+  const packageExports = await require('./package/exports.test');
+
+  console.log('\n▶ Regression — Defensive Payload Suite');
+  const payloadRegression = await require('./regression');
+
+  const totalPassed =
+    det.passed +
+    rl.passed +
+    memoryStore.passed +
+    redisStore.passed +
+    policies.passed +
+    keyBuilder.passed +
+    bruteForce.passed +
+    engine.passed +
+    appGuards.passed +
+    observability.passed +
+    adminAuth.passed +
+    integ.passed +
+    observabilityInteg.passed +
+    demoApi.passed +
+    packageExports.passed +
+    payloadRegression.passed;
+  const totalFailed =
+    det.failed +
+    rl.failed +
+    memoryStore.failed +
+    redisStore.failed +
+    policies.failed +
+    keyBuilder.failed +
+    bruteForce.failed +
+    engine.failed +
+    appGuards.failed +
+    observability.failed +
+    adminAuth.failed +
+    integ.failed +
+    observabilityInteg.failed +
+    demoApi.failed +
+    packageExports.failed +
+    payloadRegression.failed;
 
   console.log('\n' + '═'.repeat(55));
   console.log(`  Result: ${totalPassed} passed  |  ${totalFailed} failed`);

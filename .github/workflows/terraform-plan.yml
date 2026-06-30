@@ -1,0 +1,121 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform-plan.yml'
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform-plan.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Terraform environment'
+        type: choice
+        options:
+          - dev
+        default: dev
+      aws_region:
+        description: 'AWS region override'
+        required: false
+        type: string
+      container_image:
+        description: 'Container image URI for Terraform plan'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: 'true'
+  TF_WORKING_DIR: infra/terraform/environments/dev
+
+jobs:
+  terraform-static:
+    name: Terraform fmt and validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive infra/terraform
+
+      - name: Terraform init without backend
+        run: terraform -chdir="$TF_WORKING_DIR" init -backend=false -input=false
+
+      - name: Terraform validate
+        run: terraform -chdir="$TF_WORKING_DIR" validate
+
+  terraform-plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    needs: terraform-static
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.AWS_REGION != '' && vars.AWS_ROLE_TO_ASSUME != ''
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ github.event.inputs.aws_region || vars.AWS_REGION }}
+
+      - name: Prepare Terraform variables
+        env:
+          AWS_REGION_INPUT: ${{ github.event.inputs.aws_region || vars.AWS_REGION }}
+          CONTAINER_IMAGE_INPUT: ${{ github.event.inputs.container_image || vars.CONTAINER_IMAGE }}
+          PROJECT_NAME_INPUT: ${{ vars.PROJECT_NAME }}
+          ENVIRONMENT_INPUT: ${{ github.event.inputs.environment || vars.TERRAFORM_ENVIRONMENT }}
+        run: |
+          set -euo pipefail
+
+          project_name="${PROJECT_NAME_INPUT:-parry}"
+          environment="${ENVIRONMENT_INPUT:-dev}"
+          aws_region="${AWS_REGION_INPUT:-us-east-1}"
+          container_image="${CONTAINER_IMAGE_INPUT:-123456789012.dkr.ecr.${aws_region}.amazonaws.com/parry-dev-demo-api:placeholder}"
+
+          {
+            echo "TF_VAR_project_name=$project_name"
+            echo "TF_VAR_environment=$environment"
+            echo "TF_VAR_aws_region=$aws_region"
+            echo "TF_VAR_container_image=$container_image"
+          } >> "$GITHUB_ENV"
+
+      - name: Terraform init
+        run: terraform -chdir="$TF_WORKING_DIR" init -input=false
+
+      - name: Terraform plan
+        run: |
+          set -euo pipefail
+          terraform -chdir="$TF_WORKING_DIR" plan -no-color -input=false | tee "$TF_WORKING_DIR/terraform-plan.txt"
+
+      - name: Upload Terraform plan text
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.sha }}
+          path: ${{ env.TF_WORKING_DIR }}/terraform-plan.txt
+          if-no-files-found: error

@@ -338,7 +338,7 @@ async function run() {
 
   console.log('\n' + '═'.repeat(62));
   console.log(`  Result: ${passed}/${total}  ✓ passed  |  ✗ ${failed}  failed`);
-  if (failed === 0) console.log('  ✓ Parry_DDoS validated — 100% approved!');
+  if (failed === 0) console.log('  ✓ Parry validated — 100% approved!');
   else console.log('  ⚠  Check the errors listed above.');
   console.log('═'.repeat(62) + '\n');
   process.exit(failed > 0 ? 1 : 0);

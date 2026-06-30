@@ -1,0 +1,475 @@
+openapi: 3.0.3
+info:
+  title: Parry Admin API
+  version: 1.0.0
+  description: >
+    Read-only Admin API contract for Parry application-layer security telemetry.
+    The router is optional, is not mounted automatically, and must be protected
+    by application-provided authentication and network controls.
+servers:
+  - url: /_parry
+    description: Recommended mount path
+security:
+  - ParryAdminToken: []
+tags:
+  - name: Health
+  - name: Metrics
+  - name: Events
+  - name: Bans
+  - name: Policies
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Get Admin API health and store metadata
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Get in-process metrics snapshot
+      responses:
+        '200':
+          description: Metrics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /events:
+    get:
+      tags:
+        - Events
+      summary: List recent sanitized threat events
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: type
+          in: query
+          schema:
+            type: string
+          example: SQL_INJECTION_BLOCKED
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: action
+          in: query
+          schema:
+            type: string
+          example: blocked
+        - name: detector
+          in: query
+          schema:
+            type: string
+          example: sql
+        - name: ip
+          in: query
+          schema:
+            type: string
+          example: 203.0.113.10
+        - name: path
+          in: query
+          schema:
+            type: string
+          example: /login
+        - name: policyName
+          in: query
+          schema:
+            type: string
+          example: auth-login
+      responses:
+        '200':
+          description: Recent events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /events/{id}:
+    get:
+      tags:
+        - Events
+      summary: Get one sanitized threat event by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: evt_demo_001
+      responses:
+        '200':
+          description: Threat event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThreatEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /bans:
+    get:
+      tags:
+        - Bans
+      summary: List active bans when the store exposes a safe snapshot
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Active bans
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BansListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /policies:
+    get:
+      tags:
+        - Policies
+      summary: List normalized route policies
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Normalized policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoliciesListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    ParryAdminToken:
+      type: apiKey
+      in: header
+      name: x-parry-admin-token
+      description: Recommended admin token header. The application must validate it through middleware or the router auth callback.
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 50
+      description: Maximum number of items to return.
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Number of matching items to skip.
+  responses:
+    Unauthorized:
+      description: Admin authentication is required and credentials are missing
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: ADMIN_UNAUTHORIZED
+              message: Admin API authentication required
+            code: ADMIN_UNAUTHORIZED
+            message: Admin API authentication required
+    Forbidden:
+      description: Admin authentication credentials are invalid or not authorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: ADMIN_FORBIDDEN
+              message: Admin API access denied
+            code: ADMIN_FORBIDDEN
+            message: Admin API access denied
+    NotFound:
+      description: Resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Not found
+            code: ADMIN_NOT_FOUND
+            message: Not found
+  schemas:
+    HealthResponse:
+      type: object
+      required: [ok, name, version, uptimeMs, store]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        name:
+          type: string
+          example: parry
+        version:
+          type: string
+          example: 1.0.0
+        uptimeMs:
+          type: integer
+          minimum: 0
+          example: 124532
+        store:
+          type: string
+          example: memory
+    MetricsResponse:
+      type: object
+      required:
+        - startedAt
+        - uptimeMs
+        - totalRequests
+        - allowedRequests
+        - blockedRequests
+        - rateLimitedRequests
+        - bruteForceBlocks
+        - activeBans
+        - eventsByType
+        - eventsBySeverity
+        - eventsByDetector
+        - eventsByAction
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        uptimeMs:
+          type: integer
+          minimum: 0
+        totalRequests:
+          type: integer
+          minimum: 0
+        allowedRequests:
+          type: integer
+          minimum: 0
+        blockedRequests:
+          type: integer
+          minimum: 0
+        rateLimitedRequests:
+          type: integer
+          minimum: 0
+        bruteForceBlocks:
+          type: integer
+          minimum: 0
+        activeBans:
+          type: integer
+          minimum: 0
+        eventsByType:
+          $ref: '#/components/schemas/CounterMap'
+        eventsBySeverity:
+          $ref: '#/components/schemas/CounterMap'
+        eventsByDetector:
+          $ref: '#/components/schemas/CounterMap'
+        eventsByAction:
+          $ref: '#/components/schemas/CounterMap'
+    ThreatEvent:
+      type: object
+      required: [id, type, severity, action, reason, ip, method, path, timestamp]
+      properties:
+        id:
+          type: string
+          example: evt_demo_001
+        type:
+          type: string
+          example: SQL_INJECTION_BLOCKED
+        module:
+          type: string
+          example: detector
+        detector:
+          type: string
+          example: sql
+        detectorType:
+          type: string
+          example: SQL_INJECTION
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        action:
+          type: string
+          example: blocked
+        reason:
+          type: string
+          example: SQL injection pattern detected
+        ip:
+          type: string
+          example: 203.0.113.10
+        method:
+          type: string
+          example: POST
+        path:
+          type: string
+          example: /login
+        statusCode:
+          type: integer
+          example: 400
+        policyName:
+          type: string
+          example: auth-login
+        keyTypes:
+          type: array
+          items:
+            type: string
+          example: [ip, body.email]
+        requestId:
+          type: string
+          example: req_demo_001
+        userAgent:
+          type: string
+          example: Mozilla/5.0 dashboard demo
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+    EventsListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThreatEvent'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    BanEntry:
+      type: object
+      required: [key, type, reason, policyName, createdAt, expiresAt, ttlMs]
+      properties:
+        key:
+          type: string
+          example: ip:203.0.113.25
+        type:
+          type: string
+          example: ip
+        reason:
+          type: string
+          example: temporary application-layer ban
+        policyName:
+          type: string
+          nullable: true
+          example: auth-login
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-29T12:00:00.000Z
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2026-06-29T12:10:00.000Z
+        ttlMs:
+          type: integer
+          nullable: true
+          example: 600000
+    BansListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BanEntry'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    PolicyEntry:
+      type: object
+      required: [name, match]
+      properties:
+        name:
+          type: string
+          example: auth-login
+        match:
+          type: object
+          additionalProperties: true
+        inheritGlobalRateLimit:
+          type: boolean
+        rateLimit:
+          type: object
+          nullable: true
+          additionalProperties: true
+        bruteForce:
+          type: object
+          nullable: true
+          additionalProperties: true
+    PoliciesListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyEntry'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    ErrorResponse:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: ADMIN_UNAUTHORIZED
+            message:
+              type: string
+              example: Admin API authentication required
+        code:
+          type: string
+          example: ADMIN_UNAUTHORIZED
+        message:
+          type: string
+          example: Admin API authentication required
+    Pagination:
+      type: object
+      required: [limit, offset, total]
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+        offset:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+    CounterMap:
+      type: object
+      additionalProperties:
+        type: integer
+        minimum: 0

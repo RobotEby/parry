@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node.js tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: npm test
+
+  fixtures:
+    name: Fixture and payload regression
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate fixtures when available
+        run: |
+          if npm run | grep -q "test:fixtures"; then
+            npm run test:fixtures
+          else
+            echo "No test:fixtures script configured."
+          fi
+
+      - name: Run payload regression when available
+        run: |
+          if npm run | grep -q "test:payload-regression"; then
+            npm run test:payload-regression
+          else
+            echo "No test:payload-regression script configured."
+          fi
+
+  quality:
+    name: Package and security sanity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint when available
+        run: |
+          if npm run | grep -Eq '^  lint($|:)'; then
+            npm run lint
+          else
+            echo "No lint script configured."
+          fi
+
+      - name: Check npm package contents
+        run: npm run package:check
+
+      - name: Security sanity checks
+        run: |
+          set -euo pipefail
+
+          tracked_env="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '\.example$' || true)"
+          if [ -n "$tracked_env" ]; then
+            echo "Tracked .env-style files are not allowed:"
+            echo "$tracked_env"
+            exit 1
+          fi
+
+          tracked_tfvars="$(git ls-files | grep -E '(^|/)[^/]+\.tfvars$' | grep -vE '\.tfvars\.example$' || true)"
+          if [ -n "$tracked_tfvars" ]; then
+            echo "Tracked real Terraform tfvars files are not allowed:"
+            echo "$tracked_tfvars"
+            exit 1
+          fi
+
+          if git grep -n -E '(AWS_SECRET_ACCESS_KEY|aws_secret_access_key)[[:space:]]*=[[:space:]]*[^[:space:]]{20,}|AKIA[0-9A-Z]{16}' -- ':!package-lock.json' ':!docker/demo-api/package-lock.json'; then
+            echo "Potential static AWS credential detected."
+            exit 1
+          fi

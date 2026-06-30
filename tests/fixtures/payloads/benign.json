@@ -1,0 +1,452 @@
+[
+  {
+    "id": "benign-001",
+    "category": "benign",
+    "name": "C sharp programming text",
+    "payload": "I write services in C# and Node.js",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["programming", "csharp"]
+  },
+  {
+    "id": "benign-002",
+    "category": "benign",
+    "name": "Product number with hash",
+    "payload": "Product #123 is ready for review",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["hash", "product"]
+  },
+  {
+    "id": "benign-003",
+    "category": "benign",
+    "name": "Name with apostrophe",
+    "payload": "O'Connor",
+    "target": "body.lastName",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["apostrophe", "name"]
+  },
+  {
+    "id": "benign-004",
+    "category": "benign",
+    "name": "Hyphenated double dash in prose",
+    "payload": "Release notes -- reviewed by QA",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["hyphen", "prose"]
+  },
+  {
+    "id": "benign-005",
+    "category": "benign",
+    "name": "Legitimate HTTPS URL",
+    "payload": "https://example.com/docs?page=1",
+    "target": "body.url",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["url"]
+  },
+  {
+    "id": "benign-006",
+    "category": "benign",
+    "name": "Escaped bold HTML",
+    "payload": "&lt;b&gt;Featured&lt;/b&gt;",
+    "target": "body.description",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["escaped-html"]
+  },
+  {
+    "id": "benign-007",
+    "category": "benign",
+    "name": "Allowed display HTML",
+    "payload": "<b>Featured</b>",
+    "target": "body.description",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["html"]
+  },
+  {
+    "id": "benign-008",
+    "category": "benign",
+    "name": "Technical SQL acronym text",
+    "payload": "SQL is a database query language",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["technical-text"]
+  },
+  {
+    "id": "benign-009",
+    "category": "benign",
+    "name": "Technical XSS acronym text",
+    "payload": "XSS means cross-site scripting in security education",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["technical-text"]
+  },
+  {
+    "id": "benign-010",
+    "category": "benign",
+    "name": "Legitimate tag array",
+    "payload": ["node", "express", "security"],
+    "target": "query.tags",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["array", "hpp-allowlist"]
+  },
+  {
+    "id": "benign-011",
+    "category": "benign",
+    "name": "Legitimate filter array",
+    "payload": ["active", "recent"],
+    "target": "query.filters",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["array", "hpp-allowlist"]
+  },
+  {
+    "id": "benign-012",
+    "category": "benign",
+    "name": "Safe path with dotted name",
+    "payload": "docs/..notes/readme.md",
+    "target": "query.file",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["path"]
+  },
+  {
+    "id": "benign-013",
+    "category": "benign",
+    "name": "Safe file path",
+    "payload": "uploads/2026/report.pdf",
+    "target": "body.file",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["path"]
+  },
+  {
+    "id": "benign-014",
+    "category": "benign",
+    "name": "Programming symbols",
+    "payload": "Use a && b in boolean examples",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["programming"]
+  },
+  {
+    "id": "benign-015",
+    "category": "benign",
+    "name": "Pipe symbol in prose",
+    "payload": "Choose csv | json in the export menu",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["programming"]
+  },
+  {
+    "id": "benign-016",
+    "category": "benign",
+    "name": "Dollar amount",
+    "payload": "The price is $5.00",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["currency"]
+  },
+  {
+    "id": "benign-017",
+    "category": "benign",
+    "name": "JSON-like normal object string",
+    "payload": "{\"status\":\"active\",\"role\":\"user\"}",
+    "target": "body.filter",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["json"]
+  },
+  {
+    "id": "benign-018",
+    "category": "benign",
+    "name": "Normal profile object",
+    "payload": { "username": "alice", "role": "user", "active": true },
+    "target": "body.profile",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["object"]
+  },
+  {
+    "id": "benign-019",
+    "category": "benign",
+    "name": "Normal nested object",
+    "payload": { "profile": { "name": "Alice", "department": "Security" } },
+    "target": "body.profile",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["object", "nested"]
+  },
+  {
+    "id": "benign-020",
+    "category": "benign",
+    "name": "Safe markdown link",
+    "payload": "[docs](https://example.com/docs)",
+    "target": "body.markdown",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["markdown", "url"]
+  },
+  {
+    "id": "benign-021",
+    "category": "benign",
+    "name": "Email address",
+    "payload": "user.o'connor@example.com",
+    "target": "body.email",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["email", "apostrophe"]
+  },
+  {
+    "id": "benign-022",
+    "category": "benign",
+    "name": "Search query with plus signs",
+    "payload": "node+express+middleware",
+    "target": "query.q",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["search"]
+  },
+  {
+    "id": "benign-023",
+    "category": "benign",
+    "name": "Safe numeric id",
+    "payload": "12345",
+    "target": "params.id",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["params"]
+  },
+  {
+    "id": "benign-024",
+    "category": "benign",
+    "name": "Safe slug",
+    "payload": "release-2026-06-28",
+    "target": "params.slug",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["params", "slug"]
+  },
+  {
+    "id": "benign-025",
+    "category": "benign",
+    "name": "Safe user agent",
+    "payload": "Mozilla/5.0 ParryRegression",
+    "target": "header.user-agent",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["header"]
+  },
+  {
+    "id": "benign-026",
+    "category": "benign",
+    "name": "Safe referer URL",
+    "payload": "https://example.com/account",
+    "target": "header.referer",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["header", "url"]
+  },
+  {
+    "id": "benign-027",
+    "category": "benign",
+    "name": "Allowed sort array",
+    "payload": ["name", "createdAt"],
+    "target": "query.sort",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["array", "hpp-allowlist"]
+  },
+  {
+    "id": "benign-028",
+    "category": "benign",
+    "name": "Normal comments with parentheses",
+    "payload": "Please review item (A) before release",
+    "target": "body.comment",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["prose"]
+  },
+  {
+    "id": "benign-029",
+    "category": "benign",
+    "name": "Code identifier with underscore",
+    "payload": "user_profile_view",
+    "target": "body.key",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["programming"]
+  },
+  {
+    "id": "benign-030",
+    "category": "benign",
+    "name": "Safe Windows-like path",
+    "payload": "C:\\Users\\Public\\Documents\\report.txt",
+    "target": "body.path",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["path", "windows"]
+  },
+  {
+    "id": "benign-031",
+    "category": "benign",
+    "name": "Safe relative path",
+    "payload": "./docs/readme.md",
+    "target": "body.path",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["path"]
+  },
+  {
+    "id": "benign-032",
+    "category": "benign",
+    "name": "Plain localhost documentation text",
+    "payload": "Use localhost only in local development examples",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["ssrf-control", "prose"]
+  },
+  {
+    "id": "benign-033",
+    "category": "benign",
+    "name": "Internal URL documentation text",
+    "payload": "Document private network rules in deployment docs",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["ssrf-control", "prose"]
+  },
+  {
+    "id": "benign-034",
+    "category": "benign",
+    "name": "Safe shell word in prose",
+    "payload": "The command field is disabled in this UI",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["command-control", "prose"]
+  },
+  {
+    "id": "benign-035",
+    "category": "benign",
+    "name": "Safe brace template text",
+    "payload": "Use braces like {name} in email templates",
+    "target": "body.template",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["template"]
+  },
+  {
+    "id": "benign-036",
+    "category": "benign",
+    "name": "Safe CSS color string",
+    "payload": "color: #336699",
+    "target": "body.style",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["css", "hash"]
+  },
+  {
+    "id": "benign-037",
+    "category": "benign",
+    "name": "Safe data URI image note",
+    "payload": "data:image/png;base64 placeholder is documented",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["data-uri", "prose"]
+  },
+  {
+    "id": "benign-038",
+    "category": "benign",
+    "name": "Safe object with id array",
+    "payload": { "ids": [1, 2, 3], "type": "report" },
+    "target": "body.filter",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["object", "array"]
+  },
+  {
+    "id": "benign-039",
+    "category": "benign",
+    "name": "Safe Unicode text",
+    "payload": "Olá mundo com acentuação",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["unicode"]
+  },
+  {
+    "id": "benign-040",
+    "category": "benign",
+    "name": "Safe nested settings",
+    "payload": { "settings": { "theme": "light", "notifications": true } },
+    "target": "body.settings",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["object", "nested"]
+  },
+  {
+    "id": "benign-041",
+    "category": "benign",
+    "name": "Safe role value",
+    "payload": "user",
+    "target": "body.role",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["auth"]
+  },
+  {
+    "id": "benign-042",
+    "category": "benign",
+    "name": "Safe redirect path",
+    "payload": "/account/profile",
+    "target": "query.redirect",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["redirect", "path"]
+  },
+  {
+    "id": "benign-043",
+    "category": "benign",
+    "name": "Safe version string",
+    "payload": "v1.2.3-beta",
+    "target": "body.version",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["version"]
+  },
+  {
+    "id": "benign-044",
+    "category": "benign",
+    "name": "Safe code fence text",
+    "payload": "Example: const value = items[0]",
+    "target": "body.note",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["programming"]
+  },
+  {
+    "id": "benign-045",
+    "category": "benign",
+    "name": "Safe status query",
+    "payload": "status:active",
+    "target": "query.q",
+    "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
+    "source": { "name": "Curated local false-positive controls", "category": "Benign Control" },
+    "tags": ["search"]
+  }
+]

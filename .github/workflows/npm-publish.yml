@@ -1,0 +1,67 @@
+name: npm Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  npm-publish:
+    name: Validate and publish package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: npm test
+
+      - name: Validate payload fixtures
+        run: npm run test:fixtures
+
+      - name: Run payload regression
+        run: npm run test:payload-regression
+
+      - name: Validate package tarball
+        run: npm run package:check
+
+      - name: Validate release tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: npm run package:check-tag
+
+      - name: npm pack dry-run
+        run: npm run package:dry-run
+
+      - name: Select npm dist-tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          dist_tag="latest"
+
+          case "$version" in
+            *-beta.*) dist_tag="beta" ;;
+            *-alpha.*|*-rc.*|*-next.*) dist_tag="next" ;;
+          esac
+
+          echo "NPM_DIST_TAG=$dist_tag" >> "$GITHUB_ENV"
+
+      - name: Publish to npm
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: npm publish --access public --tag "$NPM_DIST_TAG" --provenance

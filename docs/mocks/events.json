@@ -1,0 +1,50 @@
+{
+  "data": [
+    {
+      "id": "evt_demo_001",
+      "type": "SQL_INJECTION_BLOCKED",
+      "module": "detector",
+      "detector": "sql",
+      "detectorType": "SQL_INJECTION",
+      "severity": "high",
+      "action": "blocked",
+      "reason": "SQL injection pattern detected",
+      "ip": "203.0.113.10",
+      "method": "POST",
+      "path": "/login",
+      "statusCode": 400,
+      "requestId": "req_demo_001",
+      "userAgent": "Mozilla/5.0 dashboard demo",
+      "timestamp": "2026-06-29T12:01:04.000Z",
+      "metadata": {
+        "target": "body.username"
+      }
+    },
+    {
+      "id": "evt_demo_002",
+      "type": "BRUTE_FORCE_BLOCKED",
+      "module": "brute-force",
+      "detector": "brute-force",
+      "detectorType": "BRUTE_FORCE",
+      "severity": "high",
+      "action": "blocked",
+      "reason": "Too many authentication attempts",
+      "ip": "203.0.113.25",
+      "method": "POST",
+      "path": "/login",
+      "statusCode": 429,
+      "policyName": "auth-login",
+      "keyTypes": ["ip", "body.email", "ip+body.email"],
+      "requestId": "req_demo_002",
+      "timestamp": "2026-06-29T12:02:15.000Z",
+      "metadata": {
+        "retryAfterSeconds": 600
+      }
+    }
+  ],
+  "pagination": {
+    "limit": 50,
+    "offset": 0,
+    "total": 2
+  }
+}

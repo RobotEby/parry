@@ -1,0 +1,136 @@
+[
+  {
+    "id": "command-injection-separator-001",
+    "category": "command-injection",
+    "name": "Semicolon command separator string",
+    "payload": "status; cat /etc/passwd",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["separator", "unix"],
+    "monitorOnly": true,
+    "notes": "No command is executed. This category has no detector in this version."
+  },
+  {
+    "id": "command-injection-separator-002",
+    "category": "command-injection",
+    "name": "Ampersand command separator string",
+    "payload": "status && whoami",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["separator", "unix"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-separator-003",
+    "category": "command-injection",
+    "name": "Pipe command separator string",
+    "payload": "status | id",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["pipe"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-substitution-001",
+    "category": "command-injection",
+    "name": "Command substitution string",
+    "payload": "$(whoami)",
+    "target": "query.cmd",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["substitution"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-substitution-002",
+    "category": "command-injection",
+    "name": "Backtick command substitution string",
+    "payload": "`id`",
+    "target": "query.cmd",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["substitution"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-redirection-001",
+    "category": "command-injection",
+    "name": "Output redirection string",
+    "payload": "status > /tmp/out",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["redirection"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-redirection-002",
+    "category": "command-injection",
+    "name": "Input redirection string",
+    "payload": "status < /etc/passwd",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["redirection"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-windows-001",
+    "category": "command-injection",
+    "name": "Windows command separator string",
+    "payload": "status & whoami",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["windows", "separator"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-windows-002",
+    "category": "command-injection",
+    "name": "Windows command chaining string",
+    "payload": "status || whoami",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["windows", "separator"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-newline-001",
+    "category": "command-injection",
+    "name": "Newline command separator string",
+    "payload": "status\nwhoami",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["newline"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-env-001",
+    "category": "command-injection",
+    "name": "Environment expansion marker string",
+    "payload": "$PATH",
+    "target": "body.command",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["environment"],
+    "monitorOnly": true
+  },
+  {
+    "id": "command-injection-encoded-001",
+    "category": "command-injection",
+    "name": "URL encoded separator marker",
+    "payload": "status%3Bwhoami",
+    "target": "query.cmd",
+    "expected": { "blocked": false, "severity": "medium", "mode": "monitor" },
+    "source": { "name": "PayloadsAllTheThings", "category": "Command Injection", "usedAsReferenceOnly": true },
+    "tags": ["encoded", "separator"],
+    "encoded": true,
+    "monitorOnly": true
+  }
+]

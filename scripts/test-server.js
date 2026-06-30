@@ -7,33 +7,33 @@
  */
 
 const express = require('express');
-const { Parry_DDoS } = require('../src/middleware');
+const { createParry } = require('../src/middleware');
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  Parry_DDoS({
-    sql: true,
-    xss: true,
-    nosql: true,
-    rateLimit: true,
+const parry = createParry({
+  sql: true,
+  xss: true,
+  nosql: true,
+  rateLimit: true,
 
-    maxRequests: 30,
-    windowMs: 60_000,
+  maxRequests: 30,
+  windowMs: 60_000,
 
-    suspiciousThreshold: 5,
-    banDurationMs: 30_000,
+  suspiciousThreshold: 5,
+  banDurationMs: 30_000,
 
-    logThreats: true,
-    onThreat(entry) {
-      // Framework available for integration with SIEM / external alerts
-      // console.log(‘[onThreat]’, JSON.stringify(entry, null, 2));
-    },
-  })
-);
+  logThreats: true,
+  onThreat(entry) {
+    // Framework available for integration with SIEM / external alerts
+    // console.log(‘[onThreat]’, JSON.stringify(entry, null, 2));
+  },
+});
+
+app.use(parry.middleware());
 
 app.get('/ping', (req, res) => {
   res.json({ ok: true, ts: Date.now() });
@@ -62,6 +62,6 @@ app.post('/comment', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`\n🛡  Parry_DDoS test-server listening on http://localhost:${PORT}`);
+  console.log(`\n🛡  Parry test-server listening on http://localhost:${PORT}`);
   console.log(`   Run: node scripts/run-tests.js\n`);
 });

@@ -1,0 +1,47 @@
+project_name = "parry"
+environment  = "dev"
+aws_region   = "us-east-1"
+
+# Build and push the demo API image to ECR first, then place the immutable image
+# URI here. Do not build images inside Terraform.
+container_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/parry-dev-demo-api:replace-me"
+
+app_port      = 3000
+desired_count = 1
+cpu           = 256
+memory        = 512
+
+# Disabled by default to avoid surprise NAT Gateway cost. Enable for private
+# subnet internet egress unless you add VPC endpoints for ECR, CloudWatch Logs,
+# Secrets Manager/SSM, and S3 access.
+enable_nat_gateway = false
+
+# Disabled by default to avoid surprise endpoint hourly cost. Enable when NAT is
+# off and private ECS tasks must pull ECR images, write logs, and read
+# Secrets Manager/SSM values.
+enable_vpc_endpoints = false
+
+enable_cloudfront     = true
+enable_https          = false
+acm_certificate_arn   = ""
+domain_name           = ""
+enable_waf_count_mode = true
+waf_rate_limit        = 2000
+
+redis_node_type          = "cache.t4g.micro"
+redis_num_cache_clusters = 1
+
+# Keep secrets out of tfvars. Prefer existing Secrets Manager or SSM parameter
+# ARNs supplied by CI/CD or a local uncommitted tfvars file.
+parry_admin_token_secret_arn = ""
+redis_auth_token_secret_arn  = ""
+
+# Redis AUTH is disabled by default. If you set redis_auth_token, protect the
+# Terraform state with remote encrypted storage and locking.
+# redis_auth_token = "do-not-commit-real-values"
+
+allowed_admin_cidr = ""
+
+tags = {
+  Owner = "security-demo"
+}

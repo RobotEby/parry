@@ -5,9 +5,52 @@ const DEFAULTS = {
   xss: true,
   nosql: true,
 
+  hpp: {
+    enabled: false,
+    allowDuplicateParamsFor: [],
+  },
+  prototypePollution: {
+    enabled: true,
+  },
+  pathTraversal: {
+    enabled: true,
+  },
+  requestShape: {
+    enabled: true,
+    maxDepth: 8,
+    maxKeys: 500,
+    maxArrayLength: 100,
+    maxStringLength: 10_000,
+  },
+
   rateLimit: true,
   maxRequests: 100,
   windowMs: 60_000,
+  store: null,
+  storeFailureMode: 'fail-open',
+  policies: [],
+  preset: 'off',
+  bruteForce: {
+    enabled: false,
+  },
+  events: {
+    maxEvents: 500,
+  },
+  admin: {
+    enabled: false,
+    path: '/_parry',
+    allowMutations: false,
+    allowInsecureAdminApi: false,
+    auth: null,
+  },
+  requestId: {
+    enabled: true,
+    header: 'x-request-id',
+    responseHeader: false,
+  },
+  trustProxyHeaders: false,
+  trustedProxies: [],
+  debug: false,
 
   suspiciousThreshold: 5,
   banDurationMs: 300_000,

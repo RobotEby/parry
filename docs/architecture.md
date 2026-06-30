@@ -1,79 +1,71 @@
-# Parry_DDoS — Decisões de Arquitetura
+# Architecture
 
-## Estrutura de diretórios
+Parry is organized around a small Express adapter and a reusable application-layer analysis core. The goal is to keep request/response handling separate from detector logic, store implementations, event generation, and observability.
 
-```
-ParryWAF/
+## Directory Structure
+
+```txt
+parry-express-security-middleware/
 ├── src/
-│   ├── detectors/          Detectores de ameaça (SQL, XSS, NoSQL)
-│   ├── middleware/         Ponto de entrada do Express middleware
-│   └── core/               Utilitários reutilizáveis (RateLimiter, Logger)
-├── config/                 Valores padrão configuráveis
-├── constants/              Padrões regex centralizados
-├── types/                  Tipagem pública TypeScript
-├── tests/
-│   ├── unit/               Um arquivo por módulo
-│   ├── integration/        Middleware testado end-to-end com req/res mock
-│   └── fixtures/           Payloads de ataque compartilhados
-├── examples/               Demonstrações (fora de src/)
-└── docs/                   Documentação de arquitetura e decisões
+│   ├── admin/          Optional read-only Admin API router and auth strategies
+│   ├── brute-force/    BruteForceGuard and authentication key builder
+│   ├── core/           Analysis engine, scoring, and threat event helpers
+│   ├── detectors/      SQLi, XSS, NoSQLi, HPP, prototype pollution, path traversal, and shape guards
+│   ├── events/         Event bus, event sanitization, and in-memory event store
+│   ├── express/        Express adapter: req/res/next, IP resolution, request targets, responses
+│   ├── logger/         Console reporter
+│   ├── middleware/     Compatibility entrypoints for legacy imports
+│   ├── observability/  Metrics and Admin API snapshot helpers
+│   ├── policies/       Route policy matching and normalization
+│   ├── rate-limit/     Store-backed rate limiter
+│   ├── stores/         Store contract, MemoryStore, and RedisStore
+│   └── utils/          Shared decode, flatten, and normalize helpers
+├── config/             Runtime defaults
+├── constants/          Centralized detector patterns
+├── types/              Public TypeScript declarations
+├── tests/              Unit, integration, and payload regression tests
+└── docs/               Repository documentation
 ```
 
----
+## Express Adapter and Core Engine
 
-## Por que `core/` é separado de `middleware/`?
+Only `src/express/` knows about `req`, `res`, and `next`. It resolves the client IP, attaches request context, applies route policies, calls the rate limiter, collects request targets, and formats HTTP responses.
 
-`RateLimiter` e `ThreatLogger` são utilitários independentes. Eles não dependem do
-protocolo HTTP e poderiam ser usados em qualquer contexto (workers, CLIs, testes).
-Misturá-los dentro de `middleware/` criaria acoplamento desnecessário e dificultaria
-testes unitários isolados.
+The core engine receives normalized request data and returns a structured decision. This keeps detector behavior testable without a running HTTP server and leaves room for future adapters if needed.
 
-## Por que `constants/patterns.js` existe?
+## Detector Organization
 
-Centralizar todos os regex em um único arquivo resolve três problemas:
+Detector modules live under `src/detectors/`. Shared decoding and normalization helpers live under `src/utils/`, and common regex patterns live in `constants/patterns.js`.
 
-1. **Manutenção** — ajustar um padrão não requer abrir o detector correspondente.
-2. **Revisão de segurança** — um revisor encontra todos os padrões num só lugar.
-3. **Testes** — os fixtures de `tests/fixtures/payloads.js` são derivados dos mesmos
-   padrões, garantindo que testes e detectores estejam sempre alinhados.
+Centralizing patterns keeps detector tuning easier to review and makes it simpler to add benign counterexamples when a rule needs adjustment. Payload regression fixtures live under `tests/fixtures/payloads/` and are used only by tests.
 
-## Por que `config/defaults.js` e não constantes inline?
+## Stores and Rate Limiting
 
-Permite que integradores inspecionem os defaults sem ler o código do middleware.
-Facilita também testes que precisam sobrescrever apenas um subconjunto de opções.
+The rate limiter depends on the Store interface instead of a specific storage implementation.
 
-## Por que `tests/` fica na raiz e não dentro de `src/`?
+- `MemoryStore` is the default and protects a single Node.js process.
+- `RedisStore` accepts a Redis client created by the host application and coordinates counters across instances.
 
-Testes não são código de produção. Incluí-los em `src/` os tornaria parte do bundle
-publicado e obscureceria a separação entre código executável e código de verificação.
+Rate limiting, temporary bans, suspicious counters, brute-force counters, and route policy counters use separate namespaces so one control does not overwrite another.
 
-## Estratégia de detecção em camadas
+## Route Policies and BruteForceGuard
 
-Cada detector aplica decodificação antes de escanear:
+Route policies are evaluated in the Express adapter because they depend on request method, path, route response status, and `res.on('finish')`.
 
-```
-input → URL decode (multi-pass) → HTML entity decode → Unicode strip → scan
-```
+The BruteForceGuard checks blocked keys before a route handler runs, then records authentication failures or successes after the response finishes. Applications that return `200` for failed logins can call `req.parry.recordAuthFailure()` or `req.parry.recordAuthSuccess()` to avoid relying only on status codes.
 
-Isso cobre os vetores de bypass mais comuns (double encoding, zero-width chars,
-entity injection) sem depender de bibliotecas externas.
+## Threat Events and Observability
 
-## Rate Limiting inteligente
+Security-relevant activity is normalized into Threat Events. Events are sanitized before they reach listeners, logs, metrics, the in-memory event store, or the Admin API.
 
-O `RateLimiter` mantém dois contadores separados por IP:
+The Admin API is a separate read-only Express router. It is never mounted automatically and should be protected by token auth for local demos or by stronger production controls such as private networking, VPN, Cloudflare Access, AWS ALB/Cognito auth, trusted proxy auth, or IP allowlists.
 
-- **`timestamps[]`** — janela deslizante de requisições normais.
-- **`suspicious`** — incrementado a cada ameaça detectada, independente da janela.
+## Proxy and Client IP Handling
 
-O banimento é acionado pelo `suspicious`, não pelo volume. Isso permite que um IP
-legítimo com alto volume não seja banido, enquanto um IP com poucas requisições
-mas todas maliciosas seja bloqueado rapidamente.
+Parry ignores forwarded IP headers by default. When running behind a trusted proxy, configure `trustProxyHeaders` and `trustedProxies` so forwarded client IPs are accepted only from known proxy addresses or CIDR ranges.
 
-## Considerações de produção
+The same boundary model applies to Admin API external-auth modes. Cloudflare Access and AWS ALB/Cognito headers are accepted only when the request comes through a trusted boundary or presents a configured shared proxy secret.
 
-- O armazenamento do `RateLimiter` é in-memory. Para ambientes com múltiplas
-  instâncias (clusters, Kubernetes), substitua o `Map` interno por Redis.
-- O `x-forwarded-for` não é verificado contra uma lista de proxies confiáveis.
-  Em produção, adicione verificação de CIDR antes de confiar nesse header.
-- Os padrões regex cobrem os vetores mais comuns mas não são exaustivos.
-  Considere complementar com uma WAF dedicada em camadas de alta criticidade.
+## Production Notes
+
+Parry operates inside the application. It complements, but does not replace, CDN, WAF, load balancer, and cloud edge controls. Use CloudFront, AWS WAF, Shield, ALB, a CDN, or equivalent infrastructure for volumetric DDoS and network-layer protection.
