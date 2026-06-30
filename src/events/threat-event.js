@@ -30,22 +30,31 @@ const DETECTOR_NAME_MAP = {
   PROTOTYPE_POLLUTION: 'prototype-pollution',
   PATH_TRAVERSAL: 'path-traversal',
   REQUEST_SHAPE: 'request-shape',
+  RATE_LIMIT: 'rate-limit',
+  ROUTE_RATE_LIMIT: 'rate-limit',
   BRUTE_FORCE: 'brute-force',
-  ROUTE_RATE_LIMIT: 'route-rate-limit',
 };
+
+const DETECTOR_TYPE_BY_SLUG = Object.entries(DETECTOR_NAME_MAP).reduce((map, [type, slug]) => {
+  if (!map[slug]) map[slug] = type;
+  return map;
+}, {});
 
 function createThreatEvent(input = {}) {
   const source = sanitizeEvent(input);
   const firstThreat = Array.isArray(source.threats) ? source.threats[0] : null;
   const sourceDetector = source.detector || firstThreat?.detector;
-  const type = normalizeType(source.type, sourceDetector);
+  const detectorSlug = normalizeDetector(sourceDetector);
+  const detectorType = normalizeDetectorType(source.detectorType || sourceDetector);
+  const type = normalizeType(source.type, detectorType || sourceDetector);
   const event = {
     ...source,
     id: source.id || createEventId(),
     type,
     module: source.module || moduleForType(type),
-    detector: sourceDetector || source.detector,
-    detectorSlug: normalizeDetector(sourceDetector),
+    detector: detectorSlug,
+    detectorType,
+    detectorSlug,
     severity: source.severity || firstThreat?.severity || severityForType(type),
     action: source.action || actionForType(type),
     reason: source.reason || firstThreat?.reason || reasonForType(type),
@@ -100,12 +109,19 @@ function createEventId() {
 function normalizeType(type, detector) {
   if (LEGACY_TYPE_MAP[type]) return LEGACY_TYPE_MAP[type];
   if (type === 'THREAT' && detector) return DETECTOR_TYPE_MAP[detector] || 'THREAT_BLOCKED';
-  if (DETECTOR_TYPE_MAP[detector] && (!type || type === detector)) return DETECTOR_TYPE_MAP[detector];
+  if (DETECTOR_TYPE_MAP[detector] && (!type || type === detector))
+    return DETECTOR_TYPE_MAP[detector];
   return type || 'SECURITY_EVENT';
 }
 
 function normalizeDetector(detector) {
   return DETECTOR_NAME_MAP[detector] || detector || undefined;
+}
+
+function normalizeDetectorType(detector) {
+  if (!detector) return undefined;
+  if (DETECTOR_NAME_MAP[detector]) return detector;
+  return DETECTOR_TYPE_BY_SLUG[detector] || detector;
 }
 
 function moduleForType(type) {
@@ -118,14 +134,17 @@ function moduleForType(type) {
 }
 
 function severityForType(type) {
-  if (type.includes('SQL') || type.includes('NOSQL') || type.includes('BRUTE_FORCE_BLOCK')) return 'high';
-  if (type.includes('BLOCKED') || type.includes('RATE_LIMIT') || type.includes('STORE')) return 'medium';
+  if (type.includes('SQL') || type.includes('NOSQL') || type.includes('BRUTE_FORCE_BLOCK'))
+    return 'high';
+  if (type.includes('BLOCKED') || type.includes('RATE_LIMIT') || type.includes('STORE'))
+    return 'medium';
   if (type.includes('RESET')) return 'low';
   return 'medium';
 }
 
 function actionForType(type) {
-  if (type.includes('BLOCKED') || type.includes('EXCEEDED') || type.includes('BAN_HIT')) return 'blocked';
+  if (type.includes('BLOCKED') || type.includes('EXCEEDED') || type.includes('BAN_HIT'))
+    return 'blocked';
   if (type.includes('ATTEMPT')) return 'observed';
   if (type.includes('RESET')) return 'reset';
   if (type.includes('ERROR')) return 'error';
@@ -150,4 +169,6 @@ module.exports = {
   createHookErrorEvent,
   createEventId,
   normalizeType,
+  normalizeDetector,
+  normalizeDetectorType,
 };
