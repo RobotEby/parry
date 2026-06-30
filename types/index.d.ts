@@ -59,7 +59,10 @@ export interface Parry_DDoSOptions {
   /** Admin API metadata. The router is never mounted automatically. */
   admin?: {
     enabled?: boolean;
+    path?: string;
     allowMutations?: boolean;
+    allowInsecureAdminApi?: boolean;
+    auth?: AdminAuthConfig;
   };
   /** Request id configuration. Default: enabled with x-request-id input and no response header. */
   requestId?: {
@@ -69,7 +72,7 @@ export interface Parry_DDoSOptions {
   };
   /** Trust x-forwarded-for only when the direct peer matches trustedProxies. Default: false */
   trustProxyHeaders?: boolean;
-  /** Exact proxy IPs allowed to provide x-forwarded-for. CIDR matching is not implemented. */
+  /** Proxy IPs or CIDRs allowed to provide forwarded client IP headers. */
   trustedProxies?: string[];
   /** Emits extra internal observability events where supported. Default: false */
   debug?: boolean;
@@ -241,9 +244,65 @@ export interface MetricsSnapshot {
   eventsByAction: Record<string, number>;
 }
 
+export type AdminAuthMode = 'none' | 'token' | 'ip-allowlist' | 'trusted-proxy' | 'combined';
+
+export interface AdminTokenAuthConfig {
+  mode: 'token';
+  token: string;
+  header?: string;
+  trustProxyHeaders?: boolean;
+  trustedProxies?: string[];
+}
+
+export interface AdminIpAllowlistAuthConfig {
+  mode: 'ip-allowlist';
+  allowedIps: string[];
+  trustProxyHeaders?: boolean;
+  trustedProxies?: string[];
+}
+
+export interface AdminTrustedProxyAuthConfig {
+  mode: 'trusted-proxy';
+  trustedProxies: string[];
+  requiredHeaders?: Record<string, string>;
+  userHeader?: string;
+  emailHeader?: string;
+  rolesHeader?: string;
+  proxySharedSecretHeader?: string;
+  proxySharedSecret?: string;
+}
+
+export interface AdminNoneAuthConfig {
+  mode: 'none';
+  allowInsecureAdminApi?: boolean;
+}
+
+export type AdminAuthStrategyConfig =
+  | AdminTokenAuthConfig
+  | AdminIpAllowlistAuthConfig
+  | AdminTrustedProxyAuthConfig
+  | AdminNoneAuthConfig;
+
+export interface AdminCombinedAuthConfig {
+  mode: 'combined';
+  allowAny?: AdminAuthStrategyConfig[];
+  requireAll?: AdminAuthStrategyConfig[];
+}
+
+export type AdminAuthConfig = AdminAuthStrategyConfig | AdminCombinedAuthConfig;
+
+export interface ParryAdminContext {
+  authenticated: true;
+  strategy: AdminAuthMode | 'callback';
+  subject: string;
+  email: string | null;
+  roles: string[];
+  ip: string;
+}
+
 export interface AdminRouterOptions {
   requireAuth?: boolean;
-  auth?: (req: Request) => boolean | Promise<boolean>;
+  auth?: ((req: Request) => boolean | Promise<boolean>) | AdminAuthConfig;
 }
 
 export interface ParryInstance {
@@ -458,5 +517,6 @@ export declare function createParryAdminRouter(
 declare module 'express-serve-static-core' {
   interface Request {
     parry?: ParryRequestContext;
+    parryAdmin?: ParryAdminContext;
   }
 }
