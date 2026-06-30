@@ -123,8 +123,8 @@ None.
     "high": 54
   },
   "eventsByDetector": {
-    "SQL_INJECTION": 12,
-    "XSS": 8
+    "sql": 12,
+    "xss": 8
   },
   "eventsByAction": {
     "blocked": 94
@@ -156,7 +156,7 @@ Returns recent sanitized threat events.
 | `type`       | string  | Example: `SQL_INJECTION_BLOCKED`.                                |
 | `severity`   | string  | `low`, `medium`, `high`, or `critical`.                          |
 | `action`     | string  | Example: `blocked`, `observed`, `error`.                         |
-| `detector`   | string  | Internal detector value, for example `SQL_INJECTION`.            |
+| `detector`   | string  | Public detector slug, for example `sql`. Legacy detector types are also accepted for compatibility. |
 | `ip`         | string  | Exact IP filter.                                                 |
 | `path`       | string  | Exact path filter, for example `/login`.                         |
 | `policyName` | string  | Exact policy name filter.                                        |
@@ -170,8 +170,8 @@ Returns recent sanitized threat events.
       "id": "evt_lx9a1b_1",
       "type": "SQL_INJECTION_BLOCKED",
       "module": "detector",
-      "detector": "SQL_INJECTION",
-      "detectorSlug": "sql",
+      "detector": "sql",
+      "detectorType": "SQL_INJECTION",
       "severity": "high",
       "action": "blocked",
       "reason": "SQL injection pattern detected",
@@ -223,8 +223,8 @@ Returns one sanitized threat event by id.
   "id": "evt_lx9a1b_1",
   "type": "SQL_INJECTION_BLOCKED",
   "module": "detector",
-  "detector": "SQL_INJECTION",
-  "detectorSlug": "sql",
+  "detector": "sql",
+  "detectorType": "SQL_INJECTION",
   "severity": "high",
   "action": "blocked",
   "reason": "SQL injection pattern detected",
@@ -250,7 +250,7 @@ Returns one sanitized threat event by id.
 
 ## GET /\_parry/bans
 
-Returns active bans when the configured store exposes a safe ban snapshot. MemoryStore supports this. Stores without a snapshot return an empty list.
+Returns active temporary bans and brute force blocks when the configured store exposes a safe administrative snapshot. MemoryStore and RedisStore support this. Stores without a snapshot return an empty list.
 
 ### Query Params
 
@@ -265,11 +265,13 @@ Returns active bans when the configured store exposes a safe ban snapshot. Memor
 {
   "data": [
     {
-      "key": "203.0.113.25",
-      "banExpiresAt": 1782734520000,
-      "metadata": {
-        "reason": "temporary application-layer ban"
-      }
+      "key": "ip:203.0.113.25",
+      "type": "ip",
+      "reason": "temporary application-layer ban",
+      "policyName": null,
+      "createdAt": "2026-06-29T12:00:00.000Z",
+      "expiresAt": "2026-06-29T12:10:00.000Z",
+      "ttlMs": 600000
     }
   ],
   "pagination": {
