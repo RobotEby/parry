@@ -200,7 +200,7 @@ async function runAll() {
   assert(
     'Admin unauthorized helper returns stable 401 error shape',
     resUnauthorized._status === 401 &&
-      resUnauthorized._body.error === 'Unauthorized' &&
+      resUnauthorized._body.error.code === 'ADMIN_UNAUTHORIZED' &&
       resUnauthorized._body.code === 'ADMIN_UNAUTHORIZED'
   );
 
