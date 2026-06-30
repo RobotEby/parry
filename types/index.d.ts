@@ -244,7 +244,15 @@ export interface MetricsSnapshot {
   eventsByAction: Record<string, number>;
 }
 
-export type AdminAuthMode = 'none' | 'token' | 'ip-allowlist' | 'trusted-proxy' | 'combined';
+export type AdminAuthMode =
+  | 'none'
+  | 'token'
+  | 'ip-allowlist'
+  | 'trusted-proxy'
+  | 'cloudflare-access'
+  | 'alb-auth'
+  | 'cognito-alb'
+  | 'combined';
 
 export interface AdminTokenAuthConfig {
   mode: 'token';
@@ -272,6 +280,29 @@ export interface AdminTrustedProxyAuthConfig {
   proxySharedSecret?: string;
 }
 
+export interface AdminExternalAuthBoundaryConfig {
+  trustedProxies?: string[];
+  proxySharedSecretHeader?: string;
+  proxySharedSecret?: string;
+  allowedEmails?: string[];
+  allowedDomains?: string[];
+  verifyJwt?: boolean;
+}
+
+export interface AdminCloudflareAccessAuthConfig extends AdminExternalAuthBoundaryConfig {
+  mode: 'cloudflare-access';
+  emailHeader?: string;
+  jwtHeader?: string;
+}
+
+export interface AdminAlbAuthConfig extends AdminExternalAuthBoundaryConfig {
+  mode: 'alb-auth' | 'cognito-alb';
+  userHeader?: string;
+  dataHeader?: string;
+  emailHeader?: string;
+  allowedSubjects?: string[];
+}
+
 export interface AdminNoneAuthConfig {
   mode: 'none';
   allowInsecureAdminApi?: boolean;
@@ -281,6 +312,8 @@ export type AdminAuthStrategyConfig =
   | AdminTokenAuthConfig
   | AdminIpAllowlistAuthConfig
   | AdminTrustedProxyAuthConfig
+  | AdminCloudflareAccessAuthConfig
+  | AdminAlbAuthConfig
   | AdminNoneAuthConfig;
 
 export interface AdminCombinedAuthConfig {
