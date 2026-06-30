@@ -1,6 +1,13 @@
 'use strict';
 
-const FORBIDDEN_SEGMENTS = new Set(['password', 'pass', 'token', 'authorization', 'cookie', 'secret']);
+const FORBIDDEN_SEGMENTS = new Set([
+  'password',
+  'pass',
+  'token',
+  'authorization',
+  'cookie',
+  'secret',
+]);
 
 function buildBruteForceKeys(policy, requestData) {
   const bruteForce = policy?.bruteForce || {};
@@ -41,7 +48,10 @@ function buildKey(policyName, spec, requestData, namespace) {
   const type = String(spec || '').trim();
   if (!type || containsForbiddenSegment(type)) return null;
 
-  const parts = type.split('+').map((part) => part.trim()).filter(Boolean);
+  const parts = type
+    .split('+')
+    .map((part) => part.trim())
+    .filter(Boolean);
   const values = [];
 
   for (const part of parts) {
@@ -84,7 +94,9 @@ function resolveValue(path, requestData) {
     case 'ip':
       return normalizeScalar(requestData.ip);
     case 'userAgent':
-      return normalizeScalar(requestData.headers?.['user-agent'] || requestData.headers?.['User-Agent']);
+      return normalizeScalar(
+        requestData.headers?.['user-agent'] || requestData.headers?.['User-Agent']
+      );
     case 'method':
       return normalizeScalar(requestData.method).toUpperCase();
     case 'path':
