@@ -18,6 +18,7 @@ function assert(description, condition) {
 class FakeRedisClient {
   constructor() {
     this.records = new Map();
+    this.sets = new Map();
     this.calls = [];
   }
 
@@ -50,6 +51,30 @@ class FakeRedisClient {
       if (this.records.delete(key)) removed++;
     }
     return removed;
+  }
+
+  async sAdd(key, member) {
+    this.calls.push(['sAdd', key, member]);
+    const set = this.sets.get(key) || new Set();
+    set.add(member);
+    this.sets.set(key, set);
+    return 1;
+  }
+
+  async sRem(key, member) {
+    this.calls.push(['sRem', key, member]);
+    const set = this.sets.get(key);
+    if (!set) return 0;
+    const removed = set.delete(member);
+    return removed ? 1 : 0;
+  }
+
+  async sScan(key, cursor) {
+    this.calls.push(['sScan', key, cursor]);
+    return {
+      cursor: 0,
+      members: [...(this.sets.get(key) || [])],
+    };
   }
 
   async incr(key) {
@@ -96,7 +121,7 @@ async function runAll() {
   }
   assert(
     'Throws clear error when client is invalid',
-    invalidError?.message.includes('get, set, del, incr and pExpire/pTTL')
+    invalidError?.message.includes('pExpire/pTTL and Set index support')
   );
 
   const client = new FakeRedisClient();
@@ -118,6 +143,13 @@ async function runAll() {
     )
   );
   assert('isBanned reads active ban', (await store.isBanned('10.0.0.2')).banned);
+  const listedBans = await store.listBans();
+  assert('listBans returns indexed active ban', listedBans.some((entry) => entry.key === '10.0.0.2'));
+  assert(
+    'listBans uses Redis Set index without KEYS',
+    client.calls.some((call) => call[0] === 'sScan' && call[1] === 'parry-test:index:bans') &&
+      !client.calls.some((call) => call[0] === 'keys')
+  );
 
   await store.unban('10.0.0.2');
   assert('unban removes ban key', !(await store.isBanned('10.0.0.2')).banned);
@@ -144,6 +176,16 @@ async function runAll() {
   assert(
     'blockKey uses namespaced block key',
     client.calls.some((call) => call[0] === 'set' && call[1] === 'parry-test:bf:auth-login:ip:10.0.0.5:block')
+  );
+  const listedBlocks = await store.listBlocks();
+  assert(
+    'listBlocks returns indexed active block',
+    listedBlocks.some((entry) => entry.key === 'bf:auth-login:ip:10.0.0.5')
+  );
+  assert(
+    'listBlocks uses Redis Set index without KEYS',
+    client.calls.some((call) => call[0] === 'sScan' && call[1] === 'parry-test:index:blocks') &&
+      !client.calls.some((call) => call[0] === 'keys')
   );
   await store.unblockKey('bf:auth-login:ip:10.0.0.5');
   assert('unblockKey removes generic block', !(await store.isBlocked('bf:auth-login:ip:10.0.0.5')).blocked);
