@@ -6,6 +6,8 @@ const { authenticateIpAllowlist } = require('./strategies/ip-allowlist');
 const { authenticateTrustedProxy } = require('./strategies/trusted-proxy');
 const { authenticateCombined } = require('./strategies/combined');
 const { authenticateNone } = require('./strategies/none');
+const { authenticateCloudflareAccess } = require('./strategies/cloudflare-access');
+const { authenticateAlbAuth } = require('./strategies/alb-auth');
 
 function requireAdminAuth(options = {}, context = null) {
   if (typeof options.auth === 'function') return createLegacyCallbackMiddleware(options.auth);
@@ -50,6 +52,12 @@ async function authenticateAdminRequest(req, config, context = {}) {
   if (mode === 'token') return authenticateToken(req, config, context);
   if (mode === 'ip-allowlist') return authenticateIpAllowlist(req, config, context);
   if (mode === 'trusted-proxy') return authenticateTrustedProxy(req, config, context);
+  if (mode === 'cloudflare-access') {
+    return authenticateCloudflareAccess(req, { ...config, mode }, context);
+  }
+  if (mode === 'alb-auth' || mode === 'cognito-alb') {
+    return authenticateAlbAuth(req, { ...config, mode }, context);
+  }
   if (mode === 'combined') return authenticateCombined(req, config, context);
   if (mode === 'none') return authenticateNone(req, config, context);
 
@@ -69,6 +77,10 @@ function validateAdminAuthConfig(config, context = {}) {
 
   if (mode === 'trusted-proxy' && !hasNonEmptyArray(config.trustedProxies)) {
     throw new Error('Admin API trusted-proxy auth requires trustedProxies.');
+  }
+
+  if (mode === 'cloudflare-access' || mode === 'alb-auth' || mode === 'cognito-alb') {
+    validateExternalAuthConfig(mode, config);
   }
 
   if (mode === 'combined') {
@@ -99,6 +111,21 @@ function validateAdminAuthConfig(config, context = {}) {
   }
 }
 
+function validateExternalAuthConfig(mode, config) {
+  if (config.verifyJwt === true) {
+    throw new Error(
+      `Admin API auth mode "${mode}" does not implement cryptographic JWT/JWKS verification in this version.`
+    );
+  }
+
+  const hasTrustedProxies = hasNonEmptyArray(config.trustedProxies);
+  const hasSharedSecret = hasNonEmptyString(config.proxySharedSecret);
+
+  if (!hasTrustedProxies && !hasSharedSecret) {
+    throw new Error(`Admin API auth mode "${mode}" requires trustedProxies or proxySharedSecret.`);
+  }
+}
+
 function createLegacyCallbackMiddleware(authCallback) {
   return async function legacyAdminAuthMiddleware(req, res, next) {
     try {
@@ -125,9 +152,11 @@ function isAuthConfig(value) {
 }
 
 function normalizeMode(mode) {
-  return String(mode || 'token')
+  const normalized = String(mode || 'token')
     .trim()
     .toLowerCase();
+  if (normalized === 'alb-cognito') return 'cognito-alb';
+  return normalized;
 }
 
 function hasNonEmptyString(value) {
