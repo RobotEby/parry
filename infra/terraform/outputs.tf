@@ -42,3 +42,11 @@ output "cloudwatch_log_group_name" {
   description = "CloudWatch log group used by ECS tasks."
   value       = module.observability.log_group_name
 }
+
+output "vpc_endpoint_ids" {
+  description = "Created VPC endpoint ids when enable_vpc_endpoints is true."
+  value = var.enable_vpc_endpoints ? concat(
+    [for endpoint in aws_vpc_endpoint.interface : endpoint.id],
+    [aws_vpc_endpoint.s3[0].id]
+  ) : []
+}
