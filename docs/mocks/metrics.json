@@ -18,9 +18,9 @@
     "high": 54
   },
   "eventsByDetector": {
-    "SQL_INJECTION": 12,
-    "XSS": 8,
-    "BRUTE_FORCE": 4
+    "sql": 12,
+    "xss": 8,
+    "brute-force": 4
   },
   "eventsByAction": {
     "blocked": 94,
