@@ -1,7 +1,7 @@
 'use strict';
 
 const http = require('http');
-const { createDemoApp } = require('../../docker/demo-api/app');
+const { createDemoApp, buildAdminAuthConfig } = require('../../docker/demo-api/app');
 
 let passed = 0,
   failed = 0;
@@ -103,6 +103,74 @@ async function runAll() {
     assert('Demo Admin API supports trusted-proxy mode', trustedProxyAdmin.status === 200);
   } finally {
     await close(trustedProxyServer);
+  }
+
+  const cloudflareConfig = buildAdminAuthConfig({
+    PARRY_ADMIN_AUTH_MODE: 'cloudflare-access',
+    PARRY_ADMIN_TRUSTED_PROXIES: '127.0.0.1',
+    PARRY_ADMIN_ALLOWED_EMAILS: 'admin@example.com,owner@example.com',
+    PARRY_ADMIN_ALLOWED_DOMAINS: 'example.com',
+    PARRY_CLOUDFLARE_EMAIL_HEADER: 'cf-access-authenticated-user-email',
+  });
+  assert(
+    'Demo env parser supports Cloudflare Access mode',
+    cloudflareConfig.mode === 'cloudflare-access' &&
+      cloudflareConfig.trustedProxies[0] === '127.0.0.1' &&
+      cloudflareConfig.allowedEmails.length === 2 &&
+      cloudflareConfig.allowedDomains[0] === 'example.com'
+  );
+
+  const { app: cloudflareApp } = createDemoApp({
+    env: {
+      PARRY_ADMIN_AUTH_MODE: 'cloudflare-access',
+      PARRY_ADMIN_TRUSTED_PROXIES: '127.0.0.1',
+      PARRY_ADMIN_ALLOWED_DOMAINS: 'example.com',
+      PARRY_RATE_LIMIT_ENABLED: 'false',
+      PARRY_LOG_THREATS: 'false',
+    },
+  });
+  const cloudflareServer = await listen(cloudflareApp);
+  try {
+    const cloudflareAdmin = await request(cloudflareServer, 'GET', '/_parry/health', null, {
+      'cf-access-authenticated-user-email': 'admin@example.com',
+    });
+    assert('Demo Admin API supports Cloudflare Access mode', cloudflareAdmin.status === 200);
+  } finally {
+    await close(cloudflareServer);
+  }
+
+  const albConfig = buildAdminAuthConfig({
+    PARRY_ADMIN_AUTH_MODE: 'cognito-alb',
+    PARRY_ADMIN_TRUSTED_PROXIES: '127.0.0.1',
+    PARRY_ADMIN_ALLOWED_SUBJECTS: 'subject-123',
+    PARRY_ADMIN_ALLOWED_DOMAINS: 'example.com',
+    PARRY_ALB_USER_HEADER: 'x-amzn-oidc-identity',
+    PARRY_ALB_DATA_HEADER: 'x-amzn-oidc-data',
+  });
+  assert(
+    'Demo env parser supports Cognito ALB mode',
+    albConfig.mode === 'cognito-alb' &&
+      albConfig.allowedSubjects[0] === 'subject-123' &&
+      albConfig.allowedDomains[0] === 'example.com'
+  );
+
+  const { app: albApp } = createDemoApp({
+    env: {
+      PARRY_ADMIN_AUTH_MODE: 'cognito-alb',
+      PARRY_ADMIN_TRUSTED_PROXIES: '127.0.0.1',
+      PARRY_ADMIN_ALLOWED_SUBJECTS: 'subject-123',
+      PARRY_RATE_LIMIT_ENABLED: 'false',
+      PARRY_LOG_THREATS: 'false',
+    },
+  });
+  const albServer = await listen(albApp);
+  try {
+    const albAdmin = await request(albServer, 'GET', '/_parry/health', null, {
+      'x-amzn-oidc-identity': 'subject-123',
+    });
+    assert('Demo Admin API supports Cognito ALB mode', albAdmin.status === 200);
+  } finally {
+    await close(albServer);
   }
 
   return { passed, failed };
