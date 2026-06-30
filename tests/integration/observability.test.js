@@ -109,9 +109,11 @@ function runRouter(router, path, options = {}) {
       method: options.method || 'GET',
       url: path,
       originalUrl: path,
+      ip: options.ip || '127.0.0.1',
       headers: options.headers || {},
       query: options.query || {},
       params: {},
+      socket: { remoteAddress: options.remoteAddress || options.ip || '127.0.0.1' },
     };
     const res = mockRes((response) => resolve({ req, res: response }));
     router.handle(req, res, (error) => {
@@ -499,6 +501,48 @@ async function runAll() {
     headers: { 'x-parry-admin-token': 'context-token' },
   });
   assert('Admin router allows context token config', contextAllowed.res._status === 200);
+
+  const contextCloudflareParry = createParry({
+    rateLimit: false,
+    logThreats: false,
+    admin: {
+      enabled: true,
+      auth: {
+        mode: 'cloudflare-access',
+        trustedProxies: ['127.0.0.1'],
+        allowedDomains: ['example.com'],
+      },
+    },
+  });
+  const contextCloudflareRouter = createParryAdminRouter(contextCloudflareParry);
+  const contextCloudflareAllowed = await runRouter(contextCloudflareRouter, '/health', {
+    headers: { 'cf-access-authenticated-user-email': 'admin@example.com' },
+  });
+  assert(
+    'Admin router applies Cloudflare Access config from Parry context',
+    contextCloudflareAllowed.res._status === 200
+  );
+
+  const contextAlbParry = createParry({
+    rateLimit: false,
+    logThreats: false,
+    admin: {
+      enabled: true,
+      auth: {
+        mode: 'cognito-alb',
+        trustedProxies: ['127.0.0.1'],
+        allowedSubjects: ['subject-from-context'],
+      },
+    },
+  });
+  const contextAlbRouter = createParryAdminRouter(contextAlbParry);
+  const contextAlbAllowed = await runRouter(contextAlbRouter, '/health', {
+    headers: { 'x-amzn-oidc-identity': 'subject-from-context' },
+  });
+  assert(
+    'Admin router applies Cognito ALB config from Parry context',
+    contextAlbAllowed.res._status === 200
+  );
 
   return { passed, failed };
 }
