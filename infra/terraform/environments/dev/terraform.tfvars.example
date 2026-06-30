@@ -16,6 +16,11 @@ memory        = 512
 # Secrets Manager/SSM, and S3 access.
 enable_nat_gateway = false
 
+# Disabled by default to avoid surprise endpoint hourly cost. Enable when NAT is
+# off and private ECS tasks must pull ECR images, write logs, and read
+# Secrets Manager/SSM values.
+enable_vpc_endpoints = false
+
 enable_cloudfront     = true
 enable_https          = false
 acm_certificate_arn   = ""
