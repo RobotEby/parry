@@ -42,3 +42,8 @@ output "cloudwatch_log_group_name" {
   description = "CloudWatch log group name."
   value       = module.parry.cloudwatch_log_group_name
 }
+
+output "vpc_endpoint_ids" {
+  description = "VPC endpoint ids when enabled."
+  value       = module.parry.vpc_endpoint_ids
+}
