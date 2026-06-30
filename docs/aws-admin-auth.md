@@ -56,7 +56,7 @@ Store OIDC client secrets in AWS Secrets Manager or SSM Parameter Store. Do not 
 
 ## Terraform Status
 
-The current Terraform reference does not automatically create the `/_parry/*` ALB auth listener rule. That is intentional for this phase: a safe implementation needs HTTPS-only listeners, Cognito/OIDC secrets, rule ordering, path precedence, and environment-specific decisions.
+The Terraform reference does not automatically create the `/_parry/*` ALB auth listener rule because Cognito/OIDC configuration, HTTPS listener setup, rule ordering, path precedence, and secret handling vary by environment.
 
 Suggested future variables:
 
