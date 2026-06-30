@@ -1,3 +1,11 @@
+<p align="center">
+  <img
+    src="./assets/924f0e98-4990-4f1f-8d82-97919378d1f4.png"
+    alt="Parry"
+    width="100%"
+  />
+</p>
+
 # Parry
 
 Application-layer security middleware for Express.js.
