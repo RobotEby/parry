@@ -8,7 +8,12 @@ const {
   finalizeAuthenticationResult,
   createBruteForceEvent,
 } = require('./brute-force-guard');
-const { buildBruteForceKeys, buildRouteRateLimitKey, buildKey, resolveValue } = require('./key-builder');
+const {
+  buildBruteForceKeys,
+  buildRouteRateLimitKey,
+  buildKey,
+  resolveValue,
+} = require('./key-builder');
 const { createBlockedResponse, retryAfterSeconds } = require('./result');
 
 module.exports = {
