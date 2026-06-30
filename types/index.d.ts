@@ -67,6 +67,10 @@ export interface Parry_DDoSOptions {
     header?: string;
     responseHeader?: false | string;
   };
+  /** Trust x-forwarded-for only when the direct peer matches trustedProxies. Default: false */
+  trustProxyHeaders?: boolean;
+  /** Exact proxy IPs allowed to provide x-forwarded-for. CIDR matching is not implemented. */
+  trustedProxies?: string[];
   /** Emits extra internal observability events where supported. Default: false */
   debug?: boolean;
   /** Suspicious attempts before temporary ban. Default: 5 */
@@ -142,7 +146,8 @@ export interface ThreatLogEntry {
   method?: string;
   url?: string;
   path?: string;
-  detector?: DetectorType;
+  detector?: string;
+  detectorType?: DetectorType | string;
   detectorSlug?: string;
   severity?: ThreatSeverity;
   action?: ThreatAction;
@@ -270,6 +275,7 @@ export interface StoreBanResult {
   key: string;
   banned: boolean;
   banExpiresAt: number | null;
+  createdAt?: number;
   metadata?: unknown;
 }
 
@@ -291,6 +297,9 @@ export interface RateLimitStore {
   blockKey(key: string, ttlMs: number, metadata?: unknown): StoreBlockResult | Promise<StoreBlockResult>;
   isBlocked(key: string): StoreBlockResult | Promise<StoreBlockResult>;
   unblockKey(key: string): unknown;
+  listBans?(options?: unknown): BanSnapshot[] | Promise<BanSnapshot[]>;
+  listBlocks?(options?: unknown): BlockSnapshot[] | Promise<BlockSnapshot[]>;
+  getStoreInfo?(): unknown;
   close?(): unknown;
 }
 
@@ -298,6 +307,7 @@ export interface StoreBlockResult {
   key: string;
   blocked: boolean;
   blockExpiresAt: number | null;
+  createdAt?: number;
   metadata?: unknown;
 }
 
@@ -311,7 +321,17 @@ export interface IPSnapshot {
 
 export interface BanSnapshot {
   key: string;
+  createdAt?: number;
   banExpiresAt: number;
+  ttlMs?: number;
+  metadata?: unknown;
+}
+
+export interface BlockSnapshot {
+  key: string;
+  createdAt?: number;
+  blockExpiresAt: number;
+  ttlMs?: number;
   metadata?: unknown;
 }
 
@@ -348,6 +368,8 @@ export declare class MemoryStore implements RateLimitStore {
   cleanup(now?: number): void;
   snapshot(windowMs: number): IPSnapshot[];
   listBans(): BanSnapshot[];
+  listBlocks(): BlockSnapshot[];
+  getStoreInfo(): unknown;
   clear(): void;
   close(): void;
 }
@@ -367,6 +389,9 @@ export declare class RedisStore implements RateLimitStore {
   blockKey(key: string, ttlMs: number, metadata?: unknown): Promise<StoreBlockResult>;
   isBlocked(key: string): Promise<StoreBlockResult>;
   unblockKey(key: string): Promise<unknown>;
+  listBans(): Promise<BanSnapshot[]>;
+  listBlocks(): Promise<BlockSnapshot[]>;
+  getStoreInfo(): unknown;
   close(): Promise<unknown>;
 }
 
