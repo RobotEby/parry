@@ -4,8 +4,8 @@ const express = require('express');
 const pkg = require('../../package.json');
 const { requireAdminAuth } = require('./auth');
 const { ok, notFound } = require('./response');
-const { describeStore, sanitizePolicies, countActiveBans } = require('../observability');
-const { sanitizeEvent } = require('../events/sanitize-event');
+const { listAdminBanEntries } = require('./ban-normalizer');
+const { describeStore, sanitizePolicies } = require('../observability');
 
 function createParryAdminRouter(parry, options = {}) {
   const context = resolveParryContext(parry);
@@ -26,8 +26,12 @@ function createParryAdminRouter(parry, options = {}) {
     })
   );
 
-  router.get('/metrics', (_req, res) =>
-    ok(res, context.metrics.snapshot({ activeBans: countActiveBans(context.store) }))
+  router.get(
+    '/metrics',
+    asyncRoute(async (_req, res) => {
+      const activeBans = (await listAdminBanEntries(context.store)).length;
+      return ok(res, context.metrics.snapshot({ activeBans }));
+    })
   );
 
   router.get('/events', (req, res) => {
@@ -51,13 +55,13 @@ function createParryAdminRouter(parry, options = {}) {
     return ok(res, event);
   });
 
-  router.get('/bans', (req, res) => {
-    const data =
-      context.store && typeof context.store.listBans === 'function'
-        ? context.store.listBans().map((entry) => sanitizeEvent(entry))
-        : [];
-    return ok(res, paginateList(data, req.query));
-  });
+  router.get(
+    '/bans',
+    asyncRoute(async (req, res) => {
+      const data = await listAdminBanEntries(context.store, req.query);
+      return ok(res, paginateList(data, req.query));
+    })
+  );
 
   router.get('/policies', (req, res) =>
     ok(res, paginateList(sanitizePolicies(context.policies || []), req.query))
@@ -91,6 +95,12 @@ function clampNumber(value, fallback, min, max) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, Math.floor(parsed)));
+}
+
+function asyncRoute(handler) {
+  return function routeHandler(req, res, next) {
+    Promise.resolve(handler(req, res, next)).catch(next);
+  };
 }
 
 module.exports = { createParryAdminRouter, resolveParryContext };
