@@ -14,7 +14,7 @@ function createParryAdminRouter(parry, options = {}) {
   }
 
   const router = express.Router();
-  router.use(requireAdminAuth(options));
+  router.use(requireAdminAuth(options, context));
 
   router.get('/health', (_req, res) =>
     ok(res, {
