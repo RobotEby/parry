@@ -44,9 +44,10 @@ class MemoryStore {
 
   ban(key, ttlMs, metadata = {}) {
     const normalizedKey = normalizeKey(key);
+    const createdAt = Date.now();
     const expiresAt = Date.now() + ttlMs;
-    this.bans.set(normalizedKey, { expiresAt, metadata });
-    return { key: normalizedKey, banned: true, banExpiresAt: expiresAt, metadata };
+    this.bans.set(normalizedKey, { createdAt, expiresAt, metadata });
+    return { key: normalizedKey, banned: true, createdAt, banExpiresAt: expiresAt, metadata };
   }
 
   isBanned(key) {
@@ -65,6 +66,7 @@ class MemoryStore {
     return {
       key: normalizedKey,
       banned: true,
+      createdAt: entry.createdAt || null,
       banExpiresAt: entry.expiresAt,
       metadata: entry.metadata || null,
     };
@@ -126,9 +128,10 @@ class MemoryStore {
 
   blockKey(key, ttlMs, metadata = {}) {
     const normalizedKey = normalizeKey(key);
+    const createdAt = Date.now();
     const blockExpiresAt = Date.now() + ttlMs;
-    this.blocks.set(normalizedKey, { blockExpiresAt, metadata });
-    return { key: normalizedKey, blocked: true, blockExpiresAt, metadata };
+    this.blocks.set(normalizedKey, { createdAt, blockExpiresAt, metadata });
+    return { key: normalizedKey, blocked: true, createdAt, blockExpiresAt, metadata };
   }
 
   isBlocked(key) {
@@ -145,6 +148,7 @@ class MemoryStore {
     return {
       key: normalizedKey,
       blocked: true,
+      createdAt: entry.createdAt || null,
       blockExpiresAt: entry.blockExpiresAt,
       metadata: entry.metadata || null,
     };
@@ -214,9 +218,31 @@ class MemoryStore {
 
     return [...this.bans.entries()].map(([key, entry]) => ({
       key,
+      createdAt: entry.createdAt || null,
       banExpiresAt: entry.expiresAt,
+      ttlMs: Math.max(0, entry.expiresAt - now),
       metadata: entry.metadata || null,
     }));
+  }
+
+  listBlocks() {
+    const now = Date.now();
+    this.cleanup(now);
+
+    return [...this.blocks.entries()].map(([key, entry]) => ({
+      key,
+      createdAt: entry.createdAt || null,
+      blockExpiresAt: entry.blockExpiresAt,
+      ttlMs: Math.max(0, entry.blockExpiresAt - now),
+      metadata: entry.metadata || null,
+    }));
+  }
+
+  getStoreInfo() {
+    return {
+      type: 'memory',
+      supportsAdminListing: true,
+    };
   }
 
   clear() {
