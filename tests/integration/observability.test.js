@@ -195,6 +195,8 @@ async function runAll() {
   );
   assert('Blocked request generates structured event', threatEvents.pagination.total === 1);
   assert('onThreat receives structured event', structuredThreat?.type === 'SQL_INJECTION_BLOCKED');
+  assert('Structured event exposes detector slug', structuredThreat?.detector === 'sql');
+  assert('Structured event preserves detectorType', structuredThreat?.detectorType === 'SQL_INJECTION');
   assert(
     'Structured event includes request id',
     structuredThreat?.requestId === 'req-integration-1'
@@ -424,10 +426,41 @@ async function runAll() {
 
   const bans = await runRouter(adminRouter, '/bans');
   assert(
-    'GET /bans returns active bans for MemoryStore',
-    bans.res._body.data.some((ban) => ban.key === '10.50.0.7')
+    'GET /bans returns normalized active bans for MemoryStore',
+    bans.res._body.data.some(
+      (ban) =>
+        ban.key === 'ip:10.50.0.7' &&
+        ban.type === 'ip' &&
+        typeof ban.reason === 'string' &&
+        typeof ban.createdAt === 'string' &&
+        typeof ban.expiresAt === 'string' &&
+        typeof ban.ttlMs === 'number'
+    )
   );
   assert('GET /bans returns pagination metadata', bans.res._body.pagination.total >= 1);
+
+  const blockParry = createParry({
+    rateLimit: false,
+    logThreats: false,
+    policies: [loginPolicy()],
+  });
+  await runWithRoute(blockParry.middleware(), loginReq('10.50.0.9'), invalidLogin);
+  await runWithRoute(blockParry.middleware(), loginReq('10.50.0.9'), invalidLogin);
+  const blockRouter = createParryAdminRouter(blockParry);
+  const blockBans = await runRouter(blockRouter, '/bans');
+  assert(
+    'GET /bans includes brute force blocks',
+    blockBans.res._body.data.some(
+      (ban) =>
+        ban.type === 'brute-force' &&
+        ban.policyName === 'auth-login' &&
+        ban.reason === 'max_attempts_exceeded'
+    )
+  );
+  assert(
+    'GET /bans does not expose sensitive metadata fields',
+    !JSON.stringify(blockBans.res._body).includes('super-secret')
+  );
 
   const policies = await runRouter(adminRouter, '/policies');
   assert(
