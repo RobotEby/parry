@@ -30,7 +30,9 @@ function normalizePolicy(policy, options = {}) {
 
   const bruteForceDisabled =
     options.bruteForce === false ||
-    (options.bruteForce && typeof options.bruteForce === 'object' && options.bruteForce.enabled === false);
+    (options.bruteForce &&
+      typeof options.bruteForce === 'object' &&
+      options.bruteForce.enabled === false);
 
   return {
     name: String(policy.name),
@@ -61,9 +63,18 @@ function normalizeBruteForce(bruteForce, forceDisabled) {
     ...BRUTE_FORCE_DEFAULTS,
     ...bruteForce,
     enabled: true,
-    keys: Array.isArray(bruteForce.keys) && bruteForce.keys.length > 0 ? bruteForce.keys : BRUTE_FORCE_DEFAULTS.keys,
-    failureStatusCodes: normalizeStatusList(bruteForce.failureStatusCodes, BRUTE_FORCE_DEFAULTS.failureStatusCodes),
-    successStatusCodes: normalizeStatusList(bruteForce.successStatusCodes, BRUTE_FORCE_DEFAULTS.successStatusCodes),
+    keys:
+      Array.isArray(bruteForce.keys) && bruteForce.keys.length > 0
+        ? bruteForce.keys
+        : BRUTE_FORCE_DEFAULTS.keys,
+    failureStatusCodes: normalizeStatusList(
+      bruteForce.failureStatusCodes,
+      BRUTE_FORCE_DEFAULTS.failureStatusCodes
+    ),
+    successStatusCodes: normalizeStatusList(
+      bruteForce.successStatusCodes,
+      BRUTE_FORCE_DEFAULTS.successStatusCodes
+    ),
     resetOnSuccess: bruteForce.resetOnSuccess !== false,
   };
 }
