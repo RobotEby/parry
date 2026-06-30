@@ -23,6 +23,16 @@ change-me
 
 Use it only for local development.
 
+The compose file uses token auth explicitly:
+
+```env
+PARRY_ADMIN_ENABLED=true
+PARRY_ADMIN_AUTH_MODE=token
+PARRY_ADMIN_TOKEN=change-me
+```
+
+Other local auth modes such as IP allowlist and trusted proxy are documented in [Admin API Authentication](./admin-api-auth.md).
+
 ## Smoke Tests
 
 ```bash
