@@ -16,11 +16,13 @@ yarn-error.log*
 lerna-debug.log*
 
 # Runtime data
+.git/
 pids/
 *.pid
 *.seed
 *.pid.lock
 external/
+external/PayloadsAllTheThings/
 .codex/
 .agents/
 *.dump
@@ -29,6 +31,7 @@ tmp/
 temp/
 
 # Terraform local state and secrets
+.terraform/
 **/.terraform/
 *.tfstate
 *.tfstate.*
