@@ -28,10 +28,7 @@ class RedisStore {
 
   async getRateLimit(key) {
     const redisKey = this._key('rl', key);
-    const [count, ttlMs] = await Promise.all([
-      this.client.get(redisKey),
-      this._pTTL(redisKey),
-    ]);
+    const [count, ttlMs] = await Promise.all([this.client.get(redisKey), this._pTTL(redisKey)]);
 
     return counterResult(normalizeKey(key), Number(count || 0), ttlMs);
   }
@@ -42,12 +39,14 @@ class RedisStore {
 
   async ban(key, ttlMs, metadata = {}) {
     const normalizedKey = normalizeKey(key);
-    const banExpiresAt = Date.now() + ttlMs;
-    const payload = JSON.stringify({ metadata, banExpiresAt });
+    const createdAt = Date.now();
+    const banExpiresAt = createdAt + ttlMs;
+    const payload = JSON.stringify({ metadata, createdAt, banExpiresAt });
 
     await this.client.set(this._key('ban', normalizedKey), payload, { PX: ttlMs });
+    await this._indexAdd('bans', normalizedKey);
 
-    return { key: normalizedKey, banned: true, banExpiresAt, metadata };
+    return { key: normalizedKey, banned: true, createdAt, banExpiresAt, metadata };
   }
 
   async isBanned(key) {
@@ -60,6 +59,7 @@ class RedisStore {
     const ttlMs = await this._pTTL(redisKey);
     if (ttlMs <= 0) {
       await this.client.del(redisKey);
+      await this._indexRemove('bans', normalizedKey);
       return { key: normalizedKey, banned: false, banExpiresAt: null, metadata: null };
     }
 
@@ -67,6 +67,7 @@ class RedisStore {
     return {
       key: normalizedKey,
       banned: true,
+      createdAt: parsed?.createdAt || null,
       banExpiresAt: parsed?.banExpiresAt || Date.now() + ttlMs,
       metadata: parsed?.metadata || null,
     };
@@ -74,11 +75,19 @@ class RedisStore {
 
   async unban(key) {
     const normalizedKey = normalizeKey(key);
-    return this.client.del([this._key('ban', normalizedKey), this._key('suspicious', normalizedKey)]);
+    await this._indexRemove('bans', normalizedKey);
+    return this.client.del([
+      this._key('ban', normalizedKey),
+      this._key('suspicious', normalizedKey),
+    ]);
   }
 
   async recordSuspicious(key, ttlMs, metadata = {}) {
-    const result = await this._incrementWithTtl(this._key('suspicious', key), normalizeKey(key), ttlMs);
+    const result = await this._incrementWithTtl(
+      this._key('suspicious', key),
+      normalizeKey(key),
+      ttlMs
+    );
     result.metadata = metadata;
     return result;
   }
@@ -92,10 +101,7 @@ class RedisStore {
   async getCounter(key) {
     const normalizedKey = normalizeKey(key);
     const redisKey = this._counterKey(normalizedKey);
-    const [count, ttlMs] = await Promise.all([
-      this.client.get(redisKey),
-      this._pTTL(redisKey),
-    ]);
+    const [count, ttlMs] = await Promise.all([this.client.get(redisKey), this._pTTL(redisKey)]);
 
     return counterResult(normalizedKey, Number(count || 0), ttlMs);
   }
@@ -106,12 +112,14 @@ class RedisStore {
 
   async blockKey(key, ttlMs, metadata = {}) {
     const normalizedKey = normalizeKey(key);
-    const blockExpiresAt = Date.now() + ttlMs;
-    const payload = JSON.stringify({ metadata, blockExpiresAt });
+    const createdAt = Date.now();
+    const blockExpiresAt = createdAt + ttlMs;
+    const payload = JSON.stringify({ metadata, createdAt, blockExpiresAt });
 
     await this.client.set(this._blockKey(normalizedKey), payload, { PX: ttlMs });
+    await this._indexAdd('blocks', normalizedKey);
 
-    return { key: normalizedKey, blocked: true, blockExpiresAt, metadata };
+    return { key: normalizedKey, blocked: true, createdAt, blockExpiresAt, metadata };
   }
 
   async isBlocked(key) {
@@ -124,6 +132,7 @@ class RedisStore {
     const ttlMs = await this._pTTL(redisKey);
     if (ttlMs <= 0) {
       await this.client.del(redisKey);
+      await this._indexRemove('blocks', normalizedKey);
       return { key: normalizedKey, blocked: false, blockExpiresAt: null, metadata: null };
     }
 
@@ -131,13 +140,62 @@ class RedisStore {
     return {
       key: normalizedKey,
       blocked: true,
+      createdAt: parsed?.createdAt || null,
       blockExpiresAt: parsed?.blockExpiresAt || Date.now() + ttlMs,
       metadata: parsed?.metadata || null,
     };
   }
 
   async unblockKey(key) {
-    return this.client.del(this._blockKey(key));
+    const normalizedKey = normalizeKey(key);
+    await this._indexRemove('blocks', normalizedKey);
+    return this.client.del(this._blockKey(normalizedKey));
+  }
+
+  async listBans() {
+    const keys = await this._readIndex('bans');
+    const entries = [];
+
+    for (const key of keys) {
+      const ban = await this.isBanned(key);
+      if (!ban.banned) continue;
+      entries.push({
+        key: ban.key,
+        createdAt: ban.createdAt,
+        banExpiresAt: ban.banExpiresAt,
+        ttlMs: ban.banExpiresAt ? Math.max(0, ban.banExpiresAt - Date.now()) : null,
+        metadata: ban.metadata,
+      });
+    }
+
+    return entries;
+  }
+
+  async listBlocks() {
+    const keys = await this._readIndex('blocks');
+    const entries = [];
+
+    for (const key of keys) {
+      const block = await this.isBlocked(key);
+      if (!block.blocked) continue;
+      entries.push({
+        key: block.key,
+        createdAt: block.createdAt,
+        blockExpiresAt: block.blockExpiresAt,
+        ttlMs: block.blockExpiresAt ? Math.max(0, block.blockExpiresAt - Date.now()) : null,
+        metadata: block.metadata,
+      });
+    }
+
+    return entries;
+  }
+
+  getStoreInfo() {
+    return {
+      type: 'redis',
+      prefix: this.prefix,
+      supportsAdminListing: true,
+    };
   }
 
   async close() {
@@ -153,11 +211,14 @@ class RedisStore {
       hasMethod(this.client, 'del') &&
       hasMethod(this.client, 'incr') &&
       (hasMethod(this.client, 'pExpire') || hasMethod(this.client, 'pexpire')) &&
-      (hasMethod(this.client, 'pTTL') || hasMethod(this.client, 'pttl'));
+      (hasMethod(this.client, 'pTTL') || hasMethod(this.client, 'pttl')) &&
+      hasMethod(this.client, 'sAdd') &&
+      hasMethod(this.client, 'sRem') &&
+      (hasMethod(this.client, 'sScan') || hasMethod(this.client, 'sMembers'));
 
     if (!hasRequired) {
       throw new Error(
-        'RedisStore requires a Redis client with get, set, del, incr and pExpire/pTTL support.'
+        'RedisStore requires a Redis client with get, set, del, incr, pExpire/pTTL and Set index support.'
       );
     }
 
@@ -190,6 +251,34 @@ class RedisStore {
 
   _key(type, key) {
     return `${this.prefix}:${type}:${normalizeKey(key)}`;
+  }
+
+  _indexKey(type) {
+    return `${this.prefix}:index:${type}`;
+  }
+
+  _indexAdd(type, key) {
+    return this.client.sAdd(this._indexKey(type), normalizeKey(key));
+  }
+
+  _indexRemove(type, key) {
+    return this.client.sRem(this._indexKey(type), normalizeKey(key));
+  }
+
+  async _readIndex(type) {
+    const key = this._indexKey(type);
+    if (hasMethod(this.client, 'sScan')) {
+      const members = [];
+      let cursor = 0;
+      do {
+        const result = await this.client.sScan(key, cursor, { COUNT: 100 });
+        cursor = normalizeCursor(result);
+        members.push(...normalizeMembers(result));
+      } while (cursor !== 0);
+      return members;
+    }
+
+    return this.client.sMembers(key);
   }
 
   _counterKey(key) {
@@ -237,6 +326,16 @@ function normalizeRedisArray(result) {
   }
 
   return result.map((item) => Number(item || 0));
+}
+
+function normalizeCursor(result) {
+  if (Array.isArray(result)) return Number(result[0] || 0);
+  return Number(result?.cursor || 0);
+}
+
+function normalizeMembers(result) {
+  if (Array.isArray(result)) return result[1] || [];
+  return result?.members || [];
 }
 
 function parseJson(value) {
