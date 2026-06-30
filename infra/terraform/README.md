@@ -72,9 +72,11 @@ The container is expected to:
 
 ## Cost Controls
 
-The dev example sets `enable_nat_gateway = false` to avoid surprise NAT Gateway
-cost. If ECS tasks need outbound internet from private subnets, enable NAT or add
-VPC endpoints for ECR, CloudWatch Logs, Secrets Manager or SSM, and S3.
+The dev example sets `enable_nat_gateway = false` and
+`enable_vpc_endpoints = false` to avoid surprise hourly cost. If ECS tasks need
+to run fully private without NAT, set `enable_vpc_endpoints = true` so tasks can
+pull ECR images, write CloudWatch Logs, read Secrets Manager/SSM values, and
+access the S3 layer storage used by ECR.
 
 CloudFront, WAF, ALB, Fargate, ElastiCache, and CloudWatch can all generate cost
 when applied. Review `docs/aws-cost-notes.md` before running `terraform apply`.
@@ -84,9 +86,10 @@ when applied. Review `docs/aws-cost-notes.md` before running `terraform apply`.
 No secrets are committed. Pass existing Secrets Manager or SSM parameter ARNs for
 `PARRY_ADMIN_TOKEN` and optional Redis auth token exposure to the ECS task.
 
-If `redis_auth_token` is used to configure ElastiCache AUTH, protect Terraform
+Redis AUTH is disabled by default in the dev example because Redis is private.
+For production, enable in-transit encryption/TLS and AUTH, and protect Terraform
 state with a remote encrypted backend and locking, such as S3 with DynamoDB or
-Terraform Cloud.
+Terraform Cloud. Do not place Redis tokens in committed tfvars.
 
 See `docs/aws-security-notes.md` for the full security model.
 
