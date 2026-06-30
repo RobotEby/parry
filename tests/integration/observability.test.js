@@ -483,6 +483,23 @@ async function runAll() {
   });
   assert('Admin auth callback allows when it passes', allowed.res._status === 200);
 
+  const contextAuthParry = createParry({
+    rateLimit: false,
+    logThreats: false,
+    admin: {
+      enabled: true,
+      auth: { mode: 'token', token: 'context-token' },
+    },
+  });
+  const contextAuthRouter = createParryAdminRouter(contextAuthParry);
+  const contextDenied = await runRouter(contextAuthRouter, '/health');
+  assert('Admin router uses auth config from Parry context', contextDenied.res._status === 401);
+
+  const contextAllowed = await runRouter(contextAuthRouter, '/health', {
+    headers: { 'x-parry-admin-token': 'context-token' },
+  });
+  assert('Admin router allows context token config', contextAllowed.res._status === 200);
+
   return { passed, failed };
 }
 
