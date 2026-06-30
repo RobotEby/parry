@@ -39,9 +39,19 @@ class MemoryEventStore {
 }
 
 function matchesFilters(event, filters) {
-  for (const key of ['type', 'severity', 'action', 'detector', 'ip', 'path', 'policyName']) {
+  for (const key of ['type', 'severity', 'action', 'ip', 'path', 'policyName']) {
     if (filters[key] && event[key] !== filters[key]) return false;
   }
+
+  if (
+    filters.detector &&
+    event.detector !== filters.detector &&
+    event.detectorSlug !== filters.detector &&
+    event.detectorType !== filters.detector
+  ) {
+    return false;
+  }
+
   return true;
 }
 
