@@ -38,10 +38,12 @@ Use AWS Secrets Manager, SSM Parameter Store, or CI/CD secret storage for:
 - Redis AUTH token, if enabled
 - any future application secrets
 
-If Terraform configures a Redis AUTH token directly through `redis_auth_token`,
-the value is sensitive but still stored in Terraform state. Protect state with a
-remote encrypted backend and locking, such as S3 with DynamoDB or Terraform
-Cloud.
+The dev example can run Redis without AUTH when Redis is isolated in private
+subnets and reachable only from ECS. Production should use Redis TLS/in-transit
+encryption and AUTH. If Terraform configures a Redis AUTH token directly through
+`redis_auth_token`, the value is sensitive but still stored in Terraform state.
+Protect state with a remote encrypted backend and locking, such as S3 with
+DynamoDB or Terraform Cloud.
 
 ## WAF Tuning
 
@@ -71,8 +73,9 @@ dev or `https-only` when the ALB has a certificate.
 
 - Use Shield Advanced for critical public workloads.
 - Use AWS Firewall Manager in larger AWS Organizations.
-- Add VPC endpoints for ECR, CloudWatch Logs, Secrets Manager or SSM, and S3 to
-  reduce NAT dependency.
+- Set `enable_vpc_endpoints = true` for private ECS tasks without NAT so ECR,
+  CloudWatch Logs, Secrets Manager, SSM, and S3 access stay inside AWS private
+  networking.
 - Enable CloudFront and WAF logs to a controlled S3 bucket.
 - Use GuardDuty, Security Hub, IAM Access Analyzer, and centralized CloudWatch or
   SIEM forwarding.
