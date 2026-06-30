@@ -46,7 +46,9 @@ function isSensitiveKey(key) {
 
 function sanitizeUserAgent(value) {
   if (!value) return undefined;
-  return String(value).replace(/[\r\n]/g, ' ').slice(0, 200);
+  return String(value)
+    .replace(/[\r\n]/g, ' ')
+    .slice(0, 200);
 }
 
 module.exports = { sanitizeEvent, sanitizeUserAgent, isSensitiveKey };
