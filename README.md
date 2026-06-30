@@ -598,7 +598,7 @@ app.use(
 );
 ```
 
-Parry also includes configurable Admin API auth strategies for token, IP allowlist, trusted proxy, and simple combined policies:
+Parry also includes configurable Admin API auth strategies for token, IP allowlist, trusted proxy, Cloudflare Access, AWS ALB/Cognito headers, and simple combined policies:
 
 ```js
 const parry = createParry({
@@ -630,6 +630,7 @@ For frontend integration work, start with:
 
 - `docs/admin-api.md`
 - `docs/admin-api-auth.md`
+- `docs/aws-admin-auth.md`
 - `docs/openapi/parry-admin-api.yaml`
 - `docs/mocks/`
 
@@ -637,7 +638,7 @@ These files define the backend contract for the separate `parry-security-console
 
 Never expose the Parry Admin API publicly without authentication and network restrictions. It is a foundation for internal operations and a future dashboard, not a public management interface.
 
-If a separate frontend consumes the Admin API from another origin, configure CORS deliberately in the host Express application. Parry does not enable CORS automatically. A browser-visible admin token is acceptable only for demo or development use; production deployments should prefer a protected backend/admin proxy, VPN, identity-aware proxy, private network, or equivalent control.
+If a separate frontend consumes the Admin API from another origin, configure CORS deliberately in the host Express application. Parry does not enable CORS automatically. A browser-visible admin token is acceptable only for demo or development use; production deployments should prefer Cloudflare Access, AWS ALB/Cognito auth, a protected backend/admin proxy, VPN, identity-aware proxy, private network, or equivalent control.
 
 ### DDoS Scope and Edge Protection
 
