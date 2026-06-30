@@ -6,7 +6,7 @@
 Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Traversal, risky request shapes, optional HTTP Parameter Pollution, and route-scoped authentication abuse before route handling.
 
 ```
-63 real HTTP tests available  ·  1080/1080 local tests passed  ·  zero production dependencies
+72 real HTTP tests available  ·  1132/1132 local tests passed  ·  one small runtime dependency for IP/CIDR parsing
 ```
 
 ---
@@ -51,7 +51,7 @@ Detects common SQL Injection, XSS, NoSQL Injection, Prototype Pollution, Path Tr
 Most Node.js applications rely on validation at the route or ORM layer, which means malicious payloads can reach application logic before hitting any barrier. Parry acts **before** your routes as an Express middleware.
 
 - Common malicious payloads can be blocked before route logic and database access.
-- No extra production dependencies — pure Node.js native.
+- Minimal runtime dependency footprint. `ipaddr.js` is used for safe IPv4/IPv6/CIDR handling in admin auth and trusted proxy logic.
 - Every threat is logged with IP, method, route, and affected field.
 - IPs that repeatedly send detected attacks can be temporarily banned by the store-backed limiter.
 
@@ -99,7 +99,7 @@ This package is application-layer Express security middleware. It is not a compl
 npm install @roboteby/parry express
 ```
 
-> **Parry has zero production dependencies.**
+> **Parry keeps the runtime package small.** The only direct runtime dependency is `ipaddr.js`, used for IP/CIDR parsing in admin auth and trusted proxy checks.
 > `express` is a `peerDependency` — if it's already in your project, nothing else to install.
 > For Redis-backed distributed rate limiting, install and configure a Redis client in your application, for example `npm install redis`.
 
@@ -598,6 +598,23 @@ app.use(
 );
 ```
 
+Parry also includes configurable Admin API auth strategies for token, IP allowlist, trusted proxy, and simple combined policies:
+
+```js
+const parry = createParry({
+  admin: {
+    enabled: true,
+    auth: {
+      mode: 'token',
+      token: process.env.PARRY_ADMIN_TOKEN,
+    },
+  },
+});
+
+app.use(parry.middleware());
+app.use('/_parry', createParryAdminRouter(parry));
+```
+
 Available endpoints:
 
 | Endpoint          | Description                                                                     |
@@ -612,6 +629,7 @@ Available endpoints:
 For frontend integration work, start with:
 
 - `docs/admin-api.md`
+- `docs/admin-api-auth.md`
 - `docs/openapi/parry-admin-api.yaml`
 - `docs/mocks/`
 
@@ -814,7 +832,7 @@ parry-express-security-middleware/
 
 Parry has two independent test suites: **1101 local tests** in `npm test` plus **63 real HTTP tests** for the Express test server.
 
-### Local suite (1101 tests) — no network, no server
+### Local suite (1132 tests) — no network, no server
 
 ```bash
 npm test
@@ -825,18 +843,20 @@ Covers isolated detectors, application-layer guards, the `RateLimiter`, MemorySt
 ```
 ▶ Unit — Detectors                         30 tests
 ▶ Unit — RateLimiter                       14 tests
-▶ Unit — Stores                            28 tests
+▶ Unit — Stores                            35 tests
 ▶ Unit — Policies                           8 tests
 ▶ Unit — Brute Force                       20 tests
 ▶ Unit — Core Engine                        6 tests
 ▶ Unit — App Guards                        19 tests
-▶ Unit — Observability                     33 tests
-▶ Integration — Middleware                 56 tests
-▶ Integration — Observability/Admin API    38 tests
+▶ Unit — Observability                     35 tests
+▶ Unit — Admin Auth                        25 tests
+▶ Integration — Middleware                 59 tests
+▶ Integration — Observability/Admin API    44 tests
+▶ Integration — Docker Demo API             9 tests
 ▶ Package — Public Exports                 26 tests
 ▶ Regression — Payload Suite              802 tests
 ────────────────────────────────────────────────────
-Total                                    1080 tests  |  0 failures
+Total                                    1132 tests  |  0 failures
 ```
 
 ### Payload Regression Testing
@@ -1056,5 +1076,5 @@ MIT — see `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with native Node.js · Zero production dependencies · Tested with 1080 application-layer cases</sub>
+  <sub>Built with native Node.js · Small runtime footprint · Tested with 1132 application-layer cases</sub>
 </div>
