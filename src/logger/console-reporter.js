@@ -35,7 +35,7 @@ class ThreatLogger {
 
     if (entry.type === 'THREAT') {
       console.warn(
-          `${prefix} ${meta}\n` +
+        `${prefix} ${meta}\n` +
           `  ${COLORS.cyan}${entry.method} ${entry.url}${COLORS.reset}\n` +
           entry.threats.map((t) => `  ⚠  ${t.detector} in the field "${t.field}"`).join('\n')
       );
