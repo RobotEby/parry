@@ -73,7 +73,7 @@ paths:
           in: query
           schema:
             type: string
-          example: SQL_INJECTION
+          example: sql
         - name: ip
           in: query
           schema:
@@ -284,10 +284,10 @@ components:
           example: detector
         detector:
           type: string
-          example: SQL_INJECTION
-        detectorSlug:
-          type: string
           example: sql
+        detectorType:
+          type: string
+          example: SQL_INJECTION
         severity:
           type: string
           enum: [low, medium, high, critical]
@@ -341,21 +341,34 @@ components:
           $ref: '#/components/schemas/Pagination'
     BanEntry:
       type: object
-      required: [key, banExpiresAt]
+      required: [key, type, reason, policyName, createdAt, expiresAt, ttlMs]
       properties:
         key:
           type: string
-          example: 203.0.113.25
-        banExpiresAt:
+          example: ip:203.0.113.25
+        type:
+          type: string
+          example: ip
+        reason:
+          type: string
+          example: temporary application-layer ban
+        policyName:
+          type: string
+          nullable: true
+          example: auth-login
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-29T12:00:00.000Z
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2026-06-29T12:10:00.000Z
+        ttlMs:
           type: integer
           nullable: true
-          example: 1782734520000
-        metadata:
-          type: object
-          nullable: true
-          additionalProperties: true
-          example:
-            reason: temporary application-layer ban
+          example: 600000
     BansListResponse:
       type: object
       required: [data, pagination]
