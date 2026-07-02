@@ -233,6 +233,12 @@ curl -X POST http://localhost:3000/echo \
 
 The `change-me` token is for local demos only.
 
+## cURL Guide
+
+The demo API can be validated with a set of local cURL examples covering health checks, Admin API authentication, Threat Events, brute-force blocks, active bans, CORS, request IDs, and frontend proxy checks.
+
+See [docs/curl-guide.md](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/curl-guide.md).
+
 ## Security Model
 
 Parry operates inside the Express application. It helps identify and block suspicious application-layer requests, but it does not replace edge and infrastructure controls.
@@ -255,6 +261,7 @@ Additional documentation is available in the repository:
 - [Admin API authentication](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/admin-api-auth.md)
 - [AWS Admin API authentication](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/aws-admin-auth.md)
 - [Docker demo](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/docker-demo.md)
+- [cURL guide](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/curl-guide.md)
 - [AWS infrastructure notes](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/aws-infra.md)
 - [CI/CD](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/ci-cd.md)
 - [Release process](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/release.md)
