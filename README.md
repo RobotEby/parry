@@ -1,4 +1,8 @@
-# parry-express-security-middleware
+# Parry
+
+[![npm rc version](https://img.shields.io/npm/v/@roboteby/parry/rc?label=npm%20rc)](https://www.npmjs.com/package/@roboteby/parry)
+[![license](https://img.shields.io/npm/l/@roboteby/parry)](https://github.com/RobotEby/parry-express-security-middleware/blob/main/LICENSE)
+[![node](https://img.shields.io/node/v/@roboteby/parry)](https://www.npmjs.com/package/@roboteby/parry)
 
 Application-layer security middleware for Express.js.
 
@@ -42,10 +46,14 @@ It is designed for development and production-like deployments:
 ## Installation
 
 ```bash
-npm install @roboteby/parry
+npm install @roboteby/parry@rc
 ```
 
 Parry expects Express to be installed by your application.
+
+## Release Candidate
+
+`@roboteby/parry@1.1.0-rc.1` is published on npm under the `rc` tag for validation before promotion to the stable `latest` channel. Use `npm install @roboteby/parry@rc` to test the release candidate, review detector behavior and Admin API configuration in your environment, and pin the exact version if you need reproducible rollout testing.
 
 ## Quick Start
 
