@@ -6,6 +6,8 @@ Versioning for public APIs and documented runtime behavior.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-01
+
 ### Added
 
 - Added exact-path NoSQL operator allowlists through
