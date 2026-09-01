@@ -1,13 +1,13 @@
 # Contributing
 
 Thank you for improving Parry. Keep changes focused, preserve CommonJS and the
-documented 1.x API, and add regression coverage for behavior changes.
+documented 2.x API, and add regression coverage for behavior changes.
 
 ## Development
 
 Requirements:
 
-- Node 22 or 24 recommended; CI also covers legacy Node 18 and 20;
+- Node 22 or 24; CI covers both supported runtime lines;
 - npm with lockfile support;
 - Docker and Terraform only for their optional validation steps.
 
@@ -32,7 +32,7 @@ severity, response, and Threat Event coverage.
 
 ## Compatibility
 
-Do not remove or rename a public root/subpath export in 1.x. Mark legacy APIs as
+Do not remove or rename a public root/subpath export in 2.x. Mark legacy APIs as
 deprecated and keep declarations aligned with runtime. The Admin router's
 fail-closed behavior is intentional and must not be relaxed.
 

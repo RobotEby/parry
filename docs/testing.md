@@ -21,7 +21,7 @@ npm run test:payload-regression
 npm run package:check
 npm run package:dry-run
 npm audit --omit=dev
-GITHUB_REF_NAME=v1.1.1 npm run package:check-tag
+GITHUB_REF_NAME=v2.0.0 npm run package:check-tag
 docker build -f docker/demo-api/Dockerfile -t parry-demo-api .
 docker compose config
 terraform fmt -check -recursive infra/examples/aws
@@ -34,9 +34,8 @@ git diff --check
 
 ## Runtime matrix
 
-CI installs with `npm ci` and runs `npm test` on Node 18, 20, 22, and 24. Node
-18 and 20 are legacy/EOL compatibility targets for the 1.x line. Node 22 and 24
-are the recommended production targets.
+CI installs with `npm ci` and runs `npm test` on Node 22 and 24, matching the
+package's Node `>=22` requirement.
 
 The package peer dependency and test environment use Express 5.2.1.
 

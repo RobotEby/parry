@@ -59,9 +59,10 @@ All three throw under `NODE_ENV=production`, even when combined with an override
 - `combined`: evaluates either `allowAny` or `requireAll`; nested combined modes
   are rejected.
 
-External identity headers are assertions from the configured boundary. In 1.x,
-Parry does not perform JWKS signature verification. `verifyJwt: true` throws an
-explicit configuration error; decoding claims is never presented as verification.
+External identity headers are assertions from the configured boundary. Parry
+2.0.0 does not perform JWT/JWKS signature verification. `verifyJwt: true` throws
+an explicit configuration error; decoding claims is never presented as
+verification.
 
 ## Trusted boundary example
 

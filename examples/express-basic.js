@@ -23,7 +23,7 @@ const parry = createParry({
   logThreats: true,
 
   onThreat(_entry) {
-    // Note to remind myself to include this in the future: SIEM, Slack webhook, PagerDuty, DataDog, etc.
+    // Forward sanitized events through an application-owned integration here.
   },
 });
 

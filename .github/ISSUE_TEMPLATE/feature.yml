@@ -26,4 +26,4 @@ body:
     attributes:
       label: Compatibility
       options:
-        - label: I considered CommonJS, Node 18+ 1.x compatibility, and existing exports.
+        - label: I considered CommonJS, Node 22+ 2.x compatibility, and existing exports.

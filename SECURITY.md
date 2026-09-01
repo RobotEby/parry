@@ -2,9 +2,9 @@
 
 ## Supported versions
 
-Security fixes are targeted at the current stable 1.x release. At present that
-is `1.1.1`. The `1.1.0-rc.1` release candidate and older versions are not
-separate supported branches.
+Security fixes are targeted at the current stable 2.x release. At present that
+is `2.0.0`. The 1.x releases and earlier versions are not separate supported
+branches.
 
 ## Reporting a vulnerability
 
