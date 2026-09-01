@@ -1,12 +1,17 @@
 import { Request, Response, RequestHandler, Router } from 'express';
 
-export interface Parry_DDoSOptions {
+export interface ParryOptions {
   /** Enables SQL injection detection. Default: true */
   sql?: boolean;
   /** Enables XSS detection. Default: true */
   xss?: boolean;
-  /** Enables NoSQL injection detection. Default: true */
-  nosql?: boolean;
+  /** Enables NoSQL injection detection and exact-path operator allowlists. Default: true */
+  nosql?:
+    | boolean
+    | {
+        enabled?: boolean;
+        allowedOperators?: Record<string, string[]>;
+      };
   /** HTTP Parameter Pollution protection. Default: disabled */
   hpp?: {
     enabled?: boolean;
@@ -74,6 +79,10 @@ export interface Parry_DDoSOptions {
   trustProxyHeaders?: boolean;
   /** Proxy IPs or CIDRs allowed to provide forwarded client IP headers. */
   trustedProxies?: string[];
+  /** Scalar request headers scanned by SQLi/XSS/path detectors. Use [] to disable. */
+  headers?: {
+    scan?: string[];
+  };
   /** Emits extra internal observability events where supported. Default: false */
   debug?: boolean;
   /** Suspicious attempts before temporary ban. Default: 5 */
@@ -89,6 +98,9 @@ export interface Parry_DDoSOptions {
   /** Callback triggered when a configured store throws */
   onStoreError?: (error: Error, event: ThreatEvent) => void;
 }
+
+/** @deprecated Use ParryOptions instead. */
+export type Parry_DDoSOptions = ParryOptions;
 
 export type ThreatSeverity = 'none' | 'low' | 'medium' | 'high' | 'critical';
 export type ThreatAction = 'allowed' | 'blocked' | 'observed' | 'reset' | 'error' | 'created';
@@ -186,14 +198,19 @@ export interface PolicyConfig {
     max?: number;
     maxRequests?: number;
     windowMs?: number;
-    key?: 'ip' | 'ip+path' | ((requestData: unknown) => string | { type?: string; value: string } | null);
+    key?:
+      | 'ip'
+      | 'ip+path'
+      | ((requestData: unknown) => string | { type?: string; value: string } | null);
   };
   bruteForce?: {
     enabled?: boolean;
     maxAttempts?: number;
     windowMs?: number;
     blockDurationMs?: number;
-    keys?: Array<string | ((requestData: unknown) => string | { type?: string; value: string } | null)>;
+    keys?: Array<
+      string | ((requestData: unknown) => string | { type?: string; value: string } | null)
+    >;
     failureStatusCodes?: number[];
     successStatusCodes?: number[];
     blockedStatusCode?: number;
@@ -334,6 +351,9 @@ export interface ParryAdminContext {
 }
 
 export interface AdminRouterOptions {
+  /** Explicitly allows an unauthenticated Admin API outside production. Insecure. */
+  allowInsecureAdminApi?: boolean;
+  /** @deprecated Use allowInsecureAdminApi for explicit local-only anonymous access. */
   requireAuth?: boolean;
   auth?: ((req: Request) => boolean | Promise<boolean>) | AdminAuthConfig;
 }
@@ -372,7 +392,10 @@ export interface StoreBanResult {
 }
 
 export interface RateLimitStore {
-  incrementRateLimit(key: string, windowMs: number): StoreCounterResult | Promise<StoreCounterResult>;
+  incrementRateLimit(
+    key: string,
+    windowMs: number
+  ): StoreCounterResult | Promise<StoreCounterResult>;
   getRateLimit(key: string): StoreCounterResult | Promise<StoreCounterResult>;
   resetRateLimit(key: string): unknown;
   ban(key: string, ttlMs: number, metadata?: unknown): StoreBanResult | Promise<StoreBanResult>;
@@ -383,10 +406,18 @@ export interface RateLimitStore {
     ttlMs: number,
     metadata?: unknown
   ): StoreCounterResult | Promise<StoreCounterResult>;
-  incrementCounter(key: string, ttlMs: number, metadata?: unknown): StoreCounterResult | Promise<StoreCounterResult>;
+  incrementCounter(
+    key: string,
+    ttlMs: number,
+    metadata?: unknown
+  ): StoreCounterResult | Promise<StoreCounterResult>;
   getCounter(key: string): StoreCounterResult | Promise<StoreCounterResult>;
   resetCounter(key: string): unknown;
-  blockKey(key: string, ttlMs: number, metadata?: unknown): StoreBlockResult | Promise<StoreBlockResult>;
+  blockKey(
+    key: string,
+    ttlMs: number,
+    metadata?: unknown
+  ): StoreBlockResult | Promise<StoreBlockResult>;
   isBlocked(key: string): StoreBlockResult | Promise<StoreBlockResult>;
   unblockKey(key: string): unknown;
   listBans?(options?: unknown): BanSnapshot[] | Promise<BanSnapshot[]>;
@@ -430,7 +461,7 @@ export interface BlockSnapshot {
 export declare class RateLimiter {
   constructor(
     config: Pick<
-      Parry_DDoSOptions,
+      ParryOptions,
       'rateLimit' | 'maxRequests' | 'windowMs' | 'suspiciousThreshold' | 'banDurationMs' | 'store'
     >,
     store?: RateLimitStore
@@ -491,12 +522,18 @@ export declare const SQLInjectionDetector: {
   scan(value: string): string | null;
 };
 export declare const XSSDetector: { scan(value: string): string | null };
-export declare const NoSQLDetector: { scan(value: unknown): string | null };
-export declare const HPPDetector: {
+export declare const NoSQLDetector: {
   scan(
-    query: unknown,
-    options?: { allowDuplicateParamsFor?: string[] }
-  ): ThreatMatch | null;
+    value: unknown,
+    options?: { rootPath?: string; allowedOperators?: Record<string, string[]> }
+  ): string | null;
+  inspect(
+    value: unknown,
+    options?: { rootPath?: string; allowedOperators?: Record<string, string[]> }
+  ): { pattern: string; path: string } | null;
+};
+export declare const HPPDetector: {
+  scan(query: unknown, options?: { allowDuplicateParamsFor?: string[] }): ThreatMatch | null;
 };
 export declare const PrototypePollutionDetector: {
   scan(surfaces: unknown): ThreatMatch | null;
@@ -526,7 +563,10 @@ export declare class MemoryEventStore {
 
 export declare class EventBus {
   constructor(options?: { eventStore?: MemoryEventStore; maxEvents?: number });
-  emitThreat(event: Partial<ThreatEvent> | ThreatLogEntry, context?: { req?: Request; res?: Response }): ThreatEvent;
+  emitThreat(
+    event: Partial<ThreatEvent> | ThreatLogEntry,
+    context?: { req?: Request; res?: Response }
+  ): ThreatEvent;
   onThreat(listener: (event: ThreatEvent, req?: Request, res?: Response) => void): () => void;
   getRecentEvents(options?: EventFilters): EventPage;
   getEventById(id: string): ThreatEvent | null;
@@ -540,8 +580,19 @@ export declare class Metrics {
   snapshot(extra?: { activeBans?: number }): MetricsSnapshot;
 }
 
-export declare function Parry_DDoS(options?: Parry_DDoSOptions): RequestHandler;
-export declare function createParry(options?: Parry_DDoSOptions): ParryInstance;
+export declare class ThreatLogger {
+  constructor(enabled?: boolean);
+  log(entry: ThreatLogEntry): void;
+  logHookError(error: unknown, entry?: Partial<ThreatLogEntry>): void;
+  logStoreError(error: unknown, entry?: Partial<ThreatLogEntry>): void;
+}
+
+export declare const Policies: typeof import('./policies');
+export declare const BruteForce: typeof import('./brute-force');
+
+/** @deprecated Use createParry instead. */
+export declare function Parry_DDoS(options?: ParryOptions): RequestHandler;
+export declare function createParry(options?: ParryOptions): ParryInstance;
 export declare function createParryAdminRouter(
   parry: ParryInstance | RequestHandler,
   options?: AdminRouterOptions

@@ -1,10 +1,8 @@
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -16,15 +14,15 @@ services:
       context: .
       dockerfile: docker/demo-api/Dockerfile
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       NODE_ENV: development
-      PORT: "3000"
+      PORT: '3000'
       REDIS_URL: redis://redis:6379
       PARRY_STORE: redis
-      PARRY_ADMIN_ENABLED: "true"
+      PARRY_ADMIN_ENABLED: 'true'
       PARRY_ADMIN_AUTH_MODE: token
-      PARRY_ADMIN_TOKEN: change-me
+      PARRY_ADMIN_TOKEN: ${PARRY_ADMIN_TOKEN:-change-me}
       DEMO_USER_EMAIL: demo@example.com
       DEMO_USER_PASSWORD: password123
     depends_on:

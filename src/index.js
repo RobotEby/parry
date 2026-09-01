@@ -1,6 +1,6 @@
 'use strict';
 
-const { Parry_DDoS, createParry } = require('./middleware');
+const { Parry_DDoS, createParry } = require('./express/middleware');
 const { RateLimiter, ThreatLogger } = require('./core');
 const { MemoryStore, RedisStore } = require('./stores');
 const { EventBus, MemoryEventStore } = require('./events');

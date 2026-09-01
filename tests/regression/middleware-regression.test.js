@@ -1,20 +1,13 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { createParry } = require('../../src');
 const { DETECTOR_TO_INTERNAL, loadFixtures } = require('../../scripts/payloads/fixture-utils');
 const { mockReq, requestFromFixture, runMiddleware } = require('./fixture-helpers');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 async function runAll() {
@@ -34,10 +27,26 @@ async function runAll() {
   for (const category of blockedCategories) {
     for (const fixture of byCategory[category]) {
       const result = await runBlockedFixture(fixture);
-      assert(`${category} fixture ${fixture.id} returns 400`, result.res._status === 400 && !result.next);
-      assert(`${category} fixture ${fixture.id} response includes detector`, responseHasDetector(result.res, fixture.expected.detector));
-      assert(`${category} fixture ${fixture.id} emits structured event`, eventMatches(result.event, fixture));
-      assert(`${category} fixture ${fixture.id} event does not leak secrets`, eventHasNoSecrets(result.event));
+      assert(
+        `${category} fixture ${fixture.id} returns 400`,
+        result.res._status === 400 && !result.next
+      );
+      assert(
+        `${category} fixture ${fixture.id} response includes detector`,
+        responseHasDetector(result.res, fixture.expected.detector)
+      );
+      assert(
+        `${category} fixture ${fixture.id} response includes field and reason`,
+        responseHasFindingDetails(result.res, fixture)
+      );
+      assert(
+        `${category} fixture ${fixture.id} emits structured event`,
+        eventMatches(result.event, fixture)
+      );
+      assert(
+        `${category} fixture ${fixture.id} event does not leak secrets`,
+        eventHasNoSecrets(result.event)
+      );
     }
   }
 
@@ -46,22 +55,13 @@ async function runAll() {
     assert(`Benign fixture ${fixture.id} reaches next`, result.next && result.res._status === 200);
   }
 
-  for (const fixture of byCategory['command-injection']) {
-    const result = await runAllowedFixture(fixture);
-    assert(`Command Injection monitor fixture ${fixture.id} is not executed or blocked`, result.next && result.res._status === 200);
-  }
-
-  for (const fixture of byCategory.ssrf) {
-    const result = await runAllowedFixture(fixture);
-    assert(`SSRF monitor fixture ${fixture.id} does not make requests or block`, result.next && result.res._status === 200);
-  }
-
   for (const fixture of byCategory['brute-force']) {
     const blocked = await runBruteForceScenario(fixture);
-    assert(`Brute force scenario ${fixture.id} matches expected block state`, blocked === fixture.expected.blocked);
+    assert(
+      `Brute force scenario ${fixture.id} matches expected block state`,
+      blocked === fixture.expected.blocked
+    );
   }
-
-  return { passed, failed };
 }
 
 async function runBlockedFixture(fixture) {
@@ -74,7 +74,7 @@ async function runBlockedFixture(fixture) {
       event = entry;
     },
   });
-  const req = requestFromFixture(fixture, { ip: `203.0.113.${Math.floor(Math.random() * 100) + 1}` });
+  const req = requestFromFixture(fixture, { ip: '203.0.113.50' });
   const result = await runMiddleware(parry.middleware(), req);
   return { ...result, event };
 }
@@ -84,6 +84,9 @@ async function runAllowedFixture(fixture) {
     rateLimit: false,
     logThreats: false,
     hpp: { enabled: true, allowDuplicateParamsFor: ['tags', 'filters', 'sort'] },
+    nosql: fixture.tags?.includes('nosql-allowlist')
+      ? { allowedOperators: { [fixture.target]: ['$gt'] } }
+      : true,
   });
   const req = requestFromFixture(fixture);
   return runMiddleware(parry.middleware(), req);
@@ -94,16 +97,35 @@ function responseHasDetector(res, detectorSlug) {
   return res._body?.threats?.some((threat) => threat.detector === internal);
 }
 
+function responseHasFindingDetails(res, fixture) {
+  const internal = DETECTOR_TO_INTERNAL[fixture.expected.detector];
+  const finding = res._body?.threats?.find((threat) => threat.detector === internal);
+  return Boolean(
+    finding &&
+    typeof finding.field === 'string' &&
+    finding.field.startsWith(fixture.target) &&
+    typeof finding.reason === 'string' &&
+    finding.reason.length > 0
+  );
+}
+
 function eventMatches(event, fixture) {
   return Boolean(
     event &&
-      event.type &&
-      event.action === 'blocked' &&
-      event.reason &&
-      event.ip &&
-      event.path &&
-      event.detectorSlug === fixture.expected.detector &&
-      event.severity === fixture.expected.severity
+    event.type &&
+    event.action === 'blocked' &&
+    event.reason &&
+    event.ip &&
+    event.path &&
+    event.detectorSlug === fixture.expected.detector &&
+    event.severity === fixture.expected.severity &&
+    event.threats?.some(
+      (finding) =>
+        finding.detector === DETECTOR_TO_INTERNAL[fixture.expected.detector] &&
+        finding.field.startsWith(fixture.target) &&
+        finding.severity === fixture.expected.severity &&
+        typeof finding.reason === 'string'
+    )
   );
 }
 
@@ -140,7 +162,7 @@ async function runBruteForceScenario(fixture) {
     ],
   });
   const middleware = parry.middleware();
-  const ip = `198.51.100.${Math.floor(Math.random() * 100) + 1}`;
+  const ip = '198.51.100.50';
   const path = payload.path || '/login';
 
   if (fixture.id === 'brute-force-unprotected-001') {
@@ -180,7 +202,11 @@ async function runBruteForceScenario(fixture) {
 
   if (fixture.id === 'brute-force-no-leak-001') {
     const responseText = JSON.stringify(final.res._body || {});
-    return final.res._status === 429 && !responseText.includes(payload.email) && !responseText.includes(payload.password);
+    return (
+      final.res._status === 429 &&
+      !responseText.includes(payload.email) &&
+      !responseText.includes(payload.password)
+    );
   }
 
   if (fixture.expected.blocked) {
@@ -213,4 +239,4 @@ function manualFailureLogin(req, res) {
   return res.status(200).json({ success: false });
 }
 
-module.exports = runAll().then(() => ({ passed, failed }));
+test('Middleware payload regression', runAll);

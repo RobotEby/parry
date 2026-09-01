@@ -10,6 +10,7 @@ const {
   RequestShapeGuard,
 } = require('../detectors');
 const { safeStringify } = require('../utils/normalize');
+const { collectRequestTargets } = require('../express/request-targets');
 const { severityForThreats } = require('./scoring');
 const {
   createThreatEvent,
@@ -71,10 +72,17 @@ async function analyzeRequest(requestData, context) {
     };
   }
 
-  const threats = [
-    ...scanApplicationLayerGuards(requestData, config),
-    ...scanTargets(requestData.targets || [], config),
-  ];
+  const shapeThreat = scanRequestShape(requestData, config);
+  const shapeExceeded = Boolean(shapeThreat);
+  const targets = shapeExceeded
+    ? []
+    : requestData.targets || collectRequestTargets(requestData, config);
+  const structuredThreats = shapeExceeded
+    ? [shapeThreat]
+    : scanStructuredGuards(requestData, config, targets);
+  const threats = deduplicateThreats(
+    shapeExceeded ? structuredThreats : [...structuredThreats, ...scanTargets(targets, config)]
+  );
 
   if (threats.length > 0) {
     if (config.rateLimit && rateLimiter) {
@@ -189,7 +197,13 @@ function createRequestEventContext(requestData, timestamp) {
 }
 
 function scanApplicationLayerGuards(requestData, config) {
-  const threats = [];
+  const shapeThreat = scanRequestShape(requestData, config);
+  if (shapeThreat) return [shapeThreat];
+  const targets = requestData.targets || collectRequestTargets(requestData, config);
+  return scanStructuredGuards(requestData, config, targets);
+}
+
+function scanRequestShape(requestData, config) {
   const surfaces = {
     query: requestData.query || {},
     params: requestData.params || {},
@@ -198,8 +212,18 @@ function scanApplicationLayerGuards(requestData, config) {
 
   if (config.requestShape?.enabled) {
     const hit = RequestShapeGuard.scan(surfaces, config.requestShape);
-    if (hit) return [hit];
+    if (hit) return hit;
   }
+  return null;
+}
+
+function scanStructuredGuards(requestData, config, targets) {
+  const threats = [];
+  const surfaces = {
+    query: requestData.query || {},
+    params: requestData.params || {},
+    body: requestData.body,
+  };
 
   if (config.hpp?.enabled) {
     const hit = HPPDetector.scan(surfaces.query, config.hpp);
@@ -211,8 +235,25 @@ function scanApplicationLayerGuards(requestData, config) {
     if (hit) threats.push(hit);
   }
 
+  if (config.nosql) {
+    for (const [surface, value] of Object.entries(surfaces)) {
+      const hit = NoSQLDetector.inspect(value, {
+        rootPath: surface,
+        allowedOperators: config.nosqlConfig?.allowedOperators,
+      });
+      if (hit) {
+        threats.push({
+          detector: 'NOSQL_INJECTION',
+          field: hit.path,
+          pattern: hit.pattern,
+          reason: 'NoSQL operator or expression detected',
+        });
+      }
+    }
+  }
+
   if (config.pathTraversal?.enabled) {
-    const hit = PathTraversalDetector.scan(requestData.targets || []);
+    const hit = PathTraversalDetector.scan(targets);
     if (hit) threats.push(hit);
   }
 
@@ -227,21 +268,40 @@ function scanTargets(targets, config) {
 
     if (config.sql) {
       const hit = SQLInjectionDetector.scan(str);
-      if (hit) threats.push({ detector: 'SQL_INJECTION', field: label, pattern: hit });
+      if (hit) {
+        threats.push({
+          detector: 'SQL_INJECTION',
+          field: label,
+          pattern: hit,
+          reason: 'SQL injection pattern detected',
+        });
+      }
     }
 
     if (config.xss) {
       const hit = XSSDetector.scan(str);
-      if (hit) threats.push({ detector: 'XSS', field: label, pattern: hit });
-    }
-
-    if (config.nosql) {
-      const hit = NoSQLDetector.scan(value);
-      if (hit) threats.push({ detector: 'NOSQL_INJECTION', field: label, pattern: hit });
+      if (hit) {
+        threats.push({
+          detector: 'XSS',
+          field: label,
+          pattern: hit,
+          reason: 'Cross-site scripting pattern detected',
+        });
+      }
     }
   }
 
   return threats;
+}
+
+function deduplicateThreats(threats) {
+  const seen = new Set();
+  return threats.filter((threat) => {
+    const key = [threat.detector, threat.field, threat.pattern, threat.reason].join('\u0000');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function enrichThreats(threats) {
@@ -261,4 +321,4 @@ function toResponseThreat(threat) {
   return responseThreat;
 }
 
-module.exports = { analyzeRequest, scanTargets, scanApplicationLayerGuards };
+module.exports = { analyzeRequest, scanTargets, scanApplicationLayerGuards, deduplicateThreats };

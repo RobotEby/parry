@@ -60,7 +60,9 @@ function collectStrings(value, label, seen = new WeakSet()) {
     for (const [key, child] of Object.entries(value)) {
       strings.push(...collectStrings(child, `${label}.${key}`, seen));
     }
-  } catch (_) {}
+  } catch (_) {
+    // Ignore objects that cannot expose enumerable values.
+  }
 
   return strings;
 }

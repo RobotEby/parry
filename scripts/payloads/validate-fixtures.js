@@ -22,7 +22,9 @@ function main() {
     return;
   }
 
-  console.log(`Payload fixtures valid: ${result.total} fixtures across ${Object.keys(result.counts).length} categories.`);
+  console.log(
+    `Payload fixtures valid: ${result.total} fixtures across ${Object.keys(result.counts).length} categories.`
+  );
 }
 
 if (require.main === module) main();

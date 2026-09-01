@@ -1,19 +1,12 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { EventEmitter } = require('events');
 const { createAdminAuthMiddleware, requireAdminAuth } = require('../../src/admin/auth');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function mockReq(overrides = {}) {
@@ -69,8 +62,7 @@ async function runAll() {
   const missingToken = await runAuth(tokenAuth);
   assert(
     'Token auth returns 401 when token is absent',
-    missingToken.res._status === 401 &&
-      missingToken.res._body.error.code === 'ADMIN_UNAUTHORIZED'
+    missingToken.res._status === 401 && missingToken.res._body.error.code === 'ADMIN_UNAUTHORIZED'
   );
 
   const wrongToken = await runAuth(
@@ -164,7 +156,10 @@ async function runAll() {
       headers: { 'x-forwarded-for': '198.51.100.10, 10.0.0.5' },
     })
   );
-  assert('IP allowlist uses x-forwarded-for only from trusted proxy', trustedForwardedIp.nextCalled);
+  assert(
+    'IP allowlist uses x-forwarded-for only from trusted proxy',
+    trustedForwardedIp.nextCalled
+  );
 
   console.log('\n── Admin Auth — Trusted Proxy ──────────────────────────────');
 
@@ -190,7 +185,10 @@ async function runAll() {
     trustedProxy,
     mockReq({ socket: { remoteAddress: '10.0.0.5' } })
   );
-  assert('Trusted proxy returns 401 when required header is absent', missingTrustedHeader.res._status === 401);
+  assert(
+    'Trusted proxy returns 401 when required header is absent',
+    missingTrustedHeader.res._status === 401
+  );
 
   const validTrustedProxy = await runAuth(
     trustedProxy,
@@ -231,7 +229,10 @@ async function runAll() {
     })
   );
   assert('Trusted proxy rejects wrong shared secret', wrongSecret.res._status === 403);
-  assert('Shared secret is not returned in response', !JSON.stringify(wrongSecret.res._body).includes('shared-secret'));
+  assert(
+    'Shared secret is not returned in response',
+    !JSON.stringify(wrongSecret.res._body).includes('shared-secret')
+  );
 
   const correctSecret = await runAuth(
     secretProxy,
@@ -254,7 +255,10 @@ async function runAll() {
       },
     })
   );
-  assert('Trusted proxy ignores administrative headers from public clients', spoofedAdminHeader.res._status === 403);
+  assert(
+    'Trusted proxy ignores administrative headers from public clients',
+    spoofedAdminHeader.res._status === 403
+  );
 
   console.log('\n── Admin Auth — Cloudflare Access ──────────────────────────');
 
@@ -271,7 +275,10 @@ async function runAll() {
       headers: { 'cf-access-authenticated-user-email': 'admin@example.com' },
     })
   );
-  assert('Cloudflare Access rejects headers from untrusted clients', untrustedCloudflare.res._status === 403);
+  assert(
+    'Cloudflare Access rejects headers from untrusted clients',
+    untrustedCloudflare.res._status === 403
+  );
 
   const allowedCloudflareEmail = await runAuth(
     cloudflareAuth,
@@ -308,7 +315,10 @@ async function runAll() {
       },
     })
   );
-  assert('Cloudflare Access rejects email outside allowlist', deniedCloudflareEmail.res._status === 403);
+  assert(
+    'Cloudflare Access rejects email outside allowlist',
+    deniedCloudflareEmail.res._status === 403
+  );
   assert(
     'Cloudflare Access does not return sensitive JWT header',
     !JSON.stringify(deniedCloudflareEmail.res._body).includes('raw.cloudflare.jwt')
@@ -318,7 +328,10 @@ async function runAll() {
     cloudflareDomainAuth,
     mockReq({ headers: { 'cf-access-authenticated-user-email': 'operator@evil.test' } })
   );
-  assert('Cloudflare Access rejects domain outside allowlist', deniedCloudflareDomain.res._status === 403);
+  assert(
+    'Cloudflare Access rejects domain outside allowlist',
+    deniedCloudflareDomain.res._status === 403
+  );
 
   const cloudflareSharedSecretAuth = createAdminAuthMiddleware({
     mode: 'cloudflare-access',
@@ -335,7 +348,10 @@ async function runAll() {
       },
     })
   );
-  assert('Cloudflare Access accepts valid shared proxy secret boundary', allowedCloudflareSecret.nextCalled);
+  assert(
+    'Cloudflare Access accepts valid shared proxy secret boundary',
+    allowedCloudflareSecret.nextCalled
+  );
 
   assert(
     'Cloudflare Access verifyJwt=true fails with explicit config error',
@@ -394,7 +410,10 @@ async function runAll() {
     albSubjectAuth,
     mockReq({ headers: { 'x-amzn-oidc-identity': 'subject-denied' } })
   );
-  assert('Cognito ALB alias rejects subject outside allowlist', deniedCognitoSubject.res._status === 403);
+  assert(
+    'Cognito ALB alias rejects subject outside allowlist',
+    deniedCognitoSubject.res._status === 403
+  );
 
   const albEmailAuth = createAdminAuthMiddleware({
     mode: 'alb-auth',
@@ -510,16 +529,34 @@ async function runAll() {
   const previousNodeEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = 'production';
   assert(
-    'None mode is blocked in production without explicit override',
+    'None mode is blocked in production',
     throws(() => createAdminAuthMiddleware({ mode: 'none' }))
+  );
+  assert(
+    'None mode is blocked in production even with an override',
+    throws(() => createAdminAuthMiddleware({ mode: 'none', allowInsecureAdminApi: true }))
+  );
+  assert(
+    'Legacy requireAuth=false is blocked in production',
+    throws(() => requireAdminAuth({ requireAuth: false }))
+  );
+  assert(
+    'Missing production auth fails during construction',
+    throws(() => requireAdminAuth({}))
   );
   process.env.NODE_ENV = previousNodeEnv;
 
   console.log('\n── Admin Auth — Legacy Compatibility ───────────────────────');
+  assert(
+    'Missing local auth fails during construction',
+    throws(() => requireAdminAuth({}))
+  );
+  const insecureLocal = await runAuth(requireAdminAuth({ allowInsecureAdminApi: true }));
+  assert('Explicit insecure local override is allowed', insecureLocal.nextCalled);
+  const legacyInsecureLocal = await runAuth(requireAdminAuth({ requireAuth: false }));
+  assert('Legacy requireAuth=false remains a local-only alias', legacyInsecureLocal.nextCalled);
   const legacyAuth = await runAuth(requireAdminAuth({ auth: () => true }));
   assert('Legacy auth callback still allows requests', legacyAuth.nextCalled);
-
-  return { passed, failed };
 }
 
 function throws(fn) {
@@ -547,4 +584,4 @@ function toBase64Url(value) {
     .replace(/\//g, '_');
 }
 
-module.exports = runAll().then(() => ({ passed, failed }));
+test('Admin authentication strategies', runAll);

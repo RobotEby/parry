@@ -1,19 +1,12 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const http = require('http');
 const { createDemoApp, buildAdminAuthConfig } = require('../../docker/demo-api/app');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 async function runAll() {
@@ -35,7 +28,10 @@ async function runAll() {
     assert('Demo API health returns ok', health.status === 200 && health.body.ok === true);
 
     const echo = await request(server, 'POST', '/echo', { message: 'hello' });
-    assert('Demo API /echo returns allowed body', echo.status === 200 && echo.body.received.message === 'hello');
+    assert(
+      'Demo API /echo returns allowed body',
+      echo.status === 200 && echo.body.received.message === 'hello'
+    );
 
     const blockedEcho = await request(server, 'POST', '/echo', { username: "' OR '1'='1" });
     assert('Demo API /echo is protected by Parry', blockedEcho.status === 400);
@@ -46,7 +42,10 @@ async function runAll() {
     const allowedAdmin = await request(server, 'GET', '/_parry/health', null, {
       'x-parry-admin-token': 'change-me',
     });
-    assert('Demo Admin API accepts configured token', allowedAdmin.status === 200 && allowedAdmin.body.ok);
+    assert(
+      'Demo Admin API accepts configured token',
+      allowedAdmin.status === 200 && allowedAdmin.body.ok
+    );
   } finally {
     await close(server);
   }
@@ -66,6 +65,19 @@ async function runAll() {
   } finally {
     await close(defaultTokenServer);
   }
+
+  assert(
+    'Demo API never invents an Admin token in production',
+    throws(() =>
+      createDemoApp({
+        env: {
+          NODE_ENV: 'production',
+          PARRY_RATE_LIMIT_ENABLED: 'false',
+          PARRY_LOG_THREATS: 'false',
+        },
+      })
+    )
+  );
 
   const { app: allowlistApp } = createDemoApp({
     env: {
@@ -172,8 +184,15 @@ async function runAll() {
   } finally {
     await close(albServer);
   }
+}
 
-  return { passed, failed };
+function throws(fn) {
+  try {
+    fn();
+    return false;
+  } catch {
+    return true;
+  }
 }
 
 function listen(app) {
@@ -202,7 +221,9 @@ function request(server, method, path, body, headers = {}) {
         path,
         headers: {
           Accept: 'application/json',
-          ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
+          ...(payload
+            ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+            : {}),
           ...headers,
         },
       },
@@ -227,4 +248,4 @@ function request(server, method, path, body, headers = {}) {
   });
 }
 
-module.exports = runAll().then(() => ({ passed, failed }));
+test('Demo API integration', runAll);

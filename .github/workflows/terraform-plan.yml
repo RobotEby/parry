@@ -3,14 +3,14 @@ name: Terraform Plan
 on:
   pull_request:
     paths:
-      - 'infra/terraform/**'
+      - 'infra/examples/aws/**'
       - '.github/workflows/terraform-plan.yml'
   push:
     branches:
       - main
       - master
     paths:
-      - 'infra/terraform/**'
+      - 'infra/examples/aws/**'
       - '.github/workflows/terraform-plan.yml'
   workflow_dispatch:
     inputs:
@@ -34,7 +34,7 @@ permissions:
 
 env:
   TF_IN_AUTOMATION: 'true'
-  TF_WORKING_DIR: infra/terraform/environments/dev
+  TF_WORKING_DIR: infra/examples/aws/environments/dev
 
 jobs:
   terraform-static:
@@ -43,15 +43,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: '1.9.8'
 
       - name: Terraform fmt
-        run: terraform fmt -check -recursive infra/terraform
+        run: terraform fmt -check -recursive infra/examples/aws
 
       - name: Terraform init without backend
         run: terraform -chdir="$TF_WORKING_DIR" init -backend=false -input=false
@@ -71,15 +71,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: '1.9.8'
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ github.event.inputs.aws_region || vars.AWS_REGION }}
@@ -96,7 +96,12 @@ jobs:
           project_name="${PROJECT_NAME_INPUT:-parry}"
           environment="${ENVIRONMENT_INPUT:-dev}"
           aws_region="${AWS_REGION_INPUT:-us-east-1}"
-          container_image="${CONTAINER_IMAGE_INPUT:-123456789012.dkr.ecr.${aws_region}.amazonaws.com/parry-dev-demo-api:placeholder}"
+          container_image="${CONTAINER_IMAGE_INPUT:-}"
+
+          if [ -z "$container_image" ]; then
+            echo "CONTAINER_IMAGE or the container_image workflow input is required for terraform plan."
+            exit 1
+          fi
 
           {
             echo "TF_VAR_project_name=$project_name"
@@ -114,7 +119,7 @@ jobs:
           terraform -chdir="$TF_WORKING_DIR" plan -no-color -input=false | tee "$TF_WORKING_DIR/terraform-plan.txt"
 
       - name: Upload Terraform plan text
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: terraform-plan-${{ github.sha }}
           path: ${{ env.TF_WORKING_DIR }}/terraform-plan.txt

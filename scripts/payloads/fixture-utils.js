@@ -8,7 +8,6 @@ const FIXTURE_DIR = path.join(ROOT_DIR, 'tests', 'fixtures', 'payloads');
 
 const VALID_SEVERITIES = new Set(['low', 'medium', 'high', 'critical']);
 const VALID_MODES = new Set(['off', 'recommended', 'strict', 'monitor']);
-const OPTIONAL_DETECTORS = new Set(['command-injection', 'ssrf']);
 const IMPLEMENTED_DETECTORS = new Set([
   'sql',
   'xss',
@@ -120,10 +119,16 @@ function validateFixture({ fixture, label, category, errors }) {
   }
 
   if (fixture.category !== category) {
-    errors.push(`${label}: category "${fixture.category}" does not match file category "${category}"`);
+    errors.push(
+      `${label}: category "${fixture.category}" does not match file category "${category}"`
+    );
   }
 
-  if (!fixture.expected || typeof fixture.expected !== 'object' || Array.isArray(fixture.expected)) {
+  if (
+    !fixture.expected ||
+    typeof fixture.expected !== 'object' ||
+    Array.isArray(fixture.expected)
+  ) {
     errors.push(`${label}: expected must be an object`);
   } else {
     if (typeof fixture.expected.blocked !== 'boolean') {
@@ -156,18 +161,15 @@ function getExpectedCounts() {
     hpp: 12,
     'prototype-pollution': 12,
     'path-traversal': 20,
-    'command-injection': 12,
-    ssrf: 12,
     'request-shape': 12,
     'brute-force': 10,
-    benign: 45,
+    benign: 75,
   };
 }
 
 module.exports = {
   ROOT_DIR,
   FIXTURE_DIR,
-  OPTIONAL_DETECTORS,
   IMPLEMENTED_DETECTORS,
   DETECTOR_TO_INTERNAL,
   fixturePath,

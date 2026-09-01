@@ -4,7 +4,9 @@ function decodeSqlValue(input) {
   let result = input;
   try {
     result = decodeURIComponent(result.replace(/\+/g, ' '));
-  } catch (_) {}
+  } catch (_) {
+    // Preserve malformed encodings for the detector's raw checks.
+  }
   return decodeHtmlEntities(result, { hex: false });
 }
 

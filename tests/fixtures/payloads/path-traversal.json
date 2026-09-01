@@ -5,8 +5,17 @@
     "name": "Basic Unix traversal",
     "payload": "../etc/passwd",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["unix", "dotdot"]
   },
   {
@@ -15,8 +24,17 @@
     "name": "Basic Windows traversal",
     "payload": "..\\windows\\win.ini",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["windows", "dotdot"]
   },
   {
@@ -25,8 +43,17 @@
     "name": "Nested Unix traversal",
     "payload": "../../secret.txt",
     "target": "body.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["unix", "nested"]
   },
   {
@@ -35,8 +62,17 @@
     "name": "Nested Windows traversal",
     "payload": "..\\..\\secret.txt",
     "target": "body.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["windows", "nested"]
   },
   {
@@ -45,8 +81,17 @@
     "name": "URL encoded Unix traversal",
     "payload": "%2e%2e%2fetc%2fpasswd",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "unix"],
     "encoded": true
   },
@@ -56,8 +101,17 @@
     "name": "Double URL encoded Unix traversal",
     "payload": "%252e%252e%252fetc%252fpasswd",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "double-encoded"],
     "encoded": true
   },
@@ -67,8 +121,17 @@
     "name": "Encoded mixed dot traversal",
     "payload": ".%2e/.%2e/etc/passwd",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "mixed"]
   },
   {
@@ -77,8 +140,17 @@
     "name": "Mixed slash traversal",
     "payload": "..\\../secret.txt",
     "target": "body.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["mixed-slash"]
   },
   {
@@ -87,8 +159,17 @@
     "name": "Directory prefix traversal",
     "payload": "uploads/../config.json",
     "target": "body.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["prefix"]
   },
   {
@@ -97,8 +178,17 @@
     "name": "Windows drive traversal",
     "payload": "C:\\temp\\..\\secret.txt",
     "target": "body.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["windows", "prefix"]
   },
   {
@@ -107,8 +197,17 @@
     "name": "Absolute path with traversal segment",
     "payload": "/var/www/../../etc/passwd",
     "target": "body.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["unix", "absolute"]
   },
   {
@@ -117,8 +216,17 @@
     "name": "Traversal at end of path",
     "payload": "assets/..",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["dotdot"]
   },
   {
@@ -127,8 +235,17 @@
     "name": "URL encoded Windows traversal",
     "payload": "%2e%2e%5cwindows%5cwin.ini",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "windows"],
     "encoded": true
   },
@@ -138,8 +255,17 @@
     "name": "Double URL encoded Windows traversal",
     "payload": "%252e%252e%255cwindows%255cwin.ini",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "double-encoded", "windows"],
     "encoded": true
   },
@@ -149,8 +275,17 @@
     "name": "Traversal in nested body object",
     "payload": { "path": "../private/key.pem" },
     "target": "body.upload",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["nested"]
   },
   {
@@ -159,8 +294,17 @@
     "name": "Traversal in array item",
     "payload": ["safe.txt", "../private/key.pem"],
     "target": "body.files",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["array"]
   },
   {
@@ -169,8 +313,17 @@
     "name": "Encoded nested traversal",
     "payload": "..%2f..%2fprivate%2fkey.pem",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "nested"]
   },
   {
@@ -179,8 +332,17 @@
     "name": "Encoded traversal in path prefix",
     "payload": "images%2f..%2fconfig.json",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "prefix"]
   },
   {
@@ -189,8 +351,17 @@
     "name": "Mixed Windows prefix traversal",
     "payload": "uploads\\..\\config.json",
     "target": "body.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["windows", "prefix"]
   },
   {
@@ -199,8 +370,17 @@
     "name": "Deep Unix traversal",
     "payload": "../../../../etc/shadow",
     "target": "query.file",
-    "expected": { "blocked": true, "detector": "path-traversal", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "Directory Traversal", "usedAsReferenceOnly": true },
+    "expected": {
+      "blocked": true,
+      "detector": "path-traversal",
+      "severity": "high",
+      "mode": "recommended"
+    },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "Directory Traversal",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["unix", "deep"]
   }
 ]

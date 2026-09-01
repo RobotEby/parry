@@ -1,19 +1,12 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { EventEmitter } = require('events');
 const { Parry_DDoS, createParry, createParryAdminRouter } = require('../../src');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function mockReq(overrides = {}) {
@@ -198,7 +191,10 @@ async function runAll() {
   assert('Blocked request generates structured event', threatEvents.pagination.total === 1);
   assert('onThreat receives structured event', structuredThreat?.type === 'SQL_INJECTION_BLOCKED');
   assert('Structured event exposes detector slug', structuredThreat?.detector === 'sql');
-  assert('Structured event preserves detectorType', structuredThreat?.detectorType === 'SQL_INJECTION');
+  assert(
+    'Structured event preserves detectorType',
+    structuredThreat?.detectorType === 'SQL_INJECTION'
+  );
   assert(
     'Structured event includes request id',
     structuredThreat?.requestId === 'req-integration-1'
@@ -303,7 +299,9 @@ async function runAll() {
   );
 
   const wrapperMiddleware = Parry_DDoS({ rateLimit: false, logThreats: false });
-  const wrapperRouter = createParryAdminRouter(wrapperMiddleware);
+  const wrapperRouter = createParryAdminRouter(wrapperMiddleware, {
+    allowInsecureAdminApi: true,
+  });
   const wrapperHealth = await runRouter(wrapperRouter, '/health');
   assert(
     'Admin router can resolve context from Parry_DDoS middleware wrapper',
@@ -355,7 +353,9 @@ async function runAll() {
     },
   });
 
-  const adminRouter = createParryAdminRouter(adminParry);
+  const adminRouter = createParryAdminRouter(adminParry, {
+    allowInsecureAdminApi: true,
+  });
   const health = await runRouter(adminRouter, '/health');
   assert('GET /health returns ok', health.res._status === 200 && health.res._body.ok === true);
   assert('GET /health includes store metadata', health.res._body.store === 'memory');
@@ -448,7 +448,9 @@ async function runAll() {
   });
   await runWithRoute(blockParry.middleware(), loginReq('10.50.0.9'), invalidLogin);
   await runWithRoute(blockParry.middleware(), loginReq('10.50.0.9'), invalidLogin);
-  const blockRouter = createParryAdminRouter(blockParry);
+  const blockRouter = createParryAdminRouter(blockParry, {
+    allowInsecureAdminApi: true,
+  });
   const blockBans = await runRouter(blockRouter, '/bans');
   assert(
     'GET /bans includes brute force blocks',
@@ -543,8 +545,6 @@ async function runAll() {
     'Admin router applies Cognito ALB config from Parry context',
     contextAlbAllowed.res._status === 200
   );
-
-  return { passed, failed };
 }
 
-module.exports = runAll().then(() => ({ passed, failed }));
+test('Observability and Admin API integration', runAll);

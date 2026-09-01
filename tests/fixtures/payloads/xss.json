@@ -6,7 +6,11 @@
     "payload": "<script>alert(1)</script>",
     "target": "body.comment",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["script-tag"],
     "notes": "String only. It is never executed."
   },
@@ -17,7 +21,11 @@
     "payload": "<script src=x>",
     "target": "query.q",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["script-tag"]
   },
   {
@@ -27,7 +35,11 @@
     "payload": "<ScRiPt>alert(1)</sCrIpT>",
     "target": "body.comment",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["script-tag", "mixed-case"]
   },
   {
@@ -37,7 +49,11 @@
     "payload": "<img src=x onerror=alert(1)>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["event-handler"]
   },
   {
@@ -47,7 +63,11 @@
     "payload": "<svg onload=alert(1)>",
     "target": "body.svg",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["event-handler", "svg"]
   },
   {
@@ -57,7 +77,11 @@
     "payload": "<body onload=alert(1)>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["event-handler"]
   },
   {
@@ -67,7 +91,11 @@
     "payload": "<a onmouseover=alert(1)>hover</a>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["event-handler"]
   },
   {
@@ -77,7 +105,11 @@
     "payload": "<a href=\"javascript:alert(1)\">click</a>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["javascript-uri"]
   },
   {
@@ -87,7 +119,11 @@
     "payload": "JaVaScRiPt:alert(1)",
     "target": "query.redirect",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["javascript-uri", "mixed-case"]
   },
   {
@@ -97,7 +133,11 @@
     "payload": "vbscript:msgbox(\"xss\")",
     "target": "query.redirect",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["vbscript-uri"]
   },
   {
@@ -107,7 +147,11 @@
     "payload": "data:text/html,<script>alert(1)</script>",
     "target": "query.url",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["data-uri"]
   },
   {
@@ -117,7 +161,11 @@
     "payload": "<iframe src=javascript:alert(1)>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["javascript-uri", "iframe"]
   },
   {
@@ -127,7 +175,11 @@
     "payload": "<object data=javascript:alert(1)>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["javascript-uri", "object"]
   },
   {
@@ -137,7 +189,11 @@
     "payload": "<embed src=javascript:alert(1)>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["javascript-uri", "embed"]
   },
   {
@@ -147,7 +203,11 @@
     "payload": "<input autofocus onfocus=alert(1)>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["event-handler", "autofocus"]
   },
   {
@@ -157,7 +217,11 @@
     "payload": "{{constructor.constructor(\"alert(1)\")()}}",
     "target": "body.template",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["template"]
   },
   {
@@ -167,7 +231,11 @@
     "payload": "${alert(1)}",
     "target": "body.template",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["template"]
   },
   {
@@ -177,7 +245,11 @@
     "payload": "width: expression(alert(1))",
     "target": "body.style",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["css"]
   },
   {
@@ -187,7 +259,11 @@
     "payload": "background:url(javascript:alert(1))",
     "target": "body.style",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["css", "javascript-uri"]
   },
   {
@@ -197,7 +273,11 @@
     "payload": "<meta http-equiv=refresh content=\"0;javascript:alert(1)\">",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["meta", "javascript-uri"]
   },
   {
@@ -207,7 +287,11 @@
     "payload": "safe%00<script>alert(1)</script>",
     "target": "query.q",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["null-byte", "encoded"],
     "encoded": true
   },
@@ -218,7 +302,11 @@
     "payload": "%3Cscript%3Ealert(1)%3C/script%3E",
     "target": "query.q",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "script-tag"],
     "encoded": true
   },
@@ -229,7 +317,11 @@
     "payload": "%253Cscript%253Ealert(1)%253C%252Fscript%253E",
     "target": "query.q",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "double-encoded"],
     "encoded": true
   },
@@ -240,7 +332,11 @@
     "payload": "&lt;script&gt;alert(1)&lt;/script&gt;",
     "target": "body.comment",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "html-entity"],
     "encoded": true
   },
@@ -251,7 +347,11 @@
     "payload": "java\u200Bscript:alert(1)",
     "target": "query.url",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "unicode"]
   },
   {
@@ -261,7 +361,11 @@
     "payload": "<svg><script>alert(1)</script></svg>",
     "target": "body.svg",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["svg", "script-tag"]
   },
   {
@@ -271,7 +375,11 @@
     "payload": "<style>body{background:url(javascript:alert(1))}</style>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["css", "javascript-uri"]
   },
   {
@@ -281,7 +389,11 @@
     "payload": "<link href=javascript:alert(1)>",
     "target": "body.html",
     "expected": { "blocked": true, "detector": "xss", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "XSS Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "XSS Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["javascript-uri", "link"]
   }
 ]

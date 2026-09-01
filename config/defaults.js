@@ -50,6 +50,9 @@ const DEFAULTS = {
   },
   trustProxyHeaders: false,
   trustedProxies: [],
+  headers: {
+    scan: ['user-agent', 'referer', 'x-forwarded-for', 'cookie'],
+  },
   debug: false,
 
   suspiciousThreshold: 5,
@@ -59,7 +62,7 @@ const DEFAULTS = {
 
   onThreat: null,
 
-  maxObjectDepth: 5,
+  maxObjectDepth: 8,
 };
 
 module.exports = { DEFAULTS };

@@ -1,6 +1,7 @@
 'use strict';
 
 const ipaddr = require('ipaddr.js');
+const MAX_PROXY_HOPS = 20;
 
 function getClientIp(req, options = {}) {
   const headers = req.headers || {};
@@ -11,9 +12,22 @@ function getClientIp(req, options = {}) {
   if (!isTrustedProxy(directIp, options.trustedProxies || [])) return directIp;
 
   const forwarded = getHeader(headers, 'x-forwarded-for');
-  const firstForwarded = forwarded ? forwarded.split(',')[0].trim() : '';
+  if (forwarded) {
+    const rawHops = String(forwarded).split(',');
+    if (rawHops.length === 0 || rawHops.length > MAX_PROXY_HOPS) return directIp;
+    const hops = rawHops.map((hop) => parseIp(hop));
+    if (hops.some((hop) => !hop)) return directIp;
+
+    for (let index = hops.length - 1; index >= 0; index -= 1) {
+      const hop = hops[index].toString();
+      if (!isTrustedProxy(hop, options.trustedProxies || [])) return hop;
+    }
+
+    return hops[0]?.toString() || directIp;
+  }
+
   const realIp = getHeader(headers, 'x-real-ip');
-  return normalizeIp(firstForwarded || realIp || directIp);
+  return realIp && parseIp(realIp) ? normalizeIp(realIp) : directIp;
 }
 
 function resolveClientIP(req, options = {}) {

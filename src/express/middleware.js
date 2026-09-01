@@ -1,6 +1,12 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { DEFAULTS } = require('../../config/defaults');
+const {
+  normalizeHeadersConfig,
+  normalizeNoSQLConfig,
+  validateParryOptions,
+} = require('../../config/validate');
 const { analyzeRequest } = require('../core/engine');
 const { RateLimiter } = require('../rate-limit/limiter');
 const { ThreatLogger } = require('../logger/console-reporter');
@@ -16,14 +22,14 @@ const {
   observeAuthenticationResult,
 } = require('../brute-force');
 const { resolveClientIP } = require('./ip-resolver');
-const { collectRequestTargets } = require('./request-targets');
 const { setRateLimitHeaders, respond } = require('./response');
 
 /**
  * Detects SQL Injection, XSS and NoSQL Injection in real-time.
  * Applies intelligent Rate Limiting with automatic banning for suspicious behavior.
  *
- * @param {import('../../types/index').Parry_DDoSOptions} options
+ * @deprecated Use createParry() instead.
+ * @param {import('../../types/index').ParryOptions} options
  * @returns {import('express').RequestHandler}
  */
 function Parry_DDoS(options = {}) {
@@ -101,7 +107,6 @@ async function handleRequest(req, res, next, context) {
     query: req.query || {},
     params: req.params || {},
     body: req.body,
-    targets: collectRequestTargets(req, config.maxObjectDepth),
     requestId,
     userAgent: getHeader(req.headers || {}, 'user-agent'),
   };
@@ -175,6 +180,7 @@ async function handleRequest(req, res, next, context) {
 }
 
 function mergeConfig(options) {
+  validateParryOptions(options);
   const config = { ...DEFAULTS, ...options };
 
   for (const key of ['hpp', 'prototypePollution', 'pathTraversal', 'requestShape']) {
@@ -198,6 +204,9 @@ function mergeConfig(options) {
   config.storeFailureMode =
     options.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
   config.policies = buildPolicies(options);
+  config.headers = normalizeHeadersConfig(options.headers);
+  config.nosqlConfig = normalizeNoSQLConfig(options.nosql);
+  config.nosql = config.nosqlConfig.enabled;
   config.bruteForce =
     options.bruteForce === false
       ? false
@@ -366,7 +375,7 @@ function resolveRequestId(req, res, config) {
 }
 
 function createRequestId() {
-  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return `req_${crypto.randomUUID()}`;
 }
 
 function getHeader(headers, name) {

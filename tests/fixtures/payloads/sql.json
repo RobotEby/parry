@@ -6,7 +6,11 @@
     "payload": "' OR '1'='1",
     "target": "body.username",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["auth-bypass", "boolean-based"],
     "notes": "Curated defensive regression fixture. Do not execute against external systems."
   },
@@ -17,7 +21,11 @@
     "payload": "' OR 1=1 --",
     "target": "body.login",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["auth-bypass", "comment"]
   },
   {
@@ -27,7 +35,11 @@
     "payload": "\" OR \"1\"=\"1",
     "target": "query.username",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["auth-bypass", "boolean-based"]
   },
   {
@@ -37,7 +49,11 @@
     "payload": "admin' --",
     "target": "body.username",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["comment"]
   },
   {
@@ -47,7 +63,11 @@
     "payload": "' OR 'a'='a' #",
     "target": "query.search",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["comment", "boolean-based"]
   },
   {
@@ -57,7 +77,11 @@
     "payload": "' UNION SELECT username,password FROM users",
     "target": "query.q",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["union-select"]
   },
   {
@@ -67,7 +91,11 @@
     "payload": "1 UNION SELECT NULL,NULL",
     "target": "params.id",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["union-select"]
   },
   {
@@ -77,7 +105,11 @@
     "payload": "' UNION ALL SELECT table_name FROM information_schema.tables",
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["union-select", "metadata"]
   },
   {
@@ -87,7 +119,11 @@
     "payload": "1' AND '1'='1",
     "target": "query.id",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["boolean-based"]
   },
   {
@@ -97,7 +133,11 @@
     "payload": "1' AND '1'='2",
     "target": "query.id",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["boolean-based"]
   },
   {
@@ -107,7 +147,11 @@
     "payload": "'; DROP TABLE users;",
     "target": "body.name",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["stacked-query", "ddl"]
   },
   {
@@ -117,7 +161,11 @@
     "payload": "'; UPDATE users SET role='admin' WHERE id=1;",
     "target": "body.name",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["stacked-query", "dml"]
   },
   {
@@ -127,7 +175,11 @@
     "payload": "'; DELETE FROM sessions WHERE '1'='1",
     "target": "body.name",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["stacked-query", "dml"]
   },
   {
@@ -137,7 +189,11 @@
     "payload": "' AND SLEEP(5)--",
     "target": "query.search",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["time-based"]
   },
   {
@@ -147,7 +203,11 @@
     "payload": "' OR BENCHMARK(1000000,MD5(1))--",
     "target": "query.search",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["time-based"]
   },
   {
@@ -157,7 +217,11 @@
     "payload": "'; WAITFOR DELAY '0:0:5'--",
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["time-based"]
   },
   {
@@ -167,7 +231,11 @@
     "payload": "SELECT password FROM users WHERE id=1",
     "target": "body.query",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["select"]
   },
   {
@@ -177,7 +245,11 @@
     "payload": "1; SELECT * FROM users WHERE id=1",
     "target": "params.id",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["select", "stacked-query"]
   },
   {
@@ -187,7 +259,11 @@
     "payload": "0x414243",
     "target": "query.id",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoding"]
   },
   {
@@ -197,7 +273,11 @@
     "payload": "CHAR(65)+CHAR(66)",
     "target": "query.name",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoding"]
   },
   {
@@ -207,7 +287,11 @@
     "payload": "LOAD_FILE('/etc/passwd')",
     "target": "body.path",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["file-read"]
   },
   {
@@ -217,7 +301,11 @@
     "payload": "SELECT * FROM pg_catalog.pg_tables",
     "target": "body.query",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["metadata"]
   },
   {
@@ -227,7 +315,11 @@
     "payload": "EXEC xp_cmdshell 'whoami'",
     "target": "body.query",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["exec"]
   },
   {
@@ -237,7 +329,11 @@
     "payload": "%27%20OR%201%3D1--",
     "target": "query.q",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "auth-bypass"],
     "encoded": true
   },
@@ -248,7 +344,11 @@
     "payload": "UNION%20SELECT%20username%2Cpassword%20FROM%20users",
     "target": "query.q",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["encoded", "union-select"],
     "encoded": true
   },
@@ -259,7 +359,11 @@
     "payload": "SELECT data INTO OUTFILE '/tmp/out.txt'",
     "target": "body.query",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["file-write"]
   },
   {
@@ -269,7 +373,11 @@
     "payload": "EXEC sp_executesql N'SELECT * FROM users'",
     "target": "body.query",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["exec"]
   },
   {
@@ -279,7 +387,11 @@
     "payload": "admin' /*",
     "target": "body.username",
     "expected": { "blocked": true, "detector": "sql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "SQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "SQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["comment"]
   }
 ]

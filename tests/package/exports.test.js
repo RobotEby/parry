@@ -1,20 +1,15 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const pkg = require('../../package.json');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function runAll() {
@@ -48,7 +43,79 @@ function runAll() {
     }
   }
 
-  return { passed, failed };
+  const expectedSubpathSymbols = {
+    './core': ['RateLimiter', 'ThreatLogger', 'MemoryStore', 'RedisStore'],
+    './detectors': ['SQLInjectionDetector', 'XSSDetector', 'NoSQLDetector'],
+    './stores': ['MemoryStore', 'RedisStore'],
+    './policies': ['findMatchingPolicy', 'buildPolicies'],
+    './brute-force': ['checkBruteForceBlock', 'buildBruteForceKeys'],
+    './events': ['EventBus', 'MemoryEventStore', 'createThreatEvent'],
+    './observability': ['Metrics', 'createSnapshot'],
+    './admin': ['createParryAdminRouter', 'createAdminAuthMiddleware'],
+  };
+  for (const [subpath, symbols] of Object.entries(expectedSubpathSymbols)) {
+    const api = require(`@roboteby/parry/${subpath.slice(2)}`);
+    for (const symbol of symbols) {
+      assert(`${subpath} exports ${symbol}`, typeof api[symbol] !== 'undefined');
+    }
+  }
+
+  verifyPackedInstall();
+}
+
+function verifyPackedInstall() {
+  const root = path.resolve(__dirname, '..', '..');
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'parry-package-test-'));
+  try {
+    const report = JSON.parse(
+      execFileSync('npm', ['pack', '--json', '--pack-destination', temporary], {
+        cwd: root,
+        encoding: 'utf8',
+      })
+    )[0];
+    const archive = path.join(temporary, report.filename);
+    execFileSync('tar', ['-xzf', archive, '-C', temporary]);
+
+    const nodeModules = path.join(temporary, 'node_modules');
+    const scope = path.join(nodeModules, '@roboteby');
+    fs.mkdirSync(scope, { recursive: true });
+    fs.renameSync(path.join(temporary, 'package'), path.join(scope, 'parry'));
+    fs.symlinkSync(path.join(root, 'node_modules', 'express'), path.join(nodeModules, 'express'));
+    fs.symlinkSync(
+      path.join(root, 'node_modules', 'ipaddr.js'),
+      path.join(nodeModules, 'ipaddr.js')
+    );
+
+    const isolatedRequire = require('module').createRequire(path.join(temporary, 'consumer.js'));
+    const packedApi = isolatedRequire('@roboteby/parry');
+    assert(
+      'Packed tarball root loads from an isolated directory',
+      typeof packedApi.createParry === 'function'
+    );
+    assert(
+      'Packed tarball subpath loads from an isolated directory',
+      typeof isolatedRequire('@roboteby/parry/detectors').XSSDetector === 'object'
+    );
+
+    const packedPaths = report.files.map((file) => file.path);
+    for (const forbidden of ['tests/', 'scripts/', 'docs/', 'docker/', 'infra/', '.github/']) {
+      assert(
+        `Packed tarball excludes ${forbidden}`,
+        packedPaths.every((file) => !file.startsWith(forbidden))
+      );
+    }
+    for (const removed of [
+      'src/middleware/index.js',
+      'src/middleware/parry_ddos.js',
+      'src/core/rateLimiter.js',
+      'src/core/logger.js',
+      'src/stores/README.md',
+    ]) {
+      assert(`Packed tarball excludes removed file ${removed}`, !packedPaths.includes(removed));
+    }
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
 }
 
 function resolveRequireTarget(exportTarget) {
@@ -59,4 +126,4 @@ function resolveRequireTarget(exportTarget) {
   return null;
 }
 
-module.exports = Promise.resolve(runAll());
+test('Package public exports', runAll);

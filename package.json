@@ -5,35 +5,61 @@
   "main": "./src/index.js",
   "types": "./types/index.d.ts",
   "scripts": {
-    "test": "node tests/index.js",
-    "test:unit": "node -e \"(async()=>{ await require('./tests/unit/detectors.test'); await require('./tests/unit/rateLimiter.test'); await require('./tests/unit/memoryStore.test'); await require('./tests/unit/redisStore.test'); await require('./tests/unit/policyMatcher.test'); await require('./tests/unit/keyBuilder.test'); await require('./tests/unit/bruteForceGuard.test'); await require('./tests/unit/engine.test'); await require('./tests/unit/applicationGuards.test'); await require('./tests/unit/observability.test'); await require('./tests/unit/adminAuth.test'); })().catch((err)=>{ console.error(err); process.exit(1); })\"",
-    "test:integ": "node tests/integration/middleware.test.js",
+    "test": "node --test tests/unit/*.test.js tests/integration/*.test.js tests/package/*.test.js",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "test:integ": "npm run test:integration",
+    "test:package": "node --test tests/package/*.test.js",
+    "test:types": "tsc -p tests/types/tsconfig.json",
     "test:fixtures": "node scripts/payloads/validate-fixtures.js",
-    "test:payload-regression": "node tests/regression/index.js",
+    "test:payload-regression": "node --test tests/regression/*.test.js",
     "test:payload-report": "node scripts/payloads/generate-payload-report.js",
     "package:check": "node scripts/package/check-package.js",
     "package:check-tag": "node scripts/package/check-version-tag.js",
     "package:dry-run": "npm pack --dry-run",
     "example": "node examples/express-basic.js",
-    "test:http": "node scripts/run-tests.js",
-    "start:test": "node scripts/test-server.js",
     "docker:build:demo": "docker build -f docker/demo-api/Dockerfile -t parry-demo-api .",
-    "format": "prettier --write \"src/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.js\""
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "exports": {
     ".": {
       "require": "./src/index.js",
       "types": "./types/index.d.ts"
     },
-    "./core": "./src/core/index.js",
-    "./detectors": "./src/detectors/index.js",
-    "./stores": "./src/stores/index.js",
-    "./policies": "./src/policies/index.js",
-    "./brute-force": "./src/brute-force/index.js",
-    "./events": "./src/events/index.js",
-    "./observability": "./src/observability/index.js",
-    "./admin": "./src/admin/index.js",
+    "./core": {
+      "require": "./src/core/index.js",
+      "types": "./types/core.d.ts"
+    },
+    "./detectors": {
+      "require": "./src/detectors/index.js",
+      "types": "./types/detectors.d.ts"
+    },
+    "./stores": {
+      "require": "./src/stores/index.js",
+      "types": "./types/stores.d.ts"
+    },
+    "./policies": {
+      "require": "./src/policies/index.js",
+      "types": "./types/policies.d.ts"
+    },
+    "./brute-force": {
+      "require": "./src/brute-force/index.js",
+      "types": "./types/brute-force.d.ts"
+    },
+    "./events": {
+      "require": "./src/events/index.js",
+      "types": "./types/events.d.ts"
+    },
+    "./observability": {
+      "require": "./src/observability/index.js",
+      "types": "./types/observability.d.ts"
+    },
+    "./admin": {
+      "require": "./src/admin/index.js",
+      "types": "./types/admin.d.ts"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -66,24 +92,29 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/RobotEby/parry-express-security-middleware.git"
+    "url": "git+https://github.com/RobotEby/parry.git"
   },
   "bugs": {
-    "url": "https://github.com/RobotEby/parry-express-security-middleware/issues"
+    "url": "https://github.com/RobotEby/parry/issues"
   },
-  "homepage": "https://github.com/RobotEby/parry-express-security-middleware#readme",
+  "homepage": "https://github.com/RobotEby/parry#readme",
   "peerDependencies": {
     "express": "^5.2.1"
   },
   "devDependencies": {
-    "eslint-config-prettier": "^10.1.8",
+    "@eslint/js": "^9.39.5",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.1",
+    "eslint": "^9.39.5",
     "express": "^5.2.1",
-    "prettier": "^3.8.1"
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "ipaddr.js": "^2.4.0"
+    "ipaddr.js": "^2.5.0"
   }
 }

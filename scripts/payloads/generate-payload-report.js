@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const {
   IMPLEMENTED_DETECTORS,
-  OPTIONAL_DETECTORS,
   ROOT_DIR,
   getExpectedCounts,
   loadFixtures,
@@ -16,7 +15,9 @@ const REPORT_PATH = path.join(ROOT_DIR, 'docs', 'payload-regression-report.md');
 function generateReport() {
   const validation = validateFixtures();
   if (!validation.ok) {
-    throw new Error(`Cannot generate report with invalid fixtures:\n${validation.errors.join('\n')}`);
+    throw new Error(
+      `Cannot generate report with invalid fixtures:\n${validation.errors.join('\n')}`
+    );
   }
 
   const { all, byCategory } = loadFixtures();
@@ -25,10 +26,11 @@ function generateReport() {
   const malicious = all.filter((fixture) => fixture.category !== 'benign');
   const blocked = all.filter((fixture) => fixture.expected.blocked);
   const benign = byCategory.benign || [];
-  const monitorOnly = all.filter((fixture) => fixture.monitorOnly || fixture.expected.mode === 'monitor');
-  const strictOnly = all.filter((fixture) => fixture.strictOnly || fixture.expected.mode === 'strict');
-  const absentDetectors = [...OPTIONAL_DETECTORS].filter(
-    (detector) => (byCategory[detector] || []).length > 0 && !IMPLEMENTED_DETECTORS.has(detector)
+  const monitorOnly = all.filter(
+    (fixture) => fixture.monitorOnly || fixture.expected.mode === 'monitor'
+  );
+  const strictOnly = all.filter(
+    (fixture) => fixture.strictOnly || fixture.expected.mode === 'strict'
   );
 
   const lines = [
@@ -65,7 +67,7 @@ function generateReport() {
     '## Detector Coverage',
     '',
     `- Implemented detector categories: ${[...IMPLEMENTED_DETECTORS].sort().join(', ')}`,
-    `- Optional categories without detectors in this version: ${absentDetectors.length ? absentDetectors.sort().join(', ') : 'none'}`,
+    '- Fixtures cover only detectors implemented by this version.',
     '',
     '## Defensive Use Notice',
     '',
@@ -81,7 +83,9 @@ function generateReport() {
 function main() {
   try {
     const result = generateReport();
-    console.log(`Payload regression report generated: ${path.relative(ROOT_DIR, result.reportPath)} (${result.total} fixtures).`);
+    console.log(
+      `Payload regression report generated: ${path.relative(ROOT_DIR, result.reportPath)} (${result.total} fixtures).`
+    );
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;

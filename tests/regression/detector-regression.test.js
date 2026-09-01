@@ -1,5 +1,7 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { DEFAULTS } = require('../../config/defaults');
 const {
   HPPDetector,
@@ -13,17 +15,8 @@ const {
 const { loadFixtures } = require('../../scripts/payloads/fixture-utils');
 const { assignTarget, materializePayload, mockReq } = require('./fixture-helpers');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function runAll() {
@@ -57,7 +50,9 @@ function runAll() {
   for (const fixture of byCategory['path-traversal']) {
     assert(
       `Path Traversal blocks ${fixture.id}`,
-      PathTraversalDetector.scan([{ label: fixture.target, value: materializePayload(fixture) }]) !== null
+      PathTraversalDetector.scan([
+        { label: fixture.target, value: materializePayload(fixture) },
+      ]) !== null
     );
   }
 
@@ -68,20 +63,12 @@ function runAll() {
     );
   }
 
-  assert(
-    'Command Injection fixtures are not enforced without a detector',
-    byCategory['command-injection'].every((fixture) => fixture.monitorOnly && fixture.expected.blocked === false)
-  );
-  assert(
-    'SSRF fixtures are not enforced without a detector',
-    byCategory.ssrf.every((fixture) => fixture.monitorOnly && fixture.expected.blocked === false)
-  );
-
   for (const fixture of byCategory.benign) {
-    assert(`Benign fixture ${fixture.id} is not blocked by direct detectors`, allowsBenignFixture(fixture));
+    assert(
+      `Benign fixture ${fixture.id} is not blocked by direct detectors`,
+      allowsBenignFixture(fixture)
+    );
   }
-
-  return { passed, failed };
 }
 
 function buildSurfaces(fixture) {
@@ -100,16 +87,30 @@ function allowsBenignFixture(fixture) {
 
   if (SQLInjectionDetector.scan(stringValue) !== null) return false;
   if (XSSDetector.scan(stringValue) !== null) return false;
-  if (NoSQLDetector.scan(value) !== null) return false;
-  if (NoSQLDetector.scan(stringValue) !== null) return false;
+  if (fixture.tags?.includes('nosql-allowlist')) {
+    if (
+      NoSQLDetector.scan(value, {
+        rootPath: fixture.target,
+        allowedOperators: { [fixture.target]: ['$gt'] },
+      }) !== null
+    ) {
+      return false;
+    }
+  } else {
+    if (NoSQLDetector.scan(value) !== null) return false;
+    if (NoSQLDetector.scan(stringValue) !== null) return false;
+  }
   if (PrototypePollutionDetector.scan(buildSurfaces(fixture)) !== null) return false;
   if (PathTraversalDetector.scan([{ label: fixture.target, value }]) !== null) return false;
 
   const req = mockReq();
   assignTarget(req, fixture.target, value);
-  if (HPPDetector.scan(req.query, { allowDuplicateParamsFor: ['tags', 'filters', 'sort'] }) !== null) return false;
+  if (
+    HPPDetector.scan(req.query, { allowDuplicateParamsFor: ['tags', 'filters', 'sort'] }) !== null
+  )
+    return false;
 
   return true;
 }
 
-module.exports = Promise.resolve(runAll());
+test('Detector payload regression', runAll);

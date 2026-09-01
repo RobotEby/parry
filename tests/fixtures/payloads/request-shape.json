@@ -5,7 +5,12 @@
     "name": "Object depth just above default limit",
     "payload": { "kind": "deep-object", "depth": 9 },
     "target": "body.shape",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["depth"],
     "notes": "Synthetic bounded structure; no memory stress."
@@ -16,7 +21,12 @@
     "name": "Nested array depth above default limit",
     "payload": { "kind": "deep-array", "depth": 9 },
     "target": "body.shape",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["depth", "array"]
   },
@@ -26,7 +36,12 @@
     "name": "Object with 501 keys",
     "payload": { "kind": "wide-object", "keys": 501 },
     "target": "body.shape",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-keys"]
   },
@@ -36,7 +51,12 @@
     "name": "Nested object with total keys above limit",
     "payload": { "kind": "nested-wide-object", "parents": 6, "keysPerParent": 90 },
     "target": "body.shape",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-keys", "nested"]
   },
@@ -46,7 +66,12 @@
     "name": "Array with 101 entries",
     "payload": { "kind": "large-array", "length": 101 },
     "target": "body.items",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-array-length"]
   },
@@ -56,7 +81,12 @@
     "name": "Nested array with 101 entries",
     "payload": { "kind": "nested-large-array", "length": 101 },
     "target": "body.wrapper",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-array-length", "nested"]
   },
@@ -66,7 +96,12 @@
     "name": "String with 10001 characters",
     "payload": { "kind": "long-string", "length": 10001 },
     "target": "body.text",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-string-length"]
   },
@@ -76,7 +111,12 @@
     "name": "Nested long string",
     "payload": { "kind": "nested-long-string", "length": 10001 },
     "target": "body.profile",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-string-length", "nested"]
   },
@@ -86,7 +126,12 @@
     "name": "Mixed object and array depth above limit",
     "payload": { "kind": "mixed-depth", "depth": 9 },
     "target": "body.shape",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["depth", "array", "object"]
   },
@@ -96,7 +141,12 @@
     "name": "Object key burst at root",
     "payload": { "kind": "wide-object", "keys": 550 },
     "target": "body",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-keys"]
   },
@@ -106,7 +156,12 @@
     "name": "Large array inside object",
     "payload": { "kind": "object-with-large-array", "length": 101 },
     "target": "body.payload",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-array-length", "nested"]
   },
@@ -116,7 +171,12 @@
     "name": "Long string inside array",
     "payload": { "kind": "array-with-long-string", "length": 10001 },
     "target": "body.items",
-    "expected": { "blocked": true, "detector": "request-shape", "severity": "medium", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "request-shape",
+      "severity": "medium",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Request Shape Guard" },
     "tags": ["max-string-length", "array"]
   }

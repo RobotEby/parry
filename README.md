@@ -1,299 +1,148 @@
 # Parry
 
-[![npm rc version](https://img.shields.io/npm/v/@roboteby/parry/rc?label=npm%20rc)](https://www.npmjs.com/package/@roboteby/parry)
-[![license](https://img.shields.io/npm/l/@roboteby/parry)](https://github.com/RobotEby/parry-express-security-middleware/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@roboteby/parry)](https://www.npmjs.com/package/@roboteby/parry)
+[![license](https://img.shields.io/npm/l/@roboteby/parry)](./LICENSE)
 [![node](https://img.shields.io/node/v/@roboteby/parry)](https://www.npmjs.com/package/@roboteby/parry)
 
-Application-layer security middleware for Express.js.
+Application-layer security middleware for Express 5.
 
-## Overview
+Parry combines request-shape limits, heuristic SQL injection/XSS/NoSQL checks,
+HTTP parameter pollution and prototype/path traversal guards with rate limiting,
+route policies, brute-force protection, sanitized Threat Events, and an optional
+read-only Admin API. It is CommonJS and has no mandatory Redis dependency.
 
-Parry is a CommonJS security middleware for Express applications. It helps block common application-layer abuse before requests reach route handlers, while keeping the public API small and compatible with standard Express middleware usage.
+The stable npm release is `1.1.1` on `latest`. The earlier `1.1.0-rc.1` remains
+available on the `rc` dist-tag; it is not the recommended installation.
 
-Parry detects and blocks patterns associated with SQL injection, XSS, NoSQL injection, HTTP parameter pollution, prototype pollution, path traversal, rate abuse, and brute-force authentication attempts. It also emits structured Threat Events and metrics that can be inspected through an optional read-only Admin API.
-
-Parry is not a complete volumetric DDoS protection product. Network floods, L3/L4 abuse, TLS exhaustion, CDN filtering, and edge rate controls should be handled by CloudFront, AWS WAF, Shield, a CDN, an ALB/load balancer, or equivalent infrastructure controls.
-
-## Why Parry
-
-Parry centralizes application-layer security policy in one Express middleware. That gives backend teams a consistent place to tune detector behavior, route-based limits, brute-force protection, event logging, and distributed rate limiting.
-
-It is designed for development and production-like deployments:
-
-- use `MemoryStore` for local development and single-process services;
-- use `RedisStore` for multiple instances, containers, ECS, Kubernetes, PM2 cluster, or load-balanced services;
-- expose the Admin API only behind authentication, private networking, VPN, or a trusted reverse proxy.
-
-## Features
-
-- SQL injection detection
-- XSS detection
-- NoSQL injection detection
-- HTTP parameter pollution checks
-- Prototype pollution checks
-- Path traversal checks
-- Request shape guard
-- Global and route-based rate limiting
-- BruteForceGuard for authentication routes
-- `MemoryStore` and optional `RedisStore`
-- Structured Threat Events
-- Metrics and observability helpers
-- Optional read-only Admin API
-- Route-based policies and presets
-- Docker demo API
-- AWS reference infrastructure
-
-## Installation
+## Install
 
 ```bash
-npm install @roboteby/parry@rc
+npm install @roboteby/parry
 ```
 
-Parry expects Express to be installed by your application.
-
-## Release Candidate
-
-`@roboteby/parry@1.1.0-rc.1` is published on npm under the `rc` tag for validation before promotion to the stable `latest` channel. Use `npm install @roboteby/parry@rc` to test the release candidate, review detector behavior and Admin API configuration in your environment, and pin the exact version if you need reproducible rollout testing.
-
-## Quick Start
+Express `^5.2.1` is a peer dependency.
 
 ```js
 const express = require('express');
 const { createParry } = require('@roboteby/parry');
 
 const app = express();
+app.use(express.json({ limit: '64kb' }));
 
-const parry = createParry({
-  preset: 'recommended',
-});
-
-app.use(express.json());
+const parry = createParry({ preset: 'recommended' });
 app.use(parry.middleware());
 
-app.get('/health', (_req, res) => {
-  res.json({ ok: true });
-});
-
+app.get('/health', (_req, res) => res.json({ ok: true }));
 app.listen(3000);
 ```
 
-Parse JSON and URL-encoded bodies before Parry when you want Parry to inspect request bodies. Keep Parry before routes that should be protected.
+Body parsers must run before Parry if request bodies should be inspected. Mount
+Parry before the routes it protects.
 
-The legacy `Parry_DDoS(options)` export remains available for existing CommonJS integrations:
+## Security boundaries
+
+Parry is one application-layer control. It does not replace validation and
+parameterized queries in the application, output encoding and CSP in the browser,
+authentication/authorization, a reverse proxy, CDN/WAF, load balancer, or
+volumetric L3/L4 DDoS protection.
+
+SQLi and XSS detection is heuristic. The patterns are intentionally bounded and
+the Request Shape guard runs before heavier scans, but applications still need
+tests for their own traffic and false-positive profile. A clean Parry decision is
+not proof that input is safe for every downstream interpreter.
+
+When `MemoryStore` is used, counters and bans exist only inside one Node.js
+process. `RedisStore` shares rate-limit and brute-force state across instances.
+Threat Events, the in-memory event buffer, and metrics remain local to each
+process unless the application exports them through `onEvent` or another
+observability integration.
+
+See [the security model](./docs/security-model.md) and [configuration](./docs/configuration.md).
+
+## Public API
+
+The four recommended stable exports are:
+
+- `createParry(options)` — create a middleware instance and observability context;
+- `createParryAdminRouter(parry, options)` — create the optional read-only Admin router;
+- `MemoryStore` — single-process state store;
+- `RedisStore` — adapter for an application-owned Redis client.
+
+All existing exports remain available. `Parry_DDoS(options)` is deprecated but
+kept as a compatibility wrapper around `createParry(options).middleware()`.
+`Parry_DDoSOptions` remains a deprecated TypeScript alias for `ParryOptions`.
+
+Advanced APIs have typed subpaths: `/core`, `/detectors`, `/stores`, `/policies`,
+`/brute-force`, `/events`, `/observability`, and `/admin`.
+
+## Admin API is fail-closed
+
+The Admin router now throws during construction when no authentication strategy
+is configured:
 
 ```js
-const { Parry_DDoS } = require('@roboteby/parry');
+const { createParryAdminRouter } = require('@roboteby/parry');
 
-app.use(express.json());
-app.use(Parry_DDoS({ preset: 'recommended' }));
+app.use(
+  '/_parry',
+  createParryAdminRouter(parry, {
+    auth: {
+      mode: 'token',
+      token: process.env.PARRY_ADMIN_TOKEN,
+    },
+  })
+);
 ```
 
-## Presets
+`allowInsecureAdminApi: true`, `auth.mode: 'none'`, and the legacy
+`requireAuth: false` alias are explicit local-development opt-ins. They warn and
+are rejected whenever `NODE_ENV=production`, even if an override is present.
+An empty token is invalid. External Cloudflare/ALB modes validate a trusted
+boundary but do not pretend that decoding a JWT is cryptographic verification;
+`verifyJwt: true` fails explicitly in this 1.x implementation.
 
-Parry supports conservative presets for common application-layer protection:
+Full configuration and deployment patterns are in [Admin API](./docs/admin-api.md).
 
-- `off`: no route-policy preset is added.
-- `recommended`: enables practical defaults for common auth routes and low-noise application-layer checks.
-- `strict`: uses more restrictive brute-force and route rate-limit defaults for sensitive environments.
+## Redis
 
-Every option can still be configured explicitly. Prefer starting with `recommended`, reviewing logs and events, then tightening route policies where needed.
-
-## Stores
-
-`MemoryStore` is the default store. It is suitable for tests, demos, local development, and single-process deployments.
-
-For distributed deployments, use `RedisStore` with a Redis client created by your application:
+Create and connect the Redis client in the application; Parry never installs or
+owns a Redis package implicitly.
 
 ```js
 const { createClient } = require('redis');
 const { createParry, RedisStore } = require('@roboteby/parry');
 
-const redis = createClient({ url: process.env.REDIS_URL });
-await redis.connect();
+const client = createClient({ url: process.env.REDIS_URL });
+await client.connect();
 
 const parry = createParry({
-  store: new RedisStore({ client: redis, prefix: 'parry' }),
-  rateLimit: {
-    enabled: true,
-    max: 100,
-    windowMs: 60_000,
-    headers: true,
-  },
+  store: new RedisStore({ client, prefix: 'parry' }),
+  storeFailureMode: 'fail-closed',
 });
 ```
 
-If your service runs behind multiple instances, containers, or load balancers, use a shared store. `MemoryStore` protects only the current Node.js process.
+## Runtime support
 
-## Brute-Force Protection
-
-Route policies can protect sensitive authentication endpoints without making the global rate limit too aggressive:
-
-```js
-const parry = createParry({
-  policies: [
-    {
-      name: 'auth-login',
-      match: { method: 'POST', path: '/login' },
-      rateLimit: {
-        enabled: true,
-        max: 20,
-        windowMs: 60_000,
-        key: 'ip',
-      },
-      bruteForce: {
-        enabled: true,
-        maxAttempts: 5,
-        windowMs: 15 * 60_000,
-        blockDurationMs: 10 * 60_000,
-        keys: ['ip', 'body.email', 'ip+body.email'],
-        failureStatusCodes: [400, 401, 403],
-        resetOnSuccess: true,
-      },
-    },
-  ],
-});
-```
-
-Routes can also report authentication outcomes manually:
-
-```js
-app.post('/login', async (req, res) => {
-  const user = await authService.validate(req.body.email, req.body.password);
-
-  if (!user) {
-    req.parry?.recordAuthFailure('invalid_credentials');
-    return res.status(200).json({ success: false });
-  }
-
-  req.parry?.recordAuthSuccess();
-  return res.json({ success: true });
-});
-```
-
-## Threat Events and Admin API
-
-Parry emits structured Threat Events for blocked requests, rate limits, brute-force blocks, store errors, and hook errors. Events are sanitized before reaching logs, hooks, metrics, or the Admin API.
-
-The optional Admin API is read-only and is never mounted automatically:
-
-```js
-const { createParry, createParryAdminRouter } = require('@roboteby/parry');
-
-const parry = createParry({
-  admin: {
-    enabled: true,
-    auth: {
-      mode: 'token',
-      token: process.env.PARRY_ADMIN_TOKEN,
-    },
-  },
-});
-
-app.use(parry.middleware());
-app.use('/_parry', createParryAdminRouter(parry));
-```
-
-Main endpoints:
-
-- `GET /_parry/health`
-- `GET /_parry/metrics`
-- `GET /_parry/events`
-- `GET /_parry/events/:id`
-- `GET /_parry/bans`
-- `GET /_parry/policies`
-
-Protect the Admin API with token auth for local demos, or with VPN, private networking, Cloudflare Access, AWS ALB/Cognito auth, trusted proxy auth, or IP allowlists in production.
-
-## Parry Security Console
-
-The separate `parry-security-console` repository provides a read-only dashboard for the Parry Admin API. It displays health, metrics, Threat Events, bans/blocks, and route policies. It does not contain middleware logic, does not execute payloads, and is not a scanner.
-
-For local development, the console can use Vite proxying with `VITE_PARRY_API_URL=/api/parry`.
-
-## Docker Demo
-
-The repository includes a demo Express API with Redis:
-
-```bash
-docker compose up --build
-```
-
-Useful local checks:
-
-```bash
-curl http://localhost:3000/health
-
-curl http://localhost:3000/_parry/health \
-  -H "x-parry-admin-token: change-me"
-
-curl -X POST http://localhost:3000/echo \
-  -H "Content-Type: application/json" \
-  -d '{"message":"hello"}'
-```
-
-The `change-me` token is for local demos only.
-
-## cURL Guide
-
-The demo API can be validated with a set of local cURL examples covering health checks, Admin API authentication, Threat Events, brute-force blocks, active bans, CORS, request IDs, and frontend proxy checks.
-
-See [docs/curl-guide.md](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/curl-guide.md).
-
-## Security Model
-
-Parry operates inside the Express application. It helps identify and block suspicious application-layer requests, but it does not replace edge and infrastructure controls.
-
-Production deployments should account for:
-
-- CloudFront, AWS WAF, Shield, CDN, ALB, or equivalent edge protection for volumetric DDoS and network-layer abuse.
-- RedisStore or another shared store for distributed rate limits and brute-force counters.
-- Admin API authentication and network restrictions.
-- Trusted proxy configuration before accepting `x-forwarded-for`, Cloudflare Access, ALB/Cognito, or reverse-proxy identity headers.
-- Generic authentication responses that do not reveal whether a username or email exists.
-
-Browser-visible Admin API tokens are appropriate only for local development and demos. Production consoles should be protected by VPN, private networking, Cloudflare Access, ALB/Cognito, reverse proxy auth, or a backend/admin gateway.
+The 1.x package keeps `engines.node >=18` and CI covers Node 18, 20, 22, and 24.
+Node 18 and 20 are legacy/EOL compatibility targets. Use Node 22 or 24 for new
+production deployments. Raising the minimum to Node 22 is reserved for v2. See
+the [official Node.js release schedule](https://nodejs.org/en/about/previous-releases).
 
 ## Documentation
 
-Additional documentation is available in the repository:
+- [Configuration](./docs/configuration.md)
+- [Security model](./docs/security-model.md)
+- [Admin API](./docs/admin-api.md)
+- [Testing](./docs/testing.md)
+- [Deployment](./docs/deployment.md)
+- [Architecture](./docs/architecture.md)
+- [Releasing](./docs/releasing.md)
+- [OpenAPI contract](./docs/openapi/parry-admin-api.yaml)
+- [Generated payload regression report](./docs/payload-regression-report.md)
 
-- [Admin API](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/admin-api.md)
-- [Admin API authentication](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/admin-api-auth.md)
-- [AWS Admin API authentication](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/aws-admin-auth.md)
-- [Docker demo](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/docker-demo.md)
-- [cURL guide](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/curl-guide.md)
-- [AWS infrastructure notes](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/aws-infra.md)
-- [CI/CD](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/ci-cd.md)
-- [Release process](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/release.md)
-- [Payload regression testing](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/testing-payloads.md)
-- [Architecture](https://github.com/RobotEby/parry-express-security-middleware/blob/main/docs/architecture.md)
-
-The npm package keeps `docs/`, infrastructure, Docker demo files, and tests out of the published runtime package.
-
-## Development
-
-```bash
-npm ci
-npm test
-npm run test:fixtures
-npm run test:payload-regression
-npm run package:check
-npm pack --dry-run
-```
-
-`npm test` uses local mocks and fake stores. It does not require Redis, AWS, Cloudflare, or external services.
-
-## Roadmap
-
-Planned areas for future work:
-
-- Redis-backed event persistence
-- OpenTelemetry and Prometheus export
-- Express 4 compatibility matrix
-- Optional hashing/redaction for store keys
-- Additional detector tuning with benign counterexamples
-- Admin API hardening and deployment guides
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow and
+[SECURITY.md](./SECURITY.md) for vulnerability reporting.
 
 ## License
 
-MIT
+[MIT](./LICENSE)

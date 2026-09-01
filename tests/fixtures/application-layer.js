@@ -6,7 +6,12 @@ const HPP_ALLOWED_QUERY = { tags: ['node', 'security'] };
 const PROTOTYPE_POLLUTION_BODY = JSON.parse('{"profile":{"__proto__":{"polluted":true}}}');
 const PROTOTYPE_POLLUTION_QUERY = { options: { constructor: { prototype: { admin: true } } } };
 
-const PATH_TRAVERSAL_VALUES = ['../etc/passwd', '..\\windows\\win.ini', '%2e%2e%2fetc/passwd', '%252e%252e%252fetc/passwd'];
+const PATH_TRAVERSAL_VALUES = [
+  '../etc/passwd',
+  '..\\windows\\win.ini',
+  '%2e%2e%2fetc/passwd',
+  '%252e%252e%252fetc/passwd',
+];
 const PATH_TRAVERSAL_CLEAN_VALUES = ['release-notes..draft', 'folder/name.txt', 'user.profile'];
 
 const SHAPE_LIMITS = {

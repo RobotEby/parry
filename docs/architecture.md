@@ -1,71 +1,58 @@
 # Architecture
 
-Parry is organized around a small Express adapter and a reusable application-layer analysis core. The goal is to keep request/response handling separate from detector logic, store implementations, event generation, and observability.
+Parry stays CommonJS in the 1.x line. `src/index.js` is the compatibility surface;
+the implementation is split by responsibility:
 
-## Directory Structure
-
-```txt
-parry-express-security-middleware/
-├── src/
-│   ├── admin/          Optional read-only Admin API router and auth strategies
-│   ├── brute-force/    BruteForceGuard and authentication key builder
-│   ├── core/           Analysis engine, scoring, and threat event helpers
-│   ├── detectors/      SQLi, XSS, NoSQLi, HPP, prototype pollution, path traversal, and shape guards
-│   ├── events/         Event bus, event sanitization, and in-memory event store
-│   ├── express/        Express adapter: req/res/next, IP resolution, request targets, responses
-│   ├── logger/         Console reporter
-│   ├── middleware/     Compatibility entrypoints for legacy imports
-│   ├── observability/  Metrics and Admin API snapshot helpers
-│   ├── policies/       Route policy matching and normalization
-│   ├── rate-limit/     Store-backed rate limiter
-│   ├── stores/         Store contract, MemoryStore, and RedisStore
-│   └── utils/          Shared decode, flatten, and normalize helpers
-├── config/             Runtime defaults
-├── constants/          Centralized detector patterns
-├── types/              Public TypeScript declarations
-├── tests/              Unit, integration, and payload regression tests
-└── docs/               Repository documentation
+```text
+src/
+  express/          middleware lifecycle, request targets, proxy IP, responses
+  core/             scan decisions, scoring, event conversion
+  detectors/        SQLi, XSS, NoSQL, HPP, prototype, path, request shape
+  rate-limit/        global rate-limit orchestration
+  stores/            MemoryStore and RedisStore
+  policies/          matching, normalization, presets
+  brute-force/       auth outcomes, keys, blocks
+  events/            sanitization, in-memory event store, listeners
+  observability/     process-local metrics and snapshots
+  admin/             read-only router and auth strategies
 ```
 
-## Express Adapter and Core Engine
+Internal compatibility wrappers were removed. `src/core/index.js` imports the
+real rate-limit and logger modules, and the package root imports the real Express
+middleware module. No removed wrapper was a package export.
 
-Only `src/express/` knows about `req`, `res`, and `next`. It resolves the client IP, attaches request context, applies route policies, calls the rate limiter, collects request targets, and formats HTTP responses.
+## Request lifecycle
 
-The core engine receives normalized request data and returns a structured decision. This keeps detector behavior testable without a running HTTP server and leaves room for future adapters if needed.
+```text
+Express request
+  -> trusted client IP + request ID
+  -> brute-force block check
+  -> route policy rate limit
+  -> global rate limit
+  -> Request Shape guard
+  -> structured guards (HPP, prototype, NoSQL)
+  -> scalar leaf collection
+  -> SQLi, XSS, path traversal
+  -> deduplicate + maximum severity
+  -> allow OR block + sanitized Threat Event
+```
 
-## Detector Organization
+The shape guard protects downstream work. Query, params, body, and configured
+headers are traversed once for scalar leaves. `stringValue` is created during
+collection and reused by scalar detectors. Structured NoSQL inspection maintains
+exact paths for operator policy.
 
-Detector modules live under `src/detectors/`. Shared decoding and normalization helpers live under `src/utils/`, and common regex patterns live in `constants/patterns.js`.
+## State ownership
 
-Centralizing patterns keeps detector tuning easier to review and makes it simpler to add benign counterexamples when a rule needs adjustment. Payload regression fixtures live under `tests/fixtures/payloads/` and are used only by tests.
+The store owns rate-limit counters, suspicious counts, bans, generic counters,
+and brute-force blocks. The event bus, recent-event buffer, and metrics belong to
+one Parry instance. `createParryAdminRouter` resolves that instance context but
+does not mount or authenticate itself implicitly.
 
-## Stores and Rate Limiting
+## Compatibility
 
-The rate limiter depends on the Store interface instead of a specific storage implementation.
-
-- `MemoryStore` is the default and protects a single Node.js process.
-- `RedisStore` accepts a Redis client created by the host application and coordinates counters across instances.
-
-Rate limiting, temporary bans, suspicious counters, brute-force counters, and route policy counters use separate namespaces so one control does not overwrite another.
-
-## Route Policies and BruteForceGuard
-
-Route policies are evaluated in the Express adapter because they depend on request method, path, route response status, and `res.on('finish')`.
-
-The BruteForceGuard checks blocked keys before a route handler runs, then records authentication failures or successes after the response finishes. Applications that return `200` for failed logins can call `req.parry.recordAuthFailure()` or `req.parry.recordAuthSuccess()` to avoid relying only on status codes.
-
-## Threat Events and Observability
-
-Security-relevant activity is normalized into Threat Events. Events are sanitized before they reach listeners, logs, metrics, the in-memory event store, or the Admin API.
-
-The Admin API is a separate read-only Express router. It is never mounted automatically and should be protected by token auth for local demos or by stronger production controls such as private networking, VPN, Cloudflare Access, AWS ALB/Cognito auth, trusted proxy auth, or IP allowlists.
-
-## Proxy and Client IP Handling
-
-Parry ignores forwarded IP headers by default. When running behind a trusted proxy, configure `trustProxyHeaders` and `trustedProxies` so forwarded client IPs are accepted only from known proxy addresses or CIDR ranges.
-
-The same boundary model applies to Admin API external-auth modes. Cloudflare Access and AWS ALB/Cognito headers are accepted only when the request comes through a trusted boundary or presents a configured shared proxy secret.
-
-## Production Notes
-
-Parry operates inside the application. It complements, but does not replace, CDN, WAF, load balancer, and cloud edge controls. Use CloudFront, AWS WAF, Shield, ALB, a CDN, or equivalent infrastructure for volumetric DDoS and network-layer protection.
+The root retains all existing exports. The recommended stable exports are
+`createParry`, `createParryAdminRouter`, `MemoryStore`, and `RedisStore`.
+Advanced subpaths expose implementation-level APIs with specific declaration
+files. Event and response formats remain compatible; Admin anonymity by omission
+is the intentional security behavior change documented in the changelog.

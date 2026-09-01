@@ -6,7 +6,11 @@
     "payload": { "id": ["100", "200"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "id"]
   },
   {
@@ -16,7 +20,11 @@
     "payload": { "role": ["user", "admin"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "role"]
   },
   {
@@ -26,7 +34,11 @@
     "payload": { "user": ["alice", "bob"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "user"]
   },
   {
@@ -36,7 +48,11 @@
     "payload": { "redirect": ["/home", "https://example.com"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "redirect"]
   },
   {
@@ -46,7 +62,11 @@
     "payload": { "next": ["/profile", "/admin"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "redirect"]
   },
   {
@@ -56,7 +76,11 @@
     "payload": { "email": ["user@example.com", "admin@example.com"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "email"]
   },
   {
@@ -66,7 +90,11 @@
     "payload": { "page": ["1", "999"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "pagination"]
   },
   {
@@ -76,7 +104,11 @@
     "payload": { "sort": ["name", "role"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "sort"]
   },
   {
@@ -86,7 +118,11 @@
     "payload": { "filter": ["active", "admin"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "filter"]
   },
   {
@@ -96,7 +132,11 @@
     "payload": { "session": ["one", "two"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "session"]
   },
   {
@@ -106,7 +146,11 @@
     "payload": { "returnUrl": ["/account", "/admin"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "redirect"]
   },
   {
@@ -116,7 +160,11 @@
     "payload": { "permission": ["read", "write"] },
     "target": "query",
     "expected": { "blocked": true, "detector": "hpp", "severity": "medium", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "HTTP Parameter Pollution", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "HTTP Parameter Pollution",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["duplicate-param", "permission"]
   }
 ]

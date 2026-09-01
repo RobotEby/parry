@@ -17,54 +17,50 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.x'
+          node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
           scope: '@roboteby'
-          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run test suite
-        run: npm test
-
-      - name: Validate payload fixtures
-        run: npm run test:fixtures
-
-      - name: Run payload regression
-        run: npm run test:payload-regression
-
-      - name: Validate package tarball
-        run: npm run package:check
+      - name: Run release checks
+        run: |
+          npm run lint
+          npm run format:check
+          npm test
+          npm run test:types
+          npm run test:fixtures
+          npm run test:payload-regression
+          npm run package:check
+          npm run package:dry-run
 
       - name: Validate release tag
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         run: npm run package:check-tag
 
-      - name: npm pack dry-run
-        run: npm run package:dry-run
-
       - name: Select npm dist-tag
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
         run: |
           set -euo pipefail
           version="$(node -p "require('./package.json').version")"
           dist_tag="latest"
 
           case "$version" in
+            *-alpha.*) dist_tag="alpha" ;;
             *-beta.*) dist_tag="beta" ;;
-            *-alpha.*|*-rc.*|*-next.*) dist_tag="next" ;;
+            *-rc.*) dist_tag="rc" ;;
+            *-next.*) dist_tag="next" ;;
           esac
 
           echo "NPM_DIST_TAG=$dist_tag" >> "$GITHUB_ENV"
 
-      - name: Publish to npm
+      - name: Publish with npm Trusted Publishing
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         run: npm publish --access public --tag "$NPM_DIST_TAG" --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

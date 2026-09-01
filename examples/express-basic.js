@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { createParry } = require('../src/middleware');
+const { createParry } = require('../src');
 
 const app = express();
 
@@ -22,7 +22,7 @@ const parry = createParry({
 
   logThreats: true,
 
-  onThreat(entry) {
+  onThreat(_entry) {
     // Note to remind myself to include this in the future: SIEM, Slack webhook, PagerDuty, DataDog, etc.
   },
 });
