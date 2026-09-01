@@ -580,6 +580,16 @@ export declare class Metrics {
   snapshot(extra?: { activeBans?: number }): MetricsSnapshot;
 }
 
+export declare class ThreatLogger {
+  constructor(enabled?: boolean);
+  log(entry: ThreatLogEntry): void;
+  logHookError(error: unknown, entry?: Partial<ThreatLogEntry>): void;
+  logStoreError(error: unknown, entry?: Partial<ThreatLogEntry>): void;
+}
+
+export declare const Policies: typeof import('./policies');
+export declare const BruteForce: typeof import('./brute-force');
+
 /** @deprecated Use createParry instead. */
 export declare function Parry_DDoS(options?: ParryOptions): RequestHandler;
 export declare function createParry(options?: ParryOptions): ParryInstance;

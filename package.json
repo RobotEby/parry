@@ -10,6 +10,7 @@
     "test:integration": "node --test tests/integration/*.test.js",
     "test:integ": "npm run test:integration",
     "test:package": "node --test tests/package/*.test.js",
+    "test:types": "tsc -p tests/types/tsconfig.json",
     "test:fixtures": "node scripts/payloads/validate-fixtures.js",
     "test:payload-regression": "node --test tests/regression/*.test.js",
     "test:payload-report": "node scripts/payloads/generate-payload-report.js",
@@ -27,14 +28,38 @@
       "require": "./src/index.js",
       "types": "./types/index.d.ts"
     },
-    "./core": "./src/core/index.js",
-    "./detectors": "./src/detectors/index.js",
-    "./stores": "./src/stores/index.js",
-    "./policies": "./src/policies/index.js",
-    "./brute-force": "./src/brute-force/index.js",
-    "./events": "./src/events/index.js",
-    "./observability": "./src/observability/index.js",
-    "./admin": "./src/admin/index.js",
+    "./core": {
+      "require": "./src/core/index.js",
+      "types": "./types/core.d.ts"
+    },
+    "./detectors": {
+      "require": "./src/detectors/index.js",
+      "types": "./types/detectors.d.ts"
+    },
+    "./stores": {
+      "require": "./src/stores/index.js",
+      "types": "./types/stores.d.ts"
+    },
+    "./policies": {
+      "require": "./src/policies/index.js",
+      "types": "./types/policies.d.ts"
+    },
+    "./brute-force": {
+      "require": "./src/brute-force/index.js",
+      "types": "./types/brute-force.d.ts"
+    },
+    "./events": {
+      "require": "./src/events/index.js",
+      "types": "./types/events.d.ts"
+    },
+    "./observability": {
+      "require": "./src/observability/index.js",
+      "types": "./types/observability.d.ts"
+    },
+    "./admin": {
+      "require": "./src/admin/index.js",
+      "types": "./types/admin.d.ts"
+    },
     "./package.json": "./package.json"
   },
   "files": [
