@@ -1,6 +1,7 @@
 'use strict';
 
 const { DEFAULTS } = require('../../config/defaults');
+const { validateParryOptions } = require('../../config/validate');
 const { analyzeRequest } = require('../core/engine');
 const { RateLimiter } = require('../rate-limit/limiter');
 const { ThreatLogger } = require('../logger/console-reporter');
@@ -175,6 +176,7 @@ async function handleRequest(req, res, next, context) {
 }
 
 function mergeConfig(options) {
+  validateParryOptions(options);
   const config = { ...DEFAULTS, ...options };
 
   for (const key of ['hpp', 'prototypePollution', 'pathTraversal', 'requestShape']) {
