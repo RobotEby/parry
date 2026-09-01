@@ -1,0 +1,41 @@
+name: Bug report
+description: Report reproducible incorrect runtime, API, packaging, or documentation behavior.
+title: '[Bug]: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not report vulnerabilities here. Follow SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Parry version
+      placeholder: 1.1.1
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Node.js and Express versions
+      placeholder: Node 24.x, Express 5.2.1
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include sanitized configuration, request shape, actual result, and expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized output
+      render: text
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: I removed credentials, personal data, and private infrastructure details.
+          required: true
