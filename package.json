@@ -66,12 +66,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/RobotEby/parry-express-security-middleware.git"
+    "url": "git+https://github.com/RobotEby/parry.git"
   },
   "bugs": {
-    "url": "https://github.com/RobotEby/parry-express-security-middleware/issues"
+    "url": "https://github.com/RobotEby/parry/issues"
   },
-  "homepage": "https://github.com/RobotEby/parry-express-security-middleware#readme",
+  "homepage": "https://github.com/RobotEby/parry#readme",
   "peerDependencies": {
     "express": "^5.2.1"
   },

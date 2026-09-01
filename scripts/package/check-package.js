@@ -62,14 +62,11 @@ const REQUIRED_PACKAGE_FIELDS = [
 const EXPECTED_DESCRIPTION =
   'Application-layer security middleware for Express.js with injection detection, abuse mitigation, brute-force protection and distributed rate limiting.';
 
-const EXPECTED_REPOSITORY_URL =
-  'git+ssh://git@github.com/RobotEby/parry-express-security-middleware.git';
+const EXPECTED_REPOSITORY_URL = 'git+https://github.com/RobotEby/parry.git';
 
-const EXPECTED_BUGS_URL =
-  'https://github.com/RobotEby/parry-express-security-middleware/issues';
+const EXPECTED_BUGS_URL = 'https://github.com/RobotEby/parry/issues';
 
-const EXPECTED_HOMEPAGE =
-  'https://github.com/RobotEby/parry-express-security-middleware#readme';
+const EXPECTED_HOMEPAGE = 'https://github.com/RobotEby/parry#readme';
 
 const REQUIRED_KEYWORDS = [
   'express',
@@ -125,15 +122,15 @@ function validatePackageMetadata(failures) {
   }
 
   if (pkg.repository?.url !== EXPECTED_REPOSITORY_URL) {
-    failures.push('package.json repository.url must point to parry-express-security-middleware');
+    failures.push('package.json repository.url must point to RobotEby/parry');
   }
 
   if (pkg.bugs?.url !== EXPECTED_BUGS_URL) {
-    failures.push('package.json bugs.url must point to parry-express-security-middleware issues');
+    failures.push('package.json bugs.url must point to RobotEby/parry issues');
   }
 
   if (pkg.homepage !== EXPECTED_HOMEPAGE) {
-    failures.push('package.json homepage must point to parry-express-security-middleware#readme');
+    failures.push('package.json homepage must point to RobotEby/parry#readme');
   }
 
   const keywords = Array.isArray(pkg.keywords) ? pkg.keywords : [];
