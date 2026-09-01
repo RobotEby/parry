@@ -104,7 +104,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@types/express": "^5.0.6",
-    "@types/node": "^22.20.1",
+    "@types/node": "^26.4.0",
     "eslint": "^9.39.5",
     "express": "^5.2.1",
     "globals": "^17.11.0",
