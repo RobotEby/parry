@@ -3,9 +3,19 @@
     "id": "brute-force-ip-001",
     "category": "brute-force",
     "name": "Block after repeated failures by IP",
-    "payload": { "email": "victim@example.com", "failures": 2, "key": "ip", "expectRetryAfter": true },
+    "payload": {
+      "email": "victim@example.com",
+      "failures": 2,
+      "key": "ip",
+      "expectRetryAfter": true
+    },
     "target": "policy.auth-login",
-    "expected": { "blocked": true, "detector": "brute-force", "severity": "high", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "brute-force",
+      "severity": "high",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
     "tags": ["ip", "block"]
   },
@@ -13,9 +23,19 @@
     "id": "brute-force-email-001",
     "category": "brute-force",
     "name": "Block after repeated failures by email",
-    "payload": { "email": "victim@example.com", "failures": 2, "key": "body.email", "expectRetryAfter": true },
+    "payload": {
+      "email": "victim@example.com",
+      "failures": 2,
+      "key": "body.email",
+      "expectRetryAfter": true
+    },
     "target": "policy.auth-login",
-    "expected": { "blocked": true, "detector": "brute-force", "severity": "high", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "brute-force",
+      "severity": "high",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
     "tags": ["email", "block"]
   },
@@ -23,9 +43,19 @@
     "id": "brute-force-composite-001",
     "category": "brute-force",
     "name": "Block after repeated failures by IP and email",
-    "payload": { "email": "victim@example.com", "failures": 2, "key": "ip+body.email", "expectRetryAfter": true },
+    "payload": {
+      "email": "victim@example.com",
+      "failures": 2,
+      "key": "ip+body.email",
+      "expectRetryAfter": true
+    },
     "target": "policy.auth-login",
-    "expected": { "blocked": true, "detector": "brute-force", "severity": "high", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "brute-force",
+      "severity": "high",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
     "tags": ["composite-key", "block"]
   },
@@ -33,7 +63,12 @@
     "id": "brute-force-reset-001",
     "category": "brute-force",
     "name": "Success resets failed attempt counter",
-    "payload": { "email": "reset@example.com", "failuresBeforeSuccess": 1, "success": true, "failuresAfterSuccess": 1 },
+    "payload": {
+      "email": "reset@example.com",
+      "failuresBeforeSuccess": 1,
+      "success": true,
+      "failuresAfterSuccess": 1
+    },
     "target": "policy.auth-login",
     "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
@@ -43,9 +78,19 @@
     "id": "brute-force-manual-failure-001",
     "category": "brute-force",
     "name": "Manual recordAuthFailure counts status 200 failure",
-    "payload": { "email": "manual@example.com", "manualFailure": true, "statusCode": 200, "failures": 2 },
+    "payload": {
+      "email": "manual@example.com",
+      "manualFailure": true,
+      "statusCode": 200,
+      "failures": 2
+    },
     "target": "req.parry.recordAuthFailure",
-    "expected": { "blocked": true, "detector": "brute-force", "severity": "high", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "brute-force",
+      "severity": "high",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
     "tags": ["manual-hook", "block"]
   },
@@ -53,7 +98,11 @@
     "id": "brute-force-manual-success-001",
     "category": "brute-force",
     "name": "Manual recordAuthSuccess resets counter",
-    "payload": { "email": "manual-success@example.com", "manualSuccess": true, "failuresBeforeSuccess": 1 },
+    "payload": {
+      "email": "manual-success@example.com",
+      "manualSuccess": true,
+      "failuresBeforeSuccess": 1
+    },
     "target": "req.parry.recordAuthSuccess",
     "expected": { "blocked": false, "severity": "low", "mode": "recommended" },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
@@ -65,7 +114,12 @@
     "name": "Blocked response does not leak email or password",
     "payload": { "email": "leak-check@example.com", "password": "super-secret", "failures": 2 },
     "target": "response.body",
-    "expected": { "blocked": true, "detector": "brute-force", "severity": "high", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "brute-force",
+      "severity": "high",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
     "tags": ["privacy", "block"]
   },
@@ -83,9 +137,18 @@
     "id": "brute-force-username-001",
     "category": "brute-force",
     "name": "Username key is normalized",
-    "payload": { "username": "AdminUser", "failures": 2, "keys": ["ip", "body.username", "ip+body.username"] },
+    "payload": {
+      "username": "AdminUser",
+      "failures": 2,
+      "keys": ["ip", "body.username", "ip+body.username"]
+    },
     "target": "policy.auth-login",
-    "expected": { "blocked": true, "detector": "brute-force", "severity": "high", "mode": "recommended" },
+    "expected": {
+      "blocked": true,
+      "detector": "brute-force",
+      "severity": "high",
+      "mode": "recommended"
+    },
     "source": { "name": "Curated local regression", "category": "Brute Force Guard" },
     "tags": ["username", "normalization"]
   },

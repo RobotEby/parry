@@ -17,8 +17,7 @@ const SQL_PATTERNS = [
 ];
 
 const XSS_PATTERNS = [
-  /<\s*script[\s\S]*?>[\s\S]*?<\s*\/\s*script\s*>/i,
-  /<\s*script\b[^>]*>/i,
+  /<\s*script\b[^>]{0,500}>/i,
   /\bon\w+\s*=\s*["']?[^"'>]*/i,
   /javascript\s*:/i,
   /vbscript\s*:/i,
@@ -27,8 +26,8 @@ const XSS_PATTERNS = [
   /<\s*svg\b[^>]*>[\s\S]*?(script|onload|onerror)/i,
   /expression\s*\(/i,
   /url\s*\(\s*["']?\s*javascript/i,
-  /\{\{[\s\S]{0,200}\}\}/,
-  /\$\{[\s\S]{0,200}\}/,
+  /\{\{[^{}]{0,200}(?:constructor(?:\.constructor)?|alert\s*\(|document\.|window\.)[^{}]{0,200}\}\}/i,
+  /\$\{[^{}]{0,200}(?:constructor(?:\.constructor)?|alert\s*\(|document\.|window\.)[^{}]{0,200}\}/i,
   /<\s*(base|link|meta|style)\b[^>]*(http-equiv|href|content)\s*=\s*["']?[^"'>]*script/i,
   /\0|%00/,
   /autofocus.{0,30}onfocus/i,

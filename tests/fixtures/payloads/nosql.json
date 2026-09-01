@@ -6,7 +6,11 @@
     "payload": { "$ne": null },
     "target": "body.username",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "mongodb"]
   },
   {
@@ -16,7 +20,11 @@
     "payload": { "$gt": "" },
     "target": "body.login",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "mongodb"]
   },
   {
@@ -26,7 +34,11 @@
     "payload": { "$lt": "z" },
     "target": "body.username",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "mongodb"]
   },
   {
@@ -36,7 +48,11 @@
     "payload": { "$regex": ".*" },
     "target": "body.username",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "regex"]
   },
   {
@@ -46,7 +62,11 @@
     "payload": { "$where": "function(){ return true; }" },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "dangerous"]
   },
   {
@@ -56,7 +76,11 @@
     "payload": { "$expr": { "$gt": ["$balance", 0] } },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "dangerous"]
   },
   {
@@ -66,7 +90,11 @@
     "payload": { "$function": { "body": "function(){return true;}", "args": [], "lang": "js" } },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "dangerous"]
   },
   {
@@ -76,7 +104,11 @@
     "payload": { "$or": [{ "role": "admin" }, { "active": true }] },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "logical"]
   },
   {
@@ -86,7 +118,11 @@
     "payload": { "$and": [{ "role": "admin" }, { "active": true }] },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator", "logical"]
   },
   {
@@ -96,7 +132,11 @@
     "payload": { "$exists": true },
     "target": "body.flag",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator"]
   },
   {
@@ -106,7 +146,11 @@
     "payload": { "$in": ["admin", "root"] },
     "target": "body.role",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["operator"]
   },
   {
@@ -116,7 +160,11 @@
     "payload": { "username": { "$ne": null } },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["nested", "operator"]
   },
   {
@@ -126,7 +174,11 @@
     "payload": { "profile": { "email": { "$regex": ".*@example.com" } } },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["nested", "regex"]
   },
   {
@@ -136,7 +188,11 @@
     "payload": { "age": { "$gt": 0 } },
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["nested", "operator"]
   },
   {
@@ -146,7 +202,11 @@
     "payload": "{\"$gt\":\"\"}",
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["json-string", "operator"]
   },
   {
@@ -156,7 +216,11 @@
     "payload": "{\"username\":{\"$regex\":\".*\"}}",
     "target": "body.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["json-string", "regex"]
   },
   {
@@ -166,7 +230,11 @@
     "payload": "$where: function(){ return true; }",
     "target": "query.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["string", "dangerous"]
   },
   {
@@ -176,7 +244,11 @@
     "payload": "mapReduce(function(){emit(1,1)}, function(){return 1})",
     "target": "query.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["string", "map-reduce"]
   },
   {
@@ -186,7 +258,11 @@
     "payload": "db.runCommand({ping:1})",
     "target": "query.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["string", "command"]
   },
   {
@@ -196,7 +272,11 @@
     "payload": "db.getCollection('users').find({})",
     "target": "query.filter",
     "expected": { "blocked": true, "detector": "nosql", "severity": "high", "mode": "recommended" },
-    "source": { "name": "PayloadsAllTheThings", "category": "NoSQL Injection", "usedAsReferenceOnly": true },
+    "source": {
+      "name": "PayloadsAllTheThings",
+      "category": "NoSQL Injection",
+      "usedAsReferenceOnly": true
+    },
     "tags": ["string", "command"]
   }
 ]

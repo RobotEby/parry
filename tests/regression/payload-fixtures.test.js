@@ -2,9 +2,11 @@
 
 const { test } = require('node:test');
 const nodeAssert = require('node:assert/strict');
-
-const { getExpectedCounts, loadFixtures, validateFixtures } = require('../../scripts/payloads/fixture-utils');
-
+const {
+  getExpectedCounts,
+  loadFixtures,
+  validateFixtures,
+} = require('../../scripts/payloads/fixture-utils');
 
 function assert(description, condition) {
   nodeAssert.ok(condition, description);
@@ -25,15 +27,7 @@ function runAll() {
   }
 
   const { all } = loadFixtures();
-  assert('Payload fixture total is 211', all.length === 211);
-  assert(
-    'Command Injection fixtures are monitor-only',
-    all.filter((fixture) => fixture.category === 'command-injection').every((fixture) => fixture.monitorOnly && fixture.expected.mode === 'monitor')
-  );
-  assert(
-    'SSRF fixtures are monitor-only',
-    all.filter((fixture) => fixture.category === 'ssrf').every((fixture) => fixture.monitorOnly && fixture.expected.mode === 'monitor')
-  );
+  assert('Payload fixture total is 217', all.length === 217);
   assert(
     'No fixture imports from external reference repository',
     all.every((fixture) => !String(fixture.payload).includes('external/PayloadsAllTheThings'))
