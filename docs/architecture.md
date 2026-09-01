@@ -1,7 +1,7 @@
 # Architecture
 
-Parry stays CommonJS in the 1.x line. `src/index.js` is the compatibility surface;
-the implementation is split by responsibility:
+Parry 2.0.0 is CommonJS. `src/index.js` is the compatibility surface; the
+implementation is split by responsibility:
 
 ```text
 src/
@@ -55,4 +55,5 @@ The root retains all existing exports. The recommended stable exports are
 `createParry`, `createParryAdminRouter`, `MemoryStore`, and `RedisStore`.
 Advanced subpaths expose implementation-level APIs with specific declaration
 files. Event and response formats remain compatible; Admin anonymity by omission
-is the intentional security behavior change documented in the changelog.
+is the intentional security behavior change documented in the changelog. The
+current package does not imply or announce an ESM migration.

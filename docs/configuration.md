@@ -147,7 +147,8 @@ onEvent(event) {},
 onStoreError(error, event) {},
 ```
 
-The in-memory event buffer and metrics are per process. Export events explicitly
-to make observability distributed.
+The in-memory event buffer and metrics are per process. Export events through an
+application-owned integration when cross-process aggregation or durable
+retention is required; `RedisStore` does not distribute events or metrics.
 
 Admin options are documented separately in [Admin API](./admin-api.md).

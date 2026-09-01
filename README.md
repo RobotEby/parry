@@ -4,23 +4,21 @@
 [![license](https://img.shields.io/npm/l/@roboteby/parry)](./LICENSE)
 [![node](https://img.shields.io/node/v/@roboteby/parry)](https://www.npmjs.com/package/@roboteby/parry)
 
-Application-layer security middleware for Express 5.
+Application-layer security middleware for Express that combines abuse detection,
+request guards, rate limiting, brute-force protection and security observability.
 
-Parry combines request-shape limits, heuristic SQL injection/XSS/NoSQL checks,
-HTTP parameter pollution and prototype/path traversal guards with rate limiting,
-route policies, brute-force protection, sanitized Threat Events, and an optional
-read-only Admin API. It is CommonJS and has no mandatory Redis dependency.
-
-The stable npm release is `1.1.1` on `latest`. The earlier `1.1.0-rc.1` remains
-available on the `rc` dist-tag; it is not the recommended installation.
+The current stable release is `@roboteby/parry@2.0.0` on the npm `latest`
+dist-tag.
 
 ## Install
 
 ```bash
-npm install @roboteby/parry
+npm install @roboteby/parry express@^5.2.1
 ```
 
-Express `^5.2.1` is a peer dependency.
+Parry 2 requires Node.js `>=22` and Express `^5.2.1`.
+
+## Minimal example
 
 ```js
 const express = require('express');
@@ -36,49 +34,59 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 app.listen(3000);
 ```
 
-Body parsers must run before Parry if request bodies should be inspected. Mount
-Parry before the routes it protects.
+Body parsers must run before Parry when request bodies should be inspected.
+Mount Parry before the routes it protects.
+
+## Main capabilities
+
+- Request Shape limits for depth, key count, array length and string length.
+- Heuristic SQL injection and XSS detection, plus NoSQL operator guards.
+- HTTP parameter pollution, prototype pollution and path traversal guards.
+- Global and route-specific rate limiting.
+- Brute-force counters and temporary blocks for authentication routes.
+- Sanitized Threat Events, process-local metrics and an optional read-only Admin
+  API.
+- In-memory state by default, with an optional `RedisStore` for shared protection
+  state.
 
 ## Security boundaries
 
-Parry is one application-layer control. It does not replace validation and
-parameterized queries in the application, output encoding and CSP in the browser,
-authentication/authorization, a reverse proxy, CDN/WAF, load balancer, or
-volumetric L3/L4 DDoS protection.
+Parry is a defense-in-depth control for the Express application layer. It is not
+a WAF and does not replace a CDN, reverse proxy, load balancer or volumetric
+L3/L4 DDoS protection. It also does not replace authentication, authorization,
+schema validation, parameterized queries, context-aware escaping/output
+encoding or CSP.
 
-SQLi and XSS detection is heuristic. The patterns are intentionally bounded and
-the Request Shape guard runs before heavier scans, but applications still need
-tests for their own traffic and false-positive profile. A clean Parry decision is
-not proof that input is safe for every downstream interpreter.
+SQLi and XSS detection is heuristic, so false positives and false negatives are
+possible. Request Shape runs before heavier scans to bound their cost, but an
+allowed request is not proof that its input is safe for downstream use.
 
-When `MemoryStore` is used, counters and bans exist only inside one Node.js
-process. `RedisStore` shares rate-limit and brute-force state across instances.
-Threat Events, the in-memory event buffer, and metrics remain local to each
-process unless the application exports them through `onEvent` or another
-observability integration.
-
-See [the security model](./docs/security-model.md) and [configuration](./docs/configuration.md).
+Trusted proxy handling depends on narrow, correct `trustedProxies`
+configuration. See the [security model](./docs/security-model.md) before enabling
+forwarded-header trust.
 
 ## Public API
 
-The four recommended stable exports are:
+The recommended root exports are:
 
-- `createParry(options)` — create a middleware instance and observability context;
-- `createParryAdminRouter(parry, options)` — create the optional read-only Admin router;
-- `MemoryStore` — single-process state store;
-- `RedisStore` — adapter for an application-owned Redis client.
+- `createParry(options)` — creates the middleware and its observability context.
+- `createParryAdminRouter(parry, options)` — creates the optional Admin router.
+- `MemoryStore` — keeps protection state in one process.
+- `RedisStore` — uses an application-owned Redis client for shared protection
+  state.
 
-All existing exports remain available. `Parry_DDoS(options)` is deprecated but
-kept as a compatibility wrapper around `createParry(options).middleware()`.
-`Parry_DDoSOptions` remains a deprecated TypeScript alias for `ParryOptions`.
+Existing exports remain available. `Parry_DDoS(options)` is a deprecated
+compatibility wrapper around `createParry(options).middleware()`, and
+`Parry_DDoSOptions` is a deprecated TypeScript alias for `ParryOptions`.
 
-Advanced APIs have typed subpaths: `/core`, `/detectors`, `/stores`, `/policies`,
-`/brute-force`, `/events`, `/observability`, and `/admin`.
+Advanced typed exports are available from `/core`, `/detectors`, `/stores`,
+`/policies`, `/brute-force`, `/events`, `/observability` and `/admin`.
 
-## Admin API is fail-closed
+## Admin API
 
-The Admin router now throws during construction when no authentication strategy
-is configured:
+The Admin API exposes health, process metrics, recent sanitized events, active
+bans and normalized policies. It is never mounted automatically and fails during
+construction unless authentication is configured:
 
 ```js
 const { createParryAdminRouter } = require('@roboteby/parry');
@@ -94,19 +102,18 @@ app.use(
 );
 ```
 
-`allowInsecureAdminApi: true`, `auth.mode: 'none'`, and the legacy
-`requireAuth: false` alias are explicit local-development opt-ins. They warn and
-are rejected whenever `NODE_ENV=production`, even if an override is present.
-An empty token is invalid. External Cloudflare/ALB modes validate a trusted
-boundary but do not pretend that decoding a JWT is cryptographic verification;
-`verifyJwt: true` fails explicitly in this 1.x implementation.
+Anonymous Admin access is an explicit local-development opt-in and is rejected
+in production. External identity modes depend on a configured trusted boundary;
+Parry does not perform cryptographic JWT/JWKS verification, and `verifyJwt: true`
+fails explicitly.
 
-Full configuration and deployment patterns are in [Admin API](./docs/admin-api.md).
+See [Admin API](./docs/admin-api.md) for authentication modes and deployment
+guidance.
 
 ## Redis
 
-Create and connect the Redis client in the application; Parry never installs or
-owns a Redis package implicitly.
+The application creates and connects the Redis client. Parry does not install or
+own a Redis package implicitly.
 
 ```js
 const { createClient } = require('redis');
@@ -121,26 +128,31 @@ const parry = createParry({
 });
 ```
 
+`RedisStore` shares rate-limit state, brute-force state, counters and related
+bans/blocks across instances. Threat Events, the default event buffer and
+metrics remain local to each process unless the application exports them.
+
 ## Runtime support
 
-The 1.x package keeps `engines.node >=18` and CI covers Node 18, 20, 22, and 24.
-Node 18 and 20 are legacy/EOL compatibility targets. Use Node 22 or 24 for new
-production deployments. Raising the minimum to Node 22 is reserved for v2. See
-the [official Node.js release schedule](https://nodejs.org/en/about/previous-releases).
+- Node.js `>=22`
+- Express `^5.2.1`
+- CommonJS
+
+CI covers Node.js 22 and 24. Parry 2 does not imply or announce an ESM migration.
 
 ## Documentation
 
 - [Configuration](./docs/configuration.md)
 - [Security model](./docs/security-model.md)
 - [Admin API](./docs/admin-api.md)
-- [Testing](./docs/testing.md)
 - [Deployment](./docs/deployment.md)
+- [Testing](./docs/testing.md)
 - [Architecture](./docs/architecture.md)
 - [Releasing](./docs/releasing.md)
 - [OpenAPI contract](./docs/openapi/parry-admin-api.yaml)
 - [Generated payload regression report](./docs/payload-regression-report.md)
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow and
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development workflow and
 [SECURITY.md](./SECURITY.md) for vulnerability reporting.
 
 ## License

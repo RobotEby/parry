@@ -1,7 +1,7 @@
 {
   "name": "@roboteby/parry",
   "version": "2.0.0",
-  "description": "Application-layer security middleware for Express.js with injection detection, abuse mitigation, brute-force protection and distributed rate limiting.",
+  "description": "Application-layer security middleware for Express that combines abuse detection, request guards, rate limiting, brute-force protection and security observability.",
   "main": "./src/index.js",
   "types": "./types/index.d.ts",
   "scripts": {

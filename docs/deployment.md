@@ -2,9 +2,8 @@
 
 ## Node.js
 
-Parry 1.x declares Node `>=18` for compatibility. Node 18 and 20 are legacy/EOL
-targets; use Node 22 or 24 for production. A future v2 may raise the minimum to
-Node 22.
+Parry 2.0.0 requires Node `>=22` and Express `^5.2.1`. CI covers Node 22 and 24.
+The package remains CommonJS.
 
 Install reproducibly with `npm ci`. Keep Express body-size limits at or below the
 shape expected by the application, and run body parsers before Parry.

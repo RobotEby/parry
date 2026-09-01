@@ -6,7 +6,7 @@ source of truth, tags use `v<version>`, and every unreleased change belongs unde
 
 ## Current channels
 
-- `@roboteby/parry@1.1.1` is stable on `latest`.
+- `@roboteby/parry@2.0.0` is stable on `latest`.
 - `@roboteby/parry@1.1.0-rc.1` remains on `rc`.
 
 The publish workflow maps stable versions to `latest`, `-rc.N` to `rc`, beta to
@@ -18,28 +18,32 @@ Run the complete command set in [testing](./testing.md). In particular, validate
 the exact tag with:
 
 ```bash
-GITHUB_REF_NAME=v1.1.1 npm run package:check-tag
+GITHUB_REF_NAME=v2.0.0 npm run package:check-tag
 ```
 
 `package:check` validates repository metadata, npm's files allowlist, exported
 paths, required files, forbidden paths, and common secret patterns. Tests load
 the actual tarball from a temporary directory.
 
-## npm Trusted Publishing
+## npm publishing
 
-`.github/workflows/npm-publish.yml` requests `id-token: write` and calls
-`npm publish --provenance` without `NPM_TOKEN` or `NODE_AUTH_TOKEN`. The workflow
-is intentionally unable to fall back to a long-lived npm token.
+`.github/workflows/npm-publish.yml` publishes from GitHub Actions using the
+repository secret `NPM_TOKEN`. The secret contains a scoped granular npm access
+token and is passed to npm as `NODE_AUTH_TOKEN` only for the authentication check
+and publish steps. It must never be committed, printed, or copied into a
+versioned file.
 
-Before publishing, an npm package owner must configure a Trusted Publisher for:
+Tag pushes validate that `v<version>` matches `package.json`, select the npm
+dist-tag, and run:
 
-- organization/user: `RobotEby`
-- repository: `parry`
-- workflow: `npm-publish.yml`
+```bash
+npm publish --access public --tag "$NPM_DIST_TAG" --provenance
+```
 
-That is external npm configuration and cannot be enabled by a repository commit.
-Without it, publishing must fail. Do not add a token to make the job pass. See
-[npm Trusted Publishers](https://docs.npmjs.com/trusted-publishers/).
+Manual runs require an explicit package version and check out its existing tag
+before validation. The workflow retains `id-token: write` and `--provenance` so
+GitHub Actions can provide provenance for the published package; npm registry
+authentication still uses the repository's granular token.
 
 ## Repository settings
 

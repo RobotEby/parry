@@ -3,6 +3,8 @@
 Parry protects the Express application layer. It evaluates parsed request data,
 applies local or distributed abuse state, and emits sanitized operational events.
 It is defense in depth, not a standalone security boundary for the entire stack.
+It is not a WAF and does not provide infrastructure-level volumetric DDoS
+protection.
 
 ## Responsibilities
 
@@ -15,10 +17,11 @@ Parry can:
 - enforce global and route-specific rate/brute-force policies;
 - keep shared counters and bans when configured with Redis.
 
-The application still owns schema validation, authorization, parameterized
-database access, output encoding, safe file handling, secrets, and correct error
-handling. Infrastructure owns TLS termination, edge filtering, bot controls,
-network isolation, volumetric DDoS resistance, and availability scaling.
+The application still owns authentication, authorization, schema validation,
+parameterized database access, output encoding, safe file handling, secrets, and
+correct error handling. Infrastructure owns TLS termination, edge filtering, bot
+controls, network isolation, volumetric DDoS resistance, and availability
+scaling.
 
 ## Heuristic detectors
 
