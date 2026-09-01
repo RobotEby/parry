@@ -24,7 +24,8 @@ const { setRateLimitHeaders, respond } = require('./response');
  * Detects SQL Injection, XSS and NoSQL Injection in real-time.
  * Applies intelligent Rate Limiting with automatic banning for suspicious behavior.
  *
- * @param {import('../../types/index').Parry_DDoSOptions} options
+ * @deprecated Use createParry() instead.
+ * @param {import('../../types/index').ParryOptions} options
  * @returns {import('express').RequestHandler}
  */
 function Parry_DDoS(options = {}) {

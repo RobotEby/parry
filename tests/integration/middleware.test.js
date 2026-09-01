@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const nodeAssert = require('node:assert/strict');
 
 const { EventEmitter } = require('events');
-const { Parry_DDoS } = require('../../src/middleware/index.js');
+const { Parry_DDoS } = require('../../src/express/middleware');
 const { SQL_MALICIOUS, XSS_MALICIOUS, NOSQL_MALICIOUS_OBJECTS } = require('../fixtures/payloads');
 const {
   HPP_DUPLICATE_QUERY,

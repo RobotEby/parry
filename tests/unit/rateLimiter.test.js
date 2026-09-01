@@ -3,7 +3,7 @@
 const { test } = require('node:test');
 const nodeAssert = require('node:assert/strict');
 
-const { RateLimiter } = require('../../src/core/rateLimiter');
+const { RateLimiter } = require('../../src/rate-limit/limiter');
 
 
 function assert(description, condition) {

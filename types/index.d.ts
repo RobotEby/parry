@@ -1,6 +1,6 @@
 import { Request, Response, RequestHandler, Router } from 'express';
 
-export interface Parry_DDoSOptions {
+export interface ParryOptions {
   /** Enables SQL injection detection. Default: true */
   sql?: boolean;
   /** Enables XSS detection. Default: true */
@@ -89,6 +89,9 @@ export interface Parry_DDoSOptions {
   /** Callback triggered when a configured store throws */
   onStoreError?: (error: Error, event: ThreatEvent) => void;
 }
+
+/** @deprecated Use ParryOptions instead. */
+export type Parry_DDoSOptions = ParryOptions;
 
 export type ThreatSeverity = 'none' | 'low' | 'medium' | 'high' | 'critical';
 export type ThreatAction = 'allowed' | 'blocked' | 'observed' | 'reset' | 'error' | 'created';
@@ -430,7 +433,7 @@ export interface BlockSnapshot {
 export declare class RateLimiter {
   constructor(
     config: Pick<
-      Parry_DDoSOptions,
+      ParryOptions,
       'rateLimit' | 'maxRequests' | 'windowMs' | 'suspiciousThreshold' | 'banDurationMs' | 'store'
     >,
     store?: RateLimitStore
@@ -540,8 +543,9 @@ export declare class Metrics {
   snapshot(extra?: { activeBans?: number }): MetricsSnapshot;
 }
 
-export declare function Parry_DDoS(options?: Parry_DDoSOptions): RequestHandler;
-export declare function createParry(options?: Parry_DDoSOptions): ParryInstance;
+/** @deprecated Use createParry instead. */
+export declare function Parry_DDoS(options?: ParryOptions): RequestHandler;
+export declare function createParry(options?: ParryOptions): ParryInstance;
 export declare function createParryAdminRouter(
   parry: ParryInstance | RequestHandler,
   options?: AdminRouterOptions

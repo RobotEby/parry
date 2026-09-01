@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { createParry } = require('../src/middleware');
+const { createParry } = require('../src');
 
 const app = express();
 
