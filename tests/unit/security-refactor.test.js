@@ -4,6 +4,22 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createParry, createParryAdminRouter } = require('../../src');
 const { createAdminAuthMiddleware } = require('../../src/admin/auth');
+const { resolveClientIP } = require('../../src/express/ip-resolver');
+
+function request(overrides = {}) {
+  return {
+    ip: '127.0.0.1',
+    method: 'POST',
+    url: '/search',
+    originalUrl: '/search',
+    headers: {},
+    query: {},
+    params: {},
+    body: {},
+    socket: { remoteAddress: '127.0.0.1' },
+    ...overrides,
+  };
+}
 
 test('Admin router fails closed without authentication', () => {
   const parry = createParry({ rateLimit: false, logThreats: false });
@@ -52,6 +68,81 @@ test('Admin token must be non-empty and JWT verification is never simulated', ()
         verifyJwt: true,
       }),
     /does not implement cryptographic JWT\/JWKS verification/i
+  );
+});
+
+test('Forwarded headers are ignored from an untrusted direct peer', () => {
+  const req = request({
+    socket: { remoteAddress: '198.51.100.8' },
+    headers: { 'x-forwarded-for': '203.0.113.7' },
+  });
+  assert.equal(
+    resolveClientIP(req, { trustProxyHeaders: true, trustedProxies: ['10.0.0.0/8'] }),
+    '198.51.100.8'
+  );
+});
+
+test('Proxy chains are resolved from right to left across Cloudflare and ALB', () => {
+  const req = request({
+    socket: { remoteAddress: '173.245.48.10' },
+    headers: { 'x-forwarded-for': '203.0.113.7, 10.20.30.40' },
+  });
+  assert.equal(
+    resolveClientIP(req, {
+      trustProxyHeaders: true,
+      trustedProxies: ['173.245.48.0/20', '10.0.0.0/8'],
+    }),
+    '203.0.113.7'
+  );
+});
+
+test('Proxy chains select the first untrusted hop from the right', () => {
+  const req = request({
+    socket: { remoteAddress: '10.0.0.2' },
+    headers: { 'x-forwarded-for': '203.0.113.7, 198.51.100.20, 10.0.0.3' },
+  });
+  assert.equal(
+    resolveClientIP(req, {
+      trustProxyHeaders: true,
+      trustedProxies: ['10.0.0.0/8'],
+    }),
+    '198.51.100.20'
+  );
+});
+
+test('Malformed, empty, and overlong proxy chains fall back to the direct IP', () => {
+  const options = { trustProxyHeaders: true, trustedProxies: ['10.0.0.0/8'] };
+  const direct = { remoteAddress: '10.0.0.2' };
+  assert.equal(
+    resolveClientIP(request({ socket: direct, headers: { 'x-forwarded-for': 'bad-ip' } }), options),
+    '10.0.0.2'
+  );
+  assert.equal(
+    resolveClientIP(request({ socket: direct, headers: { 'x-forwarded-for': ' ,' } }), options),
+    '10.0.0.2'
+  );
+  assert.equal(
+    resolveClientIP(
+      request({
+        socket: direct,
+        headers: { 'x-forwarded-for': Array.from({ length: 21 }, () => '10.0.0.3').join(',') },
+      }),
+      options
+    ),
+    '10.0.0.2'
+  );
+});
+
+test('IPv6 proxy CIDRs are supported', () => {
+  assert.equal(
+    resolveClientIP(
+      request({
+        socket: { remoteAddress: '2001:db8:1::2' },
+        headers: { 'x-forwarded-for': '2001:db8:ffff::9' },
+      }),
+      { trustProxyHeaders: true, trustedProxies: ['2001:db8:1::/48'] }
+    ),
+    '2001:db8:ffff::9'
   );
 });
 
