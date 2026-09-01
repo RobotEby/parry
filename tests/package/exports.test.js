@@ -7,7 +7,6 @@ const fs = require('fs');
 const path = require('path');
 const pkg = require('../../package.json');
 
-
 function assert(description, condition) {
   nodeAssert.ok(condition, description);
 }

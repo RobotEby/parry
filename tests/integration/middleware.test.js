@@ -2,7 +2,6 @@
 
 const { test } = require('node:test');
 const nodeAssert = require('node:assert/strict');
-
 const { EventEmitter } = require('events');
 const { Parry_DDoS } = require('../../src/express/middleware');
 const { SQL_MALICIOUS, XSS_MALICIOUS, NOSQL_MALICIOUS_OBJECTS } = require('../fixtures/payloads');
@@ -14,7 +13,6 @@ const {
   PATH_TRAVERSAL_CLEAN_VALUES,
   SHAPE_LIMITS,
 } = require('../fixtures/application-layer');
-
 
 function assert(description, condition) {
   nodeAssert.ok(condition, description);
@@ -97,9 +95,11 @@ function runWithRoute(mw, req, routeHandler) {
         reject(routeError);
       }
     });
-    Promise.resolve(maybePromise).then(() => {
-      if (!called) finish();
-    }).catch(reject);
+    Promise.resolve(maybePromise)
+      .then(() => {
+        if (!called) finish();
+      })
+      .catch(reject);
   });
 }
 
@@ -266,7 +266,10 @@ async function runAll() {
     mwNestedHdr,
     mockReq({ ip: '10.10.10.2', headers: {}, body: {}, query: {}, params: {} })
   );
-  assert('Nested rateLimit config sets limit header', nestedHdrRes._headers['X-RateLimit-Limit'] === 25);
+  assert(
+    'Nested rateLimit config sets limit header',
+    nestedHdrRes._headers['X-RateLimit-Limit'] === 25
+  );
 
   console.log('\n── Middleware — Store Failure Modes ───────────────────────');
   const throwingStore = {
@@ -289,8 +292,14 @@ async function runAll() {
     mwFailOpen,
     mockReq({ ip: '10.10.20.1', body: {}, query: {}, params: {} })
   );
-  assert('fail-open allows clean request when store fails', failOpenNext && failOpenRes._status === 200);
-  assert('fail-open omits rate limit headers without store result', !('X-RateLimit-Limit' in failOpenRes._headers));
+  assert(
+    'fail-open allows clean request when store fails',
+    failOpenNext && failOpenRes._status === 200
+  );
+  assert(
+    'fail-open omits rate limit headers without store result',
+    !('X-RateLimit-Limit' in failOpenRes._headers)
+  );
 
   const { res: failOpenThreatRes, next: failOpenThreatNext } = await run(
     mwFailOpen,
@@ -349,7 +358,10 @@ async function runAll() {
     loginReq('10.20.30.1'),
     invalidLogin
   );
-  assert('POST /login invalid credentials blocks after limit', bruteBlocked._status === 429 && !bruteBlockedNext);
+  assert(
+    'POST /login invalid credentials blocks after limit',
+    bruteBlocked._status === 429 && !bruteBlockedNext
+  );
   assert('Brute force block includes Retry-After', 'Retry-After' in bruteBlocked._headers);
   const blockedBody = JSON.stringify(bruteBlocked._body);
   assert(
@@ -393,7 +405,10 @@ async function runAll() {
     loginReq('10.20.30.3'),
     (_req, res) => res.status(200).json({ ok: true })
   );
-  assert('Policy-specific route rate limit differs from global limit', routeLimited._status === 429 && !routeLimitedNext);
+  assert(
+    'Policy-specific route rate limit differs from global limit',
+    routeLimited._status === 429 && !routeLimitedNext
+  );
 
   const { next: unprotectedNext } = await runWithRoute(
     mwLogin,
@@ -417,7 +432,10 @@ async function runAll() {
     }),
     invalidLogin
   );
-  assert('Unprotected route is not affected by brute force guard', unprotectedNext && unprotectedNextAgain);
+  assert(
+    'Unprotected route is not affected by brute force guard',
+    unprotectedNext && unprotectedNextAgain
+  );
 
   const existingParryReq = loginReq('10.20.30.5', { email: 'preserve@example.com' });
   existingParryReq.parry = { traceId: 'trace-123' };
@@ -461,7 +479,10 @@ async function runAll() {
     mwCbThrows,
     mockReq({ body: { q: "' OR 1=1 --" } })
   );
-  assert('onThreat errors do not break blocked response', cbThrowRes._status === 400 && !cbThrowNext);
+  assert(
+    'onThreat errors do not break blocked response',
+    cbThrowRes._status === 400 && !cbThrowNext
+  );
 
   console.log('\n── Middleware — Injection in nested body ──────────────────────');
   const mwNested = Parry_DDoS({
@@ -498,10 +519,7 @@ async function runAll() {
       structuredEvent = entry;
     },
   });
-  const { res: hppRes, next: hppNext } = await run(
-    mwHpp,
-    mockReq({ query: HPP_DUPLICATE_QUERY })
-  );
+  const { res: hppRes, next: hppNext } = await run(mwHpp, mockReq({ query: HPP_DUPLICATE_QUERY }));
   assert('Blocks duplicated query param when HPP is enabled', hppRes._status === 400 && !hppNext);
   assert(
     'HPP response includes detector and reason',

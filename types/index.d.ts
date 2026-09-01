@@ -198,14 +198,19 @@ export interface PolicyConfig {
     max?: number;
     maxRequests?: number;
     windowMs?: number;
-    key?: 'ip' | 'ip+path' | ((requestData: unknown) => string | { type?: string; value: string } | null);
+    key?:
+      | 'ip'
+      | 'ip+path'
+      | ((requestData: unknown) => string | { type?: string; value: string } | null);
   };
   bruteForce?: {
     enabled?: boolean;
     maxAttempts?: number;
     windowMs?: number;
     blockDurationMs?: number;
-    keys?: Array<string | ((requestData: unknown) => string | { type?: string; value: string } | null)>;
+    keys?: Array<
+      string | ((requestData: unknown) => string | { type?: string; value: string } | null)
+    >;
     failureStatusCodes?: number[];
     successStatusCodes?: number[];
     blockedStatusCode?: number;
@@ -387,7 +392,10 @@ export interface StoreBanResult {
 }
 
 export interface RateLimitStore {
-  incrementRateLimit(key: string, windowMs: number): StoreCounterResult | Promise<StoreCounterResult>;
+  incrementRateLimit(
+    key: string,
+    windowMs: number
+  ): StoreCounterResult | Promise<StoreCounterResult>;
   getRateLimit(key: string): StoreCounterResult | Promise<StoreCounterResult>;
   resetRateLimit(key: string): unknown;
   ban(key: string, ttlMs: number, metadata?: unknown): StoreBanResult | Promise<StoreBanResult>;
@@ -398,10 +406,18 @@ export interface RateLimitStore {
     ttlMs: number,
     metadata?: unknown
   ): StoreCounterResult | Promise<StoreCounterResult>;
-  incrementCounter(key: string, ttlMs: number, metadata?: unknown): StoreCounterResult | Promise<StoreCounterResult>;
+  incrementCounter(
+    key: string,
+    ttlMs: number,
+    metadata?: unknown
+  ): StoreCounterResult | Promise<StoreCounterResult>;
   getCounter(key: string): StoreCounterResult | Promise<StoreCounterResult>;
   resetCounter(key: string): unknown;
-  blockKey(key: string, ttlMs: number, metadata?: unknown): StoreBlockResult | Promise<StoreBlockResult>;
+  blockKey(
+    key: string,
+    ttlMs: number,
+    metadata?: unknown
+  ): StoreBlockResult | Promise<StoreBlockResult>;
   isBlocked(key: string): StoreBlockResult | Promise<StoreBlockResult>;
   unblockKey(key: string): unknown;
   listBans?(options?: unknown): BanSnapshot[] | Promise<BanSnapshot[]>;
@@ -517,10 +533,7 @@ export declare const NoSQLDetector: {
   ): { pattern: string; path: string } | null;
 };
 export declare const HPPDetector: {
-  scan(
-    query: unknown,
-    options?: { allowDuplicateParamsFor?: string[] }
-  ): ThreatMatch | null;
+  scan(query: unknown, options?: { allowDuplicateParamsFor?: string[] }): ThreatMatch | null;
 };
 export declare const PrototypePollutionDetector: {
   scan(surfaces: unknown): ThreatMatch | null;
@@ -550,7 +563,10 @@ export declare class MemoryEventStore {
 
 export declare class EventBus {
   constructor(options?: { eventStore?: MemoryEventStore; maxEvents?: number });
-  emitThreat(event: Partial<ThreatEvent> | ThreatLogEntry, context?: { req?: Request; res?: Response }): ThreatEvent;
+  emitThreat(
+    event: Partial<ThreatEvent> | ThreatLogEntry,
+    context?: { req?: Request; res?: Response }
+  ): ThreatEvent;
   onThreat(listener: (event: ThreatEvent, req?: Request, res?: Response) => void): () => void;
   getRecentEvents(options?: EventFilters): EventPage;
   getEventById(id: string): ThreatEvent | null;

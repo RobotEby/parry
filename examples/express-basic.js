@@ -22,7 +22,7 @@ const parry = createParry({
 
   logThreats: true,
 
-  onThreat(entry) {
+  onThreat(_entry) {
     // Note to remind myself to include this in the future: SIEM, Slack webhook, PagerDuty, DataDog, etc.
   },
 });

@@ -2,9 +2,7 @@
 
 const { test } = require('node:test');
 const nodeAssert = require('node:assert/strict');
-
 const { RateLimiter } = require('../../src/rate-limit/limiter');
-
 
 function assert(description, condition) {
   nodeAssert.ok(condition, description);
@@ -86,11 +84,17 @@ async function runAll() {
   );
 
   const fakeResult = await storeLimiter.check('10.1.1.1');
-  assert('Calls store incrementRateLimit', calls.some((call) => call[0] === 'incrementRateLimit'));
+  assert(
+    'Calls store incrementRateLimit',
+    calls.some((call) => call[0] === 'incrementRateLimit')
+  );
   assert('Allows when store count is under max', !fakeResult.limited && fakeResult.remaining === 1);
 
   await storeLimiter.recordSuspicious('10.1.1.1');
-  assert('Calls store recordSuspicious', calls.some((call) => call[0] === 'recordSuspicious'));
+  assert(
+    'Calls store recordSuspicious',
+    calls.some((call) => call[0] === 'recordSuspicious')
+  );
   storeLimiter.destroy();
 
   const limitedStore = {

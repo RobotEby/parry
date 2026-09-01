@@ -1,7 +1,6 @@
 'use strict';
 
 const crypto = require('node:crypto');
-
 const { DEFAULTS } = require('../../config/defaults');
 const {
   normalizeHeadersConfig,
