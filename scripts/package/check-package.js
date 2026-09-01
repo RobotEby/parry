@@ -60,7 +60,7 @@ const REQUIRED_PACKAGE_FIELDS = [
 ];
 
 const EXPECTED_DESCRIPTION =
-  'Application-layer security middleware for Express.js with injection detection, abuse mitigation, brute-force protection and distributed rate limiting.';
+  'Application-layer security middleware for Express that combines abuse detection, request guards, rate limiting, brute-force protection and security observability.';
 
 const EXPECTED_REPOSITORY_URL = 'git+https://github.com/RobotEby/parry.git';
 
