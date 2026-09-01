@@ -26,7 +26,9 @@ async function createStore() {
   if (process.env.PARRY_STORE !== 'redis') return null;
 
   if (!process.env.REDIS_URL) {
-    console.warn('[parry-demo] PARRY_STORE=redis set without REDIS_URL; falling back to MemoryStore');
+    console.warn(
+      '[parry-demo] PARRY_STORE=redis set without REDIS_URL; falling back to MemoryStore'
+    );
     return null;
   }
 

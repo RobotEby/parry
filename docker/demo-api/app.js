@@ -22,8 +22,7 @@ function createDemoApp(options = {}) {
     store: store || undefined,
     storeFailureMode: env.PARRY_STORE_FAILURE_MODE || 'fail-open',
     trustProxyHeaders:
-      env.PARRY_TRUST_PROXY_HEADERS === 'true' ||
-      env.PARRY_ADMIN_TRUST_PROXY_HEADERS === 'true',
+      env.PARRY_TRUST_PROXY_HEADERS === 'true' || env.PARRY_ADMIN_TRUST_PROXY_HEADERS === 'true',
     trustedProxies: parseCsv(env.PARRY_TRUSTED_PROXIES || env.PARRY_ADMIN_TRUSTED_PROXIES),
     admin: {
       enabled: adminEnabled,
@@ -68,7 +67,10 @@ function mountCors(app, env) {
       res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
       res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'content-type,x-parry-admin-token,x-request-id');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'content-type,x-parry-admin-token,x-request-id'
+      );
     }
 
     if (req.method === 'OPTIONS') return res.status(204).end();
@@ -116,9 +118,13 @@ function mountRoutes(app, options) {
   });
 
   app.post('/login', (req, res) => {
-    const expectedEmail = String(env.DEMO_USER_EMAIL || 'demo@example.com').trim().toLowerCase();
+    const expectedEmail = String(env.DEMO_USER_EMAIL || 'demo@example.com')
+      .trim()
+      .toLowerCase();
     const expectedPassword = String(env.DEMO_USER_PASSWORD || 'password123');
-    const email = String(req.body.email || req.body.username || '').trim().toLowerCase();
+    const email = String(req.body.email || req.body.username || '')
+      .trim()
+      .toLowerCase();
     const password = String(req.body.password || '');
 
     if (email !== expectedEmail || password !== expectedPassword) {
@@ -144,12 +150,15 @@ function parseCsv(value) {
 }
 
 function buildAdminAuthConfig(env) {
-  const mode = String(env.PARRY_ADMIN_AUTH_MODE || 'token').trim().toLowerCase();
+  const mode = String(env.PARRY_ADMIN_AUTH_MODE || 'token')
+    .trim()
+    .toLowerCase();
 
   if (mode === 'token') {
+    const localToken = env.NODE_ENV === 'production' ? undefined : 'change-me';
     return {
       mode,
-      token: env.PARRY_ADMIN_TOKEN || 'change-me',
+      token: env.PARRY_ADMIN_TOKEN || localToken,
       trustProxyHeaders: env.PARRY_ADMIN_TRUST_PROXY_HEADERS === 'true',
       trustedProxies: parseCsv(env.PARRY_ADMIN_TRUSTED_PROXIES),
     };
