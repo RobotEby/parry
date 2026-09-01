@@ -337,6 +337,9 @@ export interface ParryAdminContext {
 }
 
 export interface AdminRouterOptions {
+  /** Explicitly allows an unauthenticated Admin API outside production. Insecure. */
+  allowInsecureAdminApi?: boolean;
+  /** @deprecated Use allowInsecureAdminApi for explicit local-only anonymous access. */
   requireAuth?: boolean;
   auth?: ((req: Request) => boolean | Promise<boolean>) | AdminAuthConfig;
 }

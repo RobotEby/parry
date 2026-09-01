@@ -2,13 +2,11 @@
 
 const { test } = require('node:test');
 const nodeAssert = require('node:assert/strict');
-
 const { EventEmitter } = require('events');
 const { EventBus, MemoryEventStore, createThreatEvent } = require('../../src/events');
 const { Metrics } = require('../../src/observability');
 const { requireAdminAuth } = require('../../src/admin/auth');
 const { ok, notFound, unauthorized } = require('../../src/admin/response');
-
 
 function assert(description, condition) {
   nodeAssert.ok(condition, description);
@@ -199,8 +197,13 @@ async function runAll() {
       resUnauthorized._body.code === 'ADMIN_UNAUTHORIZED'
   );
 
-  const openAuth = await runAuth(requireAdminAuth({}));
-  assert('Admin auth allows when no auth is required', openAuth.nextCalled);
+  assert(
+    'Admin auth fails closed when no strategy is configured',
+    throws(() => requireAdminAuth({}))
+  );
+
+  const openAuth = await runAuth(requireAdminAuth({ allowInsecureAdminApi: true }));
+  assert('Admin auth permits explicit insecure local access', openAuth.nextCalled);
 
   const requiredWithoutCallback = await runAuth(requireAdminAuth({ requireAuth: true }));
   assert(
@@ -216,3 +219,12 @@ async function runAll() {
 }
 
 test('Observability units', runAll);
+
+function throws(fn) {
+  try {
+    fn();
+    return false;
+  } catch {
+    return true;
+  }
+}

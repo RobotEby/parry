@@ -5,27 +5,59 @@ const { authenticateToken } = require('./strategies/token');
 const { authenticateIpAllowlist } = require('./strategies/ip-allowlist');
 const { authenticateTrustedProxy } = require('./strategies/trusted-proxy');
 const { authenticateCombined } = require('./strategies/combined');
-const { authenticateNone } = require('./strategies/none');
+const { authenticateNone, warnInsecureAdminApi } = require('./strategies/none');
 const { authenticateCloudflareAccess } = require('./strategies/cloudflare-access');
 const { authenticateAlbAuth } = require('./strategies/alb-auth');
+const { validateHeaderName, validateTrustedProxies } = require('../../../config/validate');
+
+const SUPPORTED_MODES = new Set([
+  'token',
+  'ip-allowlist',
+  'trusted-proxy',
+  'cloudflare-access',
+  'alb-auth',
+  'cognito-alb',
+  'combined',
+  'none',
+]);
 
 function requireAdminAuth(options = {}, context = null) {
   if (typeof options.auth === 'function') return createLegacyCallbackMiddleware(options.auth);
 
-  if (options.requireAuth && !options.auth) {
+  const contextAuth = context?.config?.admin?.auth;
+  const authConfig = isAuthConfig(options.auth) ? options.auth : contextAuth;
+  if (authConfig) {
+    return createAdminAuthMiddleware(authConfig, {
+      ...context,
+      admin: context?.config?.admin,
+    });
+  }
+
+  const insecureOptIn =
+    options.allowInsecureAdminApi === true ||
+    options.requireAuth === false ||
+    context?.config?.admin?.allowInsecureAdminApi === true;
+
+  if (insecureOptIn) {
+    return createAdminAuthMiddleware(
+      { mode: 'none', allowInsecureAdminApi: true },
+      { ...context, admin: context?.config?.admin }
+    );
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Admin API requires an authentication strategy in production.');
+  }
+
+  if (options.requireAuth === true) {
     return function missingAuthMiddleware(_req, res) {
       return unauthorized(res);
     };
   }
 
-  const contextAuth = context?.config?.admin?.auth;
-  const authConfig = isAuthConfig(options.auth) ? options.auth : contextAuth;
-  if (!authConfig) return (_req, _res, next) => next();
-
-  return createAdminAuthMiddleware(authConfig, {
-    ...context,
-    admin: context?.config?.admin,
-  });
+  throw new Error(
+    'Admin API requires authentication. Configure auth or explicitly allow insecure local access.'
+  );
 }
 
 function createAdminAuthMiddleware(config, context = {}) {
@@ -67,16 +99,50 @@ async function authenticateAdminRequest(req, config, context = {}) {
 function validateAdminAuthConfig(config, context = {}) {
   const mode = normalizeMode(config?.mode);
 
+  if (!SUPPORTED_MODES.has(mode)) {
+    throw new Error(`Unsupported Admin API auth mode: ${mode}`);
+  }
+
   if (mode === 'token' && !hasNonEmptyString(config.token)) {
     throw new Error('Admin API token auth requires a non-empty token.');
+  }
+  if (mode === 'token' && config.header !== undefined) {
+    validateHeaderName(config.header, 'auth.header');
   }
 
   if (mode === 'ip-allowlist' && !hasNonEmptyArray(config.allowedIps)) {
     throw new Error('Admin API ip-allowlist auth requires allowedIps.');
   }
+  if (mode === 'ip-allowlist') validateTrustedProxies(config.allowedIps, 'auth.allowedIps');
 
   if (mode === 'trusted-proxy' && !hasNonEmptyArray(config.trustedProxies)) {
     throw new Error('Admin API trusted-proxy auth requires trustedProxies.');
+  }
+  if (config.trustedProxies !== undefined) {
+    validateTrustedProxies(config.trustedProxies, 'auth.trustedProxies');
+  }
+
+  for (const field of [
+    'proxySharedSecretHeader',
+    'userHeader',
+    'emailHeader',
+    'rolesHeader',
+    'jwtHeader',
+    'dataHeader',
+  ]) {
+    if (config[field] !== undefined) validateHeaderName(config[field], `auth.${field}`);
+  }
+  if (config.requiredHeaders !== undefined) {
+    if (
+      !config.requiredHeaders ||
+      typeof config.requiredHeaders !== 'object' ||
+      Array.isArray(config.requiredHeaders)
+    ) {
+      throw new TypeError('auth.requiredHeaders must be an object');
+    }
+    for (const header of Object.keys(config.requiredHeaders)) {
+      validateHeaderName(header, 'auth.requiredHeaders');
+    }
   }
 
   if (mode === 'cloudflare-access' || mode === 'alb-auth' || mode === 'cognito-alb') {
@@ -101,13 +167,11 @@ function validateAdminAuthConfig(config, context = {}) {
     }
   }
 
-  if (
-    mode === 'none' &&
-    process.env.NODE_ENV === 'production' &&
-    !config.allowInsecureAdminApi &&
-    !context?.admin?.allowInsecureAdminApi
-  ) {
-    throw new Error('Admin API auth mode "none" is not allowed in production.');
+  if (mode === 'none') {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Admin API auth mode "none" is not allowed in production.');
+    }
+    warnInsecureAdminApi();
   }
 }
 
