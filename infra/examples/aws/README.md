@@ -1,6 +1,6 @@
-# Parry AWS Terraform Reference
+# Parry AWS Terraform Example
 
-This Terraform stack is a deployable reference architecture for running a Parry
+This optional Terraform stack is an example architecture for running a Parry
 demo API on AWS behind CloudFront, AWS WAF, an Application Load Balancer, ECS
 Fargate, and ElastiCache Redis.
 
@@ -27,7 +27,7 @@ volumetric DDoS mitigation.
 ## Layout
 
 ```text
-infra/terraform/
+infra/examples/aws/
   environments/dev/      Runnable dev environment
   modules/               Small reusable modules
   main.tf                Composes the modules
@@ -39,7 +39,7 @@ infra/terraform/
 ## Usage
 
 ```bash
-cd infra/terraform/environments/dev
+cd infra/examples/aws/environments/dev
 cp terraform.tfvars.example terraform.tfvars
 ```
 
@@ -79,19 +79,21 @@ pull ECR images, write CloudWatch Logs, read Secrets Manager/SSM values, and
 access the S3 layer storage used by ECR.
 
 CloudFront, WAF, ALB, Fargate, ElastiCache, and CloudWatch can all generate cost
-when applied. Review `docs/aws-cost-notes.md` before running `terraform apply`.
+when applied. Review [deployment guidance](../../../docs/deployment.md) before
+running `terraform apply`.
 
 ## Security Notes
 
 No secrets are committed. Pass existing Secrets Manager or SSM parameter ARNs for
-`PARRY_ADMIN_TOKEN` and optional Redis auth token exposure to the ECS task.
+`PARRY_ADMIN_TOKEN` and optional Redis auth token exposure to the ECS task. When
+no Admin token ARN is supplied, the example explicitly disables the Admin API.
 
 Redis AUTH is disabled by default in the dev example because Redis is private.
 For production, enable in-transit encryption/TLS and AUTH, and protect Terraform
 state with a remote encrypted backend and locking, such as S3 with DynamoDB or
 Terraform Cloud. Do not place Redis tokens in committed tfvars.
 
-See `docs/aws-security-notes.md` for the full security model.
+See the [security model](../../../docs/security-model.md) for application boundaries.
 
 ## GitHub Actions
 
@@ -100,9 +102,9 @@ Terraform validation and plan run through `.github/workflows/terraform-plan.yml`
 The workflow always runs:
 
 ```bash
-terraform fmt -check -recursive infra/terraform
-terraform -chdir=infra/terraform/environments/dev init -backend=false
-terraform -chdir=infra/terraform/environments/dev validate
+terraform fmt -check -recursive infra/examples/aws
+terraform -chdir=infra/examples/aws/environments/dev init -backend=false
+terraform -chdir=infra/examples/aws/environments/dev validate
 ```
 
 When GitHub OIDC variables are configured, the workflow can also run
@@ -115,4 +117,5 @@ Required GitHub variables for AWS-authenticated jobs:
 - `AWS_ROLE_TO_ASSUME`
 - `ECR_REPOSITORY`
 
-See `docs/ci-cd.md` and `docs/github-oidc-aws.md` for the CI/CD and IAM setup.
+See [deployment](../../../docs/deployment.md) and
+[releasing](../../../docs/releasing.md).

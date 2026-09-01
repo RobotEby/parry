@@ -122,8 +122,6 @@ module "observability" {
 
   name_prefix        = local.name_prefix
   log_retention_days = 14
-  enable_alarms      = false
-  sns_topic_arn      = ""
   tags               = local.common_tags
 }
 

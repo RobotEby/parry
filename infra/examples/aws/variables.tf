@@ -121,12 +121,6 @@ variable "waf_rate_limit" {
   default     = 2000
 }
 
-variable "allowed_admin_cidr" {
-  description = "Documented CIDR for admin access policy examples. The Admin API is not exposed by a separate SG in this stack."
-  type        = string
-  default     = ""
-}
-
 variable "tags" {
   description = "Additional tags applied to supported resources."
   type        = map(string)

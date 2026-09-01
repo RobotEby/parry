@@ -124,12 +124,6 @@ variable "waf_rate_limit" {
   default     = 2000
 }
 
-variable "allowed_admin_cidr" {
-  description = "Documented admin CIDR placeholder. Admin API is not exposed by a separate security group."
-  type        = string
-  default     = ""
-}
-
 variable "tags" {
   description = "Additional tags."
   type        = map(string)

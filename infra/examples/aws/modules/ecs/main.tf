@@ -125,6 +125,14 @@ resource "aws_ecs_task_definition" "this" {
           value = "recommended"
         },
         {
+          name  = "PARRY_ADMIN_ENABLED"
+          value = var.parry_admin_token_secret_arn != "" ? "true" : "false"
+        },
+        {
+          name  = "PARRY_ADMIN_AUTH_MODE"
+          value = "token"
+        },
+        {
           name  = "REDIS_URL"
           value = "rediss://${var.redis_endpoint}:6379"
         },

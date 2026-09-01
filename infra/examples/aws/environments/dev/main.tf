@@ -27,6 +27,5 @@ module "parry" {
   parry_admin_token_secret_arn = var.parry_admin_token_secret_arn
   enable_waf_count_mode        = var.enable_waf_count_mode
   waf_rate_limit               = var.waf_rate_limit
-  allowed_admin_cidr           = var.allowed_admin_cidr
   tags                         = var.tags
 }

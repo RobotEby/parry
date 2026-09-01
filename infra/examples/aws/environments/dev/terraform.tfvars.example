@@ -40,8 +40,6 @@ redis_auth_token_secret_arn  = ""
 # Terraform state with remote encrypted storage and locking.
 # redis_auth_token = "do-not-commit-real-values"
 
-allowed_admin_cidr = ""
-
 tags = {
   Owner = "security-demo"
 }
