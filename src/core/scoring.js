@@ -12,7 +12,11 @@ const THREAT_SEVERITY = {
 
 function severityForThreats(threats) {
   if (!threats || threats.length === 0) return 'none';
-  return THREAT_SEVERITY[threats[0].detector] || 'medium';
+  const rank = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
+  return threats.reduce((highest, threat) => {
+    const severity = threat.severity || THREAT_SEVERITY[threat.detector] || 'medium';
+    return rank[severity] > rank[highest] ? severity : highest;
+  }, 'none');
 }
 
 module.exports = { severityForThreats };

@@ -4,7 +4,15 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createParry, createParryAdminRouter } = require('../../src');
 const { createAdminAuthMiddleware } = require('../../src/admin/auth');
+const {
+  analyzeRequest,
+  deduplicateThreats,
+  scanApplicationLayerGuards,
+} = require('../../src/core/engine');
+const { severityForThreats } = require('../../src/core/scoring');
 const { resolveClientIP } = require('../../src/express/ip-resolver');
+const { mergeConfig } = require('../../src/express/middleware');
+const { collectRequestTargets } = require('../../src/express/request-targets');
 
 function request(overrides = {}) {
   return {
@@ -68,6 +76,116 @@ test('Admin token must be non-empty and JWT verification is never simulated', ()
         verifyJwt: true,
       }),
     /does not implement cryptographic JWT\/JWKS verification/i
+  );
+});
+
+test('NoSQL suspicious operators are allowlisted only at an exact parent path', () => {
+  const config = mergeConfig({
+    rateLimit: false,
+    nosql: { allowedOperators: { 'body.filters.price': ['$gt'] } },
+  });
+  const allowed = scanApplicationLayerGuards(
+    request({ body: { filters: { price: { $gt: 10 } } } }),
+    config
+  );
+  assert.equal(
+    allowed.some((finding) => finding.detector === 'NOSQL_INJECTION'),
+    false
+  );
+
+  const denied = scanApplicationLayerGuards(
+    request({ body: { filters: { discount: { $gt: 10 } } } }),
+    config
+  );
+  assert.equal(
+    denied.find((finding) => finding.detector === 'NOSQL_INJECTION')?.field,
+    'body.filters.discount.$gt'
+  );
+});
+
+test('Dangerous NoSQL operators can never be allowlisted', () => {
+  for (const operator of ['$where', '$expr', '$function', '$accumulator']) {
+    assert.throws(
+      () =>
+        mergeConfig({
+          nosql: { allowedOperators: { 'body.filters': [operator] } },
+        }),
+      /can never be allowlisted/i
+    );
+  }
+});
+
+test('Allowed NoSQL parents do not hide unauthorized nested objects', () => {
+  const config = mergeConfig({
+    rateLimit: false,
+    nosql: { allowedOperators: { 'body.filters': ['$or'] } },
+  });
+  const findings = scanApplicationLayerGuards(
+    request({ body: { filters: { $or: [{ price: { $gt: 10 } }] } } }),
+    config
+  );
+  assert.match(
+    findings.find((finding) => finding.detector === 'NOSQL_INJECTION')?.field || '',
+    /price\.\$gt$/
+  );
+});
+
+test('Header selection is normalized, deduplicated, and configurable', () => {
+  const config = mergeConfig({ headers: { scan: ['X-Custom', 'x-custom', 'REFERER'] } });
+  assert.deepEqual(config.headers.scan, ['x-custom', 'referer']);
+  const targets = collectRequestTargets(
+    request({ headers: { 'X-Custom': '<script>alert(1)</script>', referer: 'safe' } }),
+    config
+  );
+  assert.deepEqual(
+    targets.map((target) => target.label),
+    ['header.x-custom', 'header.referer']
+  );
+  assert.equal(collectRequestTargets(request(), mergeConfig({ headers: { scan: [] } })).length, 0);
+});
+
+test('Scalar target collection serializes leaves once and skips whole objects', () => {
+  const targets = collectRequestTargets(
+    request({ body: { profile: { name: 'Ada', active: true }, tags: ['one', 'two'] } }),
+    mergeConfig({ headers: { scan: [] } })
+  );
+  assert.deepEqual(
+    targets.map(({ label, stringValue }) => [label, stringValue]),
+    [
+      ['body.profile.name', 'Ada'],
+      ['body.profile.active', 'true'],
+      ['body.tags[0]', 'one'],
+      ['body.tags[1]', 'two'],
+    ]
+  );
+});
+
+test('Shape violations short-circuit all heavier scans', async () => {
+  const config = mergeConfig({
+    rateLimit: false,
+    requestShape: { maxStringLength: 4 },
+  });
+  const decision = await analyzeRequest(request({ body: { payload: "' OR 1=1 --" } }), {
+    config,
+    rateLimiter: null,
+    logger: null,
+  });
+  assert.deepEqual(
+    decision.threats.map((finding) => finding.detector),
+    ['REQUEST_SHAPE']
+  );
+});
+
+test('Findings are deduplicated by detector, field, pattern, and reason', () => {
+  const finding = { detector: 'XSS', field: 'body.name', pattern: '/script/i' };
+  assert.deepEqual(deduplicateThreats([finding, { ...finding }]), [finding]);
+  assert.equal(deduplicateThreats([finding, { ...finding, field: 'body.other' }]).length, 2);
+});
+
+test('Aggregate severity uses the most severe finding', () => {
+  assert.equal(
+    severityForThreats([{ detector: 'REQUEST_SHAPE' }, { detector: 'SQL_INJECTION' }]),
+    'high'
   );
 });
 

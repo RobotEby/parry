@@ -5,8 +5,13 @@ export interface ParryOptions {
   sql?: boolean;
   /** Enables XSS detection. Default: true */
   xss?: boolean;
-  /** Enables NoSQL injection detection. Default: true */
-  nosql?: boolean;
+  /** Enables NoSQL injection detection and exact-path operator allowlists. Default: true */
+  nosql?:
+    | boolean
+    | {
+        enabled?: boolean;
+        allowedOperators?: Record<string, string[]>;
+      };
   /** HTTP Parameter Pollution protection. Default: disabled */
   hpp?: {
     enabled?: boolean;
@@ -74,6 +79,10 @@ export interface ParryOptions {
   trustProxyHeaders?: boolean;
   /** Proxy IPs or CIDRs allowed to provide forwarded client IP headers. */
   trustedProxies?: string[];
+  /** Scalar request headers scanned by SQLi/XSS/path detectors. Use [] to disable. */
+  headers?: {
+    scan?: string[];
+  };
   /** Emits extra internal observability events where supported. Default: false */
   debug?: boolean;
   /** Suspicious attempts before temporary ban. Default: 5 */
@@ -497,7 +506,16 @@ export declare const SQLInjectionDetector: {
   scan(value: string): string | null;
 };
 export declare const XSSDetector: { scan(value: string): string | null };
-export declare const NoSQLDetector: { scan(value: unknown): string | null };
+export declare const NoSQLDetector: {
+  scan(
+    value: unknown,
+    options?: { rootPath?: string; allowedOperators?: Record<string, string[]> }
+  ): string | null;
+  inspect(
+    value: unknown,
+    options?: { rootPath?: string; allowedOperators?: Record<string, string[]> }
+  ): { pattern: string; path: string } | null;
+};
 export declare const HPPDetector: {
   scan(
     query: unknown,

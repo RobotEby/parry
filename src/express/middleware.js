@@ -1,7 +1,11 @@
 'use strict';
 
 const { DEFAULTS } = require('../../config/defaults');
-const { validateParryOptions } = require('../../config/validate');
+const {
+  normalizeHeadersConfig,
+  normalizeNoSQLConfig,
+  validateParryOptions,
+} = require('../../config/validate');
 const { analyzeRequest } = require('../core/engine');
 const { RateLimiter } = require('../rate-limit/limiter');
 const { ThreatLogger } = require('../logger/console-reporter');
@@ -17,7 +21,6 @@ const {
   observeAuthenticationResult,
 } = require('../brute-force');
 const { resolveClientIP } = require('./ip-resolver');
-const { collectRequestTargets } = require('./request-targets');
 const { setRateLimitHeaders, respond } = require('./response');
 
 /**
@@ -103,7 +106,6 @@ async function handleRequest(req, res, next, context) {
     query: req.query || {},
     params: req.params || {},
     body: req.body,
-    targets: collectRequestTargets(req, config.maxObjectDepth),
     requestId,
     userAgent: getHeader(req.headers || {}, 'user-agent'),
   };
@@ -201,6 +203,9 @@ function mergeConfig(options) {
   config.storeFailureMode =
     options.storeFailureMode === 'fail-closed' ? 'fail-closed' : 'fail-open';
   config.policies = buildPolicies(options);
+  config.headers = normalizeHeadersConfig(options.headers);
+  config.nosqlConfig = normalizeNoSQLConfig(options.nosql);
+  config.nosql = config.nosqlConfig.enabled;
   config.bruteForce =
     options.bruteForce === false
       ? false
