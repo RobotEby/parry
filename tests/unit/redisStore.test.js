@@ -1,18 +1,11 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { RedisStore } = require('../../src/stores');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 class FakeRedisClient {
@@ -144,7 +137,10 @@ async function runAll() {
   );
   assert('isBanned reads active ban', (await store.isBanned('10.0.0.2')).banned);
   const listedBans = await store.listBans();
-  assert('listBans returns indexed active ban', listedBans.some((entry) => entry.key === '10.0.0.2'));
+  assert(
+    'listBans returns indexed active ban',
+    listedBans.some((entry) => entry.key === '10.0.0.2')
+  );
   assert(
     'listBans uses Redis Set index without KEYS',
     client.calls.some((call) => call[0] === 'sScan' && call[1] === 'parry-test:index:bans') &&
@@ -161,21 +157,36 @@ async function runAll() {
     client.calls.some((call) => call[0] === 'eval' && call[1] === 'parry-test:suspicious:10.0.0.3')
   );
 
-  const counter = await store.incrementCounter('bf:auth-login:ip:10.0.0.4', 1_000, { reason: 'test' });
+  const counter = await store.incrementCounter('bf:auth-login:ip:10.0.0.4', 1_000, {
+    reason: 'test',
+  });
   assert('incrementCounter increments generic counter', counter.count === 1);
   assert(
     'incrementCounter uses namespaced generic key',
-    client.calls.some((call) => call[0] === 'eval' && call[1] === 'parry-test:bf:auth-login:ip:10.0.0.4:count')
+    client.calls.some(
+      (call) => call[0] === 'eval' && call[1] === 'parry-test:bf:auth-login:ip:10.0.0.4:count'
+    )
   );
-  assert('getCounter reads generic counter', (await store.getCounter('bf:auth-login:ip:10.0.0.4')).count === 1);
+  assert(
+    'getCounter reads generic counter',
+    (await store.getCounter('bf:auth-login:ip:10.0.0.4')).count === 1
+  );
   await store.resetCounter('bf:auth-login:ip:10.0.0.4');
-  assert('resetCounter removes generic counter', (await store.getCounter('bf:auth-login:ip:10.0.0.4')).count === 0);
+  assert(
+    'resetCounter removes generic counter',
+    (await store.getCounter('bf:auth-login:ip:10.0.0.4')).count === 0
+  );
 
   await store.blockKey('bf:auth-login:ip:10.0.0.5', 1_000, { reason: 'test' });
-  assert('blockKey marks generic key blocked', (await store.isBlocked('bf:auth-login:ip:10.0.0.5')).blocked);
+  assert(
+    'blockKey marks generic key blocked',
+    (await store.isBlocked('bf:auth-login:ip:10.0.0.5')).blocked
+  );
   assert(
     'blockKey uses namespaced block key',
-    client.calls.some((call) => call[0] === 'set' && call[1] === 'parry-test:bf:auth-login:ip:10.0.0.5:block')
+    client.calls.some(
+      (call) => call[0] === 'set' && call[1] === 'parry-test:bf:auth-login:ip:10.0.0.5:block'
+    )
   );
   const listedBlocks = await store.listBlocks();
   assert(
@@ -188,9 +199,10 @@ async function runAll() {
       !client.calls.some((call) => call[0] === 'keys')
   );
   await store.unblockKey('bf:auth-login:ip:10.0.0.5');
-  assert('unblockKey removes generic block', !(await store.isBlocked('bf:auth-login:ip:10.0.0.5')).blocked);
-
-  return { passed, failed };
+  assert(
+    'unblockKey removes generic block',
+    !(await store.isBlocked('bf:auth-login:ip:10.0.0.5')).blocked
+  );
 }
 
-module.exports = runAll();
+test('RedisStore contract', runAll);

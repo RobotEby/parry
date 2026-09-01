@@ -1,19 +1,14 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const http = require('http');
 const { createDemoApp, buildAdminAuthConfig } = require('../../docker/demo-api/app');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 async function runAll() {
@@ -172,8 +167,6 @@ async function runAll() {
   } finally {
     await close(albServer);
   }
-
-  return { passed, failed };
 }
 
 function listen(app) {
@@ -227,4 +220,4 @@ function request(server, method, path, body, headers = {}) {
   });
 }
 
-module.exports = runAll().then(() => ({ passed, failed }));
+test('Demo API integration', runAll);

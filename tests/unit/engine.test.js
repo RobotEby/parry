@@ -1,18 +1,11 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { analyzeRequest } = require('../../src/core/engine');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 async function runAll() {
@@ -62,8 +55,6 @@ async function runAll() {
     'Blocked decision keeps compatible event shape',
     blocked.event?.type === 'THREAT' && blocked.event.threats?.[0]?.field === 'body.username'
   );
-
-  return { passed, failed };
 }
 
-module.exports = runAll();
+test('Core engine', runAll);

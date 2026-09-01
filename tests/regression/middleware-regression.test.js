@@ -1,20 +1,15 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const { createParry } = require('../../src');
 const { DETECTOR_TO_INTERNAL, loadFixtures } = require('../../scripts/payloads/fixture-utils');
 const { mockReq, requestFromFixture, runMiddleware } = require('./fixture-helpers');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 async function runAll() {
@@ -60,8 +55,6 @@ async function runAll() {
     const blocked = await runBruteForceScenario(fixture);
     assert(`Brute force scenario ${fixture.id} matches expected block state`, blocked === fixture.expected.blocked);
   }
-
-  return { passed, failed };
 }
 
 async function runBlockedFixture(fixture) {
@@ -213,4 +206,4 @@ function manualFailureLogin(req, res) {
   return res.status(200).json({ success: false });
 }
 
-module.exports = runAll().then(() => ({ passed, failed }));
+test('Middleware payload regression', runAll);

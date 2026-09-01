@@ -1,18 +1,11 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { MemoryStore } = require('../../src/stores');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function sleep(ms) {
@@ -38,7 +31,10 @@ async function runAll() {
   assert('ban records expiration', ban.banned && ban.banExpiresAt > Date.now());
   assert('ban records creation time', Number.isFinite(ban.createdAt));
   assert('isBanned returns active ban', store.isBanned(key).banned);
-  assert('listBans returns active ban', store.listBans().some((entry) => entry.key === key));
+  assert(
+    'listBans returns active ban',
+    store.listBans().some((entry) => entry.key === key)
+  );
 
   store.unban(key);
   assert('unban removes active ban', !store.isBanned(key).banned);
@@ -54,7 +50,10 @@ async function runAll() {
   const counter = store.incrementCounter('bf:auth:ip:203.0.113.12', 100, { reason: 'test' });
   const counter2 = store.incrementCounter('bf:auth:ip:203.0.113.12', 100, { reason: 'test' });
   assert('Generic counter increments', counter.count === 1 && counter2.count === 2);
-  assert('Generic counter reads active value', store.getCounter('bf:auth:ip:203.0.113.12').count === 2);
+  assert(
+    'Generic counter reads active value',
+    store.getCounter('bf:auth:ip:203.0.113.12').count === 2
+  );
   store.resetCounter('bf:auth:ip:203.0.113.12');
   assert('Generic counter resets', store.getCounter('bf:auth:ip:203.0.113.12').count === 0);
 
@@ -68,8 +67,6 @@ async function runAll() {
   assert('Generic unblock removes block', !store.isBlocked('bf:auth:ip:203.0.113.12').blocked);
 
   store.close();
-
-  return { passed, failed };
 }
 
-module.exports = runAll();
+test('MemoryStore', runAll);

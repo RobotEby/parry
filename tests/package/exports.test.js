@@ -1,20 +1,15 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const fs = require('fs');
 const path = require('path');
 const pkg = require('../../package.json');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function runAll() {
@@ -47,8 +42,6 @@ function runAll() {
       assert(`Export ${subpath} can be required`, loaded !== null && loaded !== undefined);
     }
   }
-
-  return { passed, failed };
 }
 
 function resolveRequireTarget(exportTarget) {
@@ -59,4 +52,4 @@ function resolveRequireTarget(exportTarget) {
   return null;
 }
 
-module.exports = Promise.resolve(runAll());
+test('Package public exports', runAll);

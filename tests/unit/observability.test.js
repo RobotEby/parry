@@ -1,22 +1,17 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const { EventEmitter } = require('events');
 const { EventBus, MemoryEventStore, createThreatEvent } = require('../../src/events');
 const { Metrics } = require('../../src/observability');
 const { requireAdminAuth } = require('../../src/admin/auth');
 const { ok, notFound, unauthorized } = require('../../src/admin/response');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function mockRes() {
@@ -218,8 +213,6 @@ async function runAll() {
 
   const passedCallback = await runAuth(requireAdminAuth({ auth: () => true }));
   assert('Admin auth callback allows when it returns true', passedCallback.nextCalled);
-
-  return { passed, failed };
 }
 
-module.exports = runAll();
+test('Observability units', runAll);

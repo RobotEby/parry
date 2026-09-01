@@ -1,19 +1,14 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const { EventEmitter } = require('events');
 const { createAdminAuthMiddleware, requireAdminAuth } = require('../../src/admin/auth');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function mockReq(overrides = {}) {
@@ -518,8 +513,6 @@ async function runAll() {
   console.log('\n── Admin Auth — Legacy Compatibility ───────────────────────');
   const legacyAuth = await runAuth(requireAdminAuth({ auth: () => true }));
   assert('Legacy auth callback still allows requests', legacyAuth.nextCalled);
-
-  return { passed, failed };
 }
 
 function throws(fn) {
@@ -547,4 +540,4 @@ function toBase64Url(value) {
     .replace(/\//g, '_');
 }
 
-module.exports = runAll().then(() => ({ passed, failed }));
+test('Admin authentication strategies', runAll);

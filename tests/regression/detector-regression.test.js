@@ -1,5 +1,8 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const { DEFAULTS } = require('../../config/defaults');
 const {
   HPPDetector,
@@ -13,17 +16,9 @@ const {
 const { loadFixtures } = require('../../scripts/payloads/fixture-utils');
 const { assignTarget, materializePayload, mockReq } = require('./fixture-helpers');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function runAll() {
@@ -80,8 +75,6 @@ function runAll() {
   for (const fixture of byCategory.benign) {
     assert(`Benign fixture ${fixture.id} is not blocked by direct detectors`, allowsBenignFixture(fixture));
   }
-
-  return { passed, failed };
 }
 
 function buildSurfaces(fixture) {
@@ -112,4 +105,4 @@ function allowsBenignFixture(fixture) {
   return true;
 }
 
-module.exports = Promise.resolve(runAll());
+test('Detector payload regression', runAll);

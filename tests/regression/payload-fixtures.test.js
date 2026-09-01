@@ -1,18 +1,13 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const { getExpectedCounts, loadFixtures, validateFixtures } = require('../../scripts/payloads/fixture-utils');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function runAll() {
@@ -43,8 +38,6 @@ function runAll() {
     'No fixture imports from external reference repository',
     all.every((fixture) => !String(fixture.payload).includes('external/PayloadsAllTheThings'))
   );
-
-  return { passed, failed };
 }
 
-module.exports = Promise.resolve(runAll());
+test('Payload fixture integrity', runAll);

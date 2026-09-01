@@ -1,5 +1,7 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
 const { EventEmitter } = require('events');
 const { MemoryStore } = require('../../src/stores');
 const { normalizePolicy } = require('../../src/policies');
@@ -10,17 +12,8 @@ const {
   observeAuthenticationResult,
 } = require('../../src/brute-force');
 
-let passed = 0,
-  failed = 0;
-
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 function basePolicy(overrides = {}) {
@@ -65,7 +58,14 @@ function mockRes(statusCode = 200) {
   };
 }
 
-function context({ policy = basePolicy(), store = new MemoryStore(), statusCode = 200, config = {}, events = [], req } = {}) {
+function context({
+  policy = basePolicy(),
+  store = new MemoryStore(),
+  statusCode = 200,
+  config = {},
+  events = [],
+  req,
+} = {}) {
   const logger = {
     log(entry) {
       events.push(entry);
@@ -133,7 +133,10 @@ async function runAll() {
   attachParryRequestApi(resetSuccess.req, resetSuccess);
   observeAuthenticationResult(resetSuccess);
   await finish(resetSuccess, 200);
-  assert('Resets on success when resetOnSuccess true', resetStore.getCounter('bf:auth-login:ip:127.0.0.1').count === 0);
+  assert(
+    'Resets on success when resetOnSuccess true',
+    resetStore.getCounter('bf:auth-login:ip:127.0.0.1').count === 0
+  );
 
   const noResetStore = new MemoryStore();
   const noResetPolicy = basePolicy({ resetOnSuccess: false });
@@ -182,7 +185,10 @@ async function runAll() {
   observeAuthenticationResult(noDouble);
   noDouble.req.parry.recordAuthFailure('manual');
   await finish(noDouble, 401);
-  assert('Does not double count manual failure plus status failure', noDoubleStore.getCounter('bf:auth-login:ip:127.0.0.1').count === 1);
+  assert(
+    'Does not double count manual failure plus status failure',
+    noDoubleStore.getCounter('bf:auth-login:ip:127.0.0.1').count === 1
+  );
 
   const events = [];
   const eventCtx = context({
@@ -201,7 +207,9 @@ async function runAll() {
   assert(
     'Generates brute force event and onThreat callback',
     events.some((entry) => entry.type === 'BRUTE_FORCE_ATTEMPT') &&
-      events.some((entry) => entry.type === 'ON_THREAT' && entry.originalType === 'BRUTE_FORCE_ATTEMPT')
+      events.some(
+        (entry) => entry.type === 'ON_THREAT' && entry.originalType === 'BRUTE_FORCE_ATTEMPT'
+      )
   );
 
   const asyncStore = createAsyncStore(new MemoryStore());
@@ -221,14 +229,15 @@ async function runAll() {
   const failClosed = context({ store: failingStore, config: { storeFailureMode: 'fail-closed' } });
   attachParryRequestApi(failClosed.req, failClosed);
   const failClosedResult = await checkBruteForceBlock(failClosed);
-  assert('Store failure fail-closed blocks request', failClosedResult.blocked && failClosedResult.statusCode === 503);
+  assert(
+    'Store failure fail-closed blocks request',
+    failClosedResult.blocked && failClosedResult.statusCode === 503
+  );
 
   const existingReq = mockReq({ traceId: 'abc' });
   const existing = context({ req: existingReq });
   attachParryRequestApi(existing.req, existing);
   assert('Preserves existing req.parry fields', existing.req.parry.traceId === 'abc');
-
-  return { passed, failed };
 }
 
 function createAsyncStore(store) {
@@ -248,4 +257,4 @@ function createAsyncStore(store) {
   };
 }
 
-module.exports = runAll();
+test('Brute force guard', runAll);

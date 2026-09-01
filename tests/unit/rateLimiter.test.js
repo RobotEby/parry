@@ -1,18 +1,13 @@
 'use strict';
 
+const { test } = require('node:test');
+const nodeAssert = require('node:assert/strict');
+
 const { RateLimiter } = require('../../src/core/rateLimiter');
 
-let passed = 0,
-  failed = 0;
 
 function assert(description, condition) {
-  if (condition) {
-    console.log(`  ✓ ${description}`);
-    passed++;
-  } else {
-    console.error(`  ✗ FAILED: ${description}`);
-    failed++;
-  }
+  nodeAssert.ok(condition, description);
 }
 
 async function runAll() {
@@ -127,8 +122,6 @@ async function runAll() {
   );
   assert('Respects existing store ban', (await bannedLimiter.check('10.1.1.3')).banned);
   bannedLimiter.destroy();
-
-  return { passed, failed };
 }
 
-module.exports = runAll();
+test('RateLimiter', runAll);
