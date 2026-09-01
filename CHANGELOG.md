@@ -19,6 +19,8 @@ Versioning for public APIs and documented runtime behavior.
 
 ### Changed
 
+- Raised the minimum supported Node.js version from `>=18` to `>=22`. The package
+  remains CommonJS and keeps Express `^5.2.1` as its peer dependency.
 - Made `createParry` and `ParryOptions` the recommended API names while retaining
   every existing public export and the deprecated `Parry_DDoS`/
   `Parry_DDoSOptions` aliases.
@@ -27,21 +29,21 @@ Versioning for public APIs and documented runtime behavior.
   removed, and aggregate severity uses the most severe finding.
 - Resolved trusted proxy chains from right to left and changed generated request
   IDs to `req_${crypto.randomUUID()}`.
-- Migrated tests to `node:test`/`node:assert`, ESLint 9 flat configuration, full
-  Prettier checks, Node 18/20/22/24 CI, OIDC-only npm publishing, and an optional
+- Migrated tests to `node:test`/`node:assert`, ESLint flat configuration, full
+  Prettier checks, GitHub Actions npm publishing with provenance, and an optional
   Terraform example under `infra/examples/aws`.
 - Updated repository metadata and links to `RobotEby/parry`.
 
 ### Security
 
-- **Intentional breaking behavior:** `createParryAdminRouter` no longer permits
+- **Breaking change:** `createParryAdminRouter` no longer permits
   anonymous access by default. It fails during construction unless real auth is
   configured or insecure access is explicitly selected outside production.
 - In production, `allowInsecureAdminApi`, `auth.mode: "none"`, and legacy
   `requireAuth: false` are always rejected. Empty tokens and invalid IP/CIDR
   boundaries are rejected, and `verifyJwt: true` continues to fail explicitly.
 - Removed stale monitor-only fixtures for Command Injection and SSRF because
-  Parry 1.x does not implement those detectors.
+  Parry does not implement those detectors.
 
 ## [1.1.1] - 2026-07-02
 
