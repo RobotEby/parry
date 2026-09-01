@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('node:crypto');
+
 const { DEFAULTS } = require('../../config/defaults');
 const {
   normalizeHeadersConfig,
@@ -374,7 +376,7 @@ function resolveRequestId(req, res, config) {
 }
 
 function createRequestId() {
-  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return `req_${crypto.randomUUID()}`;
 }
 
 function getHeader(headers, name) {

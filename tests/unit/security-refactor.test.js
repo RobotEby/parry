@@ -29,6 +29,23 @@ function request(overrides = {}) {
   };
 }
 
+function response() {
+  return {
+    headers: {},
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+    setHeader(name, value) {
+      this.headers[name] = value;
+    },
+  };
+}
+
 test('Admin router fails closed without authentication', () => {
   const parry = createParry({ rateLimit: false, logThreats: false });
   assert.throws(() => createParryAdminRouter(parry), /requires authentication/i);
@@ -187,6 +204,26 @@ test('Aggregate severity uses the most severe finding', () => {
     severityForThreats([{ detector: 'REQUEST_SHAPE' }, { detector: 'SQL_INJECTION' }]),
     'high'
   );
+});
+
+test('Request IDs use crypto.randomUUID and preserve configured input headers', async () => {
+  const parry = createParry({
+    rateLimit: false,
+    logThreats: false,
+    requestId: { responseHeader: 'x-parry-request-id' },
+  });
+  const generated = request();
+  const generatedResponse = response();
+  await parry.middleware()(generated, generatedResponse, () => {});
+  assert.match(
+    generated.parry.requestId,
+    /^req_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  );
+  assert.equal(generatedResponse.headers['x-parry-request-id'], generated.parry.requestId);
+
+  const preserved = request({ headers: { 'x-request-id': 'upstream-id' } });
+  await parry.middleware()(preserved, response(), () => {});
+  assert.equal(preserved.parry.requestId, 'upstream-id');
 });
 
 test('Forwarded headers are ignored from an untrusted direct peer', () => {
