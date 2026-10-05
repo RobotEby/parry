@@ -15,13 +15,15 @@ npm run format:check
 npm test
 npm run test:unit
 npm run test:integration
+npm run test:coverage
+npm run docs:check-versions
 npm run test:types
 npm run test:fixtures
 npm run test:payload-regression
 npm run package:check
 npm run package:dry-run
 npm audit --omit=dev
-GITHUB_REF_NAME=v2.0.0 npm run package:check-tag
+GITHUB_REF_NAME=v2.0.1 npm run package:check-tag
 docker build -f docker/demo-api/Dockerfile -t parry-demo-api .
 docker compose config
 terraform fmt -check -recursive infra/examples/aws
@@ -69,3 +71,23 @@ Package tests validate root and advanced subpath exports, their type maps, npm's
 files allowlist, and removed internal files. They also build a real tarball,
 unpack it into a temporary directory, and require the root and a subpath from
 that isolated location.
+
+## Coverage
+
+`npm run test:coverage` runs the full suite with Node's built-in coverage and
+fails if aggregate coverage of `src/`, `config/` and `constants/` drops below
+the floors set in `package.json` (`--test-coverage-lines`, `-branches`,
+`-functions`). Test files are excluded from the measurement. CI runs it in the
+quality job.
+
+The floors are deliberately conservative starting points, not targets: raise
+them (never lower them) as coverage grows, using the numbers printed in the CI
+log.
+
+## Documented versions
+
+`npm run docs:check-versions` fails when a version written in the README or
+`docs/` (`@roboteby/parry@X.Y.Z`, `GITHUB_REF_NAME=vX.Y.Z`, `Parry X.Y.Z`, the
+supported-version line in `SECURITY.md`) or in `package-lock.json` differs from
+`package.json`. Bump those together with the package version when releasing.
+It also warns when `CHANGELOG.md` has no section for the current version.

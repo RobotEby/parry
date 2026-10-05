@@ -6,7 +6,7 @@ source of truth, tags use `v<version>`, and every unreleased change belongs unde
 
 ## Current channels
 
-- `@roboteby/parry@2.0.0` is stable on `latest`.
+- `@roboteby/parry@2.0.1` is stable on `latest`.
 - `@roboteby/parry@1.1.0-rc.1` remains on `rc`.
 
 The publish workflow maps stable versions to `latest`, `-rc.N` to `rc`, beta to
@@ -18,7 +18,7 @@ Run the complete command set in [testing](./testing.md). In particular, validate
 the exact tag with:
 
 ```bash
-GITHUB_REF_NAME=v2.0.0 npm run package:check-tag
+GITHUB_REF_NAME=v2.0.1 npm run package:check-tag
 ```
 
 `package:check` validates repository metadata, npm's files allowlist, exported

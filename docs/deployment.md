@@ -2,7 +2,7 @@
 
 ## Node.js
 
-Parry 2.0.0 requires Node `>=22` and Express `^5.2.1`. CI covers Node 22 and 24.
+Parry 2.0.1 requires Node `>=22` and Express `^5.2.1`. CI covers Node 22 and 24.
 The package remains CommonJS.
 
 Install reproducibly with `npm ci`. Keep Express body-size limits at or below the
