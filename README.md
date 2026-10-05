@@ -7,7 +7,7 @@
 Application-layer security middleware for Express that combines abuse detection,
 request guards, rate limiting, brute-force protection and security observability.
 
-The current stable release is `@roboteby/parry@2.0.0` on the npm `latest`
+The current stable release is `@roboteby/parry@2.0.1` on the npm `latest`
 dist-tag.
 
 ## Install

@@ -1,6 +1,6 @@
 # Architecture
 
-Parry 2.0.0 is CommonJS. `src/index.js` is the compatibility surface; the
+Parry 2.0.1 is CommonJS. `src/index.js` is the compatibility surface; the
 implementation is split by responsibility:
 
 ```text
